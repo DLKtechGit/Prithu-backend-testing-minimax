@@ -7,6 +7,7 @@ import ProfilePostData from '../profile/ProfilePostData';
 import Sharebtn from '../../components/button/Sharebtn';
 import Followbtn from '../../components/button/Followbtn';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Search = ({ navigation } : any) => {
   const theme = useTheme();
@@ -18,7 +19,14 @@ const Search = ({ navigation } : any) => {
   // Fetch posts from API
   const fetchPosts = async () => {
     try {
-      const res = await axios.get('http://192.168.1.14:5000/api/all/feeds');
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        console.warn('No token found in storage');
+        return;
+      }
+      const res = await axios.get('http://192.168.1.77:5000/api/get/all/feeds/user', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const feeds = res.data.feeds || [];
       const imageFeeds = feeds
   .filter((item: any) => item.type === 'image')

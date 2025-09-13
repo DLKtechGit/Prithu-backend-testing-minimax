@@ -83,6 +83,9 @@ export const FONTS = {
 }
 
 export const IMAGES = {
+    badge:require('../assets/images/icons/badge.png'),
+    pricing:require('../assets/images/icons/pricing.png'),
+    tabs:require('../assets/images/icons/tabs.png'),
     logo: require('../assets/images/4.png'),
     logo2: require('../assets/images/logooss.png'),
     logo3: require('../assets/images/logo3.png'),

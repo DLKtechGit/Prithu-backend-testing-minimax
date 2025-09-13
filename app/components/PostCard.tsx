@@ -32,6 +32,8 @@ import CommentSheet from '../screens/comment/CommentSheet';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import * as Haptics from 'expo-haptics'; // Add this
+
 
 
 const PostCard = ({ id, name, profileimage, date, postimage, like, comment, posttitle, posttag, sheetRef, optionSheet, hasStory, reelsvideo, caption, background, visibleBoxes,setSelectedPostId, }: any) => {
@@ -95,7 +97,7 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
 
 
-            const res = await fetch('http://192.168.1.14:5000/api/get/profile/detail', {
+            const res = await fetch('http://192.168.1.77:5000/api/get/profile/detail', {
 
                 method: 'GET',
 
@@ -197,8 +199,10 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
     const endpoint =
       accountType === 'Personal'
-        ? 'http://192.168.1.14:5000/api/user/feed/like'
-        : 'http://192.168.1.14:5000/api/creator/feed/like';
+        ? 'http://192.168.1.77:5000/api/user/feed/like'
+        : 'http://192.168.1.77:5000/api/creator/feed/like';
+
+    
 
     const res = await fetch(endpoint, {
       method: 'POST',
@@ -210,6 +214,7 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
     });
 
     const data = await res.json();
+    console.log(data)
     if (!res.ok) {
       // revert if failed
       setIsLiked(!newLikeState);
@@ -379,17 +384,14 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
                 <View style={{ flexDirection: 'row' }}>
 
-<TouchableOpacity
-//   onPress={() => {
-//     setSelectedPostId?.(id); // sheet will open automatically in useEffect
-//     console.log("worked")
-//   }}
->
-  <Image
-    style={{ width: 18, height: 18, margin: 10, tintColor: colors.title }}
-    source={IMAGES.more}
-  />
-</TouchableOpacity>
+  <TouchableOpacity
+                        onPress={() => optionSheet.current.openSheet()}
+                    >
+                        <Image
+                            style={{ width: 18, height: 18, margin: 10, tintColor: colors.title, }}
+                            source={IMAGES.more}
+                        />
+                    </TouchableOpacity>
 
 
                 </View>
@@ -610,84 +612,50 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
 
 
-                                        {/* ✅ Profile avatar + Display Name */}
+                                       {/* ✅ Profile avatar (bottom-left) */}
+{/* ✅ Profile avatar (bottom-left) */}
+<Image
+  source={
+    profile.profileAvatar
+      ? { uri: profile.profileAvatar }
+      : IMAGES.profile
+  }
+  style={{
+    position: "absolute",
+    bottom: 48,
+    left: 20,
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: "#fff",
+  }}
+/>
 
-                                        <View
-
-                                            style={{
-
-                                                position: "absolute",
-
-                                                bottom: 15,
-
-                                                left: 20,
-
-                                                flexDirection: "row",
-
-                                                alignItems: "center",
-
-                                                backgroundColor: "rgba(0,0,0,0.4)", // translucent bg for contrast
-
-                                                paddingHorizontal: 10,
-
-                                                paddingVertical: 6,
-
-                                                borderRadius: 30,
-
-                                            }}
-
-                                        >
-
-                                            <Image
-
-                                                source={
-
-                                                    profile.profileAvatar
-
-                                                        ? { uri: profile.profileAvatar }
-
-                                                        : IMAGES.profile
-
-                                                }
-
-                                                style={{
-
-                                                    width: 70,
-
-                                                    height: 70,
-
-                                                    borderRadius: 50,
-
-                                                    borderWidth: 2,
-
-                                                    borderColor: "#fff",
-
-                                                    marginRight: 10,
-
-                                                }}
-
-                                            />
-
-                                            <Text
-
-                                                style={{
-
-                                                    fontSize: 16,
-
-                                                    fontWeight: "bold",
-
-                                                    color: "#fff", // always white text
-
-                                                }}
-
-                                            >
-
-                                                {profile.displayName}
-
-                                            </Text>
-
-                                        </View>
-
+{/* ✅ Profile name bar (full width at bottom) */}
+<View
+  style={{
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    width: "100%",             // full width of post
+    backgroundColor: "#d2a904ff",   // white background
+    paddingVertical: 5,
+    alignItems: "center",      // center text horizontally
+  }}
+>
+  <Text
+    style={{
+      fontSize: 16,
+      fontWeight: "bold",
+      color: "#fff",            // black text
+    }}
+    numberOfLines={1}           // optional: keep single line
+    ellipsizeMode="tail"
+  >
+    {profile.displayName}
+  </Text>
+</View>
                                     </View>
 
                                 );
@@ -727,32 +695,25 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
 
 
-                        <TouchableOpacity
-
-                            onPress={() => commentSheetRef.current?.openSheet(id)} >
-
-                            {/* <TouchableOpacity onPress={() => commentSheetRef.current?.openSheet()}></TouchableOpacity> */}
-
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-
-                                <Image
-
-                                    style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: colors.title }}
-
-                                    source={IMAGES.comment}
-
-                                />
-
-                                {/* <BottomSheetComments ref={commentSheetRef} /> */}
-
-
-
-                                {/* <Text style={[GlobalStyleSheet.postlike, { color: colors.title }]}>{comment}</Text> */}
-
-                            </View>
-
-                        </TouchableOpacity>
-
+                      
+<TouchableOpacity
+  onPress={async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // Optional haptic
+      navigation.navigate('Comments', { feedId: id }); // Pass feedId
+    } catch (error) {
+      console.log('Haptic error:', error);
+      navigation.navigate('Comments', { feedId: id });
+    }
+  }}
+>
+  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <Image
+      style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: colors.title }}
+      source={IMAGES.comment}
+    />
+  </View>
+</TouchableOpacity>
                         <TouchableOpacity
 
                             onPress={async () => {
@@ -939,8 +900,8 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
                                     // pick endpoint based on role
                                     const endpoint =
                                         accountType === 'Personal'
-                                            ? 'http://192.168.1.14:5000/api/user/feed/save'
-                                            : 'http://192.168.1.14:5000/api/creator/feed/save';
+                                            ? 'http://192.168.1.77:5000/api/user/feed/save'
+                                            : 'http://192.168.1.77:5000/api/creator/feed/save';
 
                                     const res = await fetch(endpoint, {
                                         method: 'POST',
@@ -1015,7 +976,7 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
             </View>
 
-            <CommentSheet ref={commentSheetRef} /> 
+            {/* <CommentSheet ref={commentSheetRef} />  */}
 
         </View>
 

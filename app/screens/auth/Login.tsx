@@ -36,7 +36,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
     setLoading(true);
 
     try {
-      const res = await fetch("http://192.168.1.14:5000/api/auth/user/login", {
+      const res = await fetch("http://192.168.1.77:5000/api/auth/user/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: email, password })

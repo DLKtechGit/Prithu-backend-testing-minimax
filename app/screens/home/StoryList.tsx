@@ -22,7 +22,7 @@ const StoryList = () => {
           return;
         }
 
-        const res = await fetch(`http://192.168.1.14:5000/api/get/profile/detail`, {
+        const res = await fetch(`http://192.168.1.77:5000/api/get/profile/detail`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,

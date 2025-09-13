@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // <-- add this
 
 const { width } = Dimensions.get("window");
 const ITEM_PER_ROW = 4;
@@ -16,35 +17,40 @@ const SPACING = 6;
 const itemWidth =
   ((width - SPACING * (ITEM_PER_ROW + 1)) / ITEM_PER_ROW) * 0.85;
 
-const Categories: React.FC = () => {
+const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSelectCategory }) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetch(
-          "http://192.168.1.14:5000/api/get/content/catagories"
-        );
+        // get token from AsyncStorage
+        const token = await AsyncStorage.getItem("userToken");
+
+        const res = await fetch("http://192.168.1.77:5000/api/get/content/catagories", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "", // send token here
+          },
+        });
 
         const data = await res.json();
-        console.log("Categories API Response:", data);
+        console.log(data);
 
-       if (Array.isArray(data.categories)) {
-  const safeCategories = data.categories.map((cat: any, index: number) => ({
-    _id: cat._id || cat.categoryId || index, // fallback if missing
-    name: cat.name || cat.categoriesName || "Unnamed", // pick whichever exists
-  }));
-
-  setCategories(safeCategories);
-}
+        if (Array.isArray(data.categories)) {
+          const safeCategories = data.categories.map((cat: any, index: number) => ({
+            _id: cat._id || index,
+            name: cat.name || "Unnamed",
+          }));
+          setCategories(safeCategories);
+        }
       } catch (err) {
         console.error("Error fetching categories:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchCategories();
   }, []);
 
@@ -52,14 +58,8 @@ const Categories: React.FC = () => {
     <View style={styles.container}>
       {loading ? (
         <ActivityIndicator size="small" color="green" />
-      ) : categories.length === 0 ? (
-        <Text style={styles.emptyText}>No categories found</Text>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {categories.map((cat, id) => (
             <LinearGradient
               key={cat._id || id}
@@ -68,7 +68,7 @@ const Categories: React.FC = () => {
               end={{ x: 1, y: 1 }}
               style={[styles.gradient, { width: itemWidth }]}
             >
-              <TouchableOpacity style={styles.item}>
+              <TouchableOpacity style={styles.item} onPress={() => onSelectCategory(cat._id)}>
                 <Text style={styles.text}>{cat.name}</Text>
               </TouchableOpacity>
             </LinearGradient>
@@ -96,10 +96,10 @@ const styles = StyleSheet.create({
   gradient: {
     borderRadius: 12,
     marginRight: SPACING,
-    padding: 2, // Gradient border thickness
+    padding: 2,
   },
   item: {
-    backgroundColor: "#fff", // Inner background
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 6,

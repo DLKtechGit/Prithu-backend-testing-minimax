@@ -13,104 +13,6 @@ import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
-
-
-// const data = [
-//   {
-//     id: '1',
-//     image: IMAGES.profilepic2,
-//     like: '164',
-//   },
-//   {
-//     id: '2',
-//     image: IMAGES.profilepic15,
-//     like: '132',
-//   },
-//   {
-//     id: '3',
-//     image: IMAGES.profilepic16,
-//     like: '30',
-//   },
-//   {
-//     id: '4',
-//     image: IMAGES.profilepic17,
-//     like: '154',
-//   },
-//   {
-//     id: '5',
-//     image: IMAGES.profilepic18,
-//     like: '100',
-//   },
-//   {
-//     id: '6',
-//     image: IMAGES.profilepic4,
-//     like: '1K',
-//   },
-//   {
-//     id: '7',
-//     image: IMAGES.profilepic10,
-//     like: '164',
-//   },
-//   {
-//     id: '8',
-//     image: IMAGES.profilepic11,
-//     like: '132',
-//   },
-//   {
-//     id: '9',
-//     image: IMAGES.profilepic12,
-//     like: '30',
-//   },
-//   {
-//     id: '10',
-//     image: IMAGES.profilepic13,
-//     like: '154',
-//   },
-//   {
-//     id: '11',
-//     image: IMAGES.profilepic14,
-//     like: '100',
-//   },
-//   {
-//     id: '12',
-//     image: IMAGES.profilepic1,
-//     like: '1K',
-//   }
-// ]
-
-// const ReelsData = [
-//   {
-//     id: '1',
-//     image: IMAGES.profilepic19,
-//     like: '164k',
-//   },
-//   {
-//     id: '2',
-//     image: IMAGES.profilepic20,
-//     like: '12k',
-//   },
-//   {
-//     id: '3',
-//     image: IMAGES.profilepic21,
-//     like: '160k',
-//   },
-//   {
-//     id: '4',
-//     image: IMAGES.profilepic22,
-//     like: '134k',
-//   },
-//   {
-//     id: '5',
-//     image: IMAGES.profilepic5,
-//     like: '13k',
-//   },
-//   {
-//     id: '6',
-//     image: IMAGES.profilepic6,
-//     like: '4k',
-//   },
-// ]
-
 type ProfileScreenProps = StackScreenProps<RootStackParamList, 'Profile'>;
 
 const Profile = ({ navigation }: ProfileScreenProps) => {
@@ -153,7 +55,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.14:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.77:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -200,7 +102,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
           return;
         }
 
-        const response = await fetch('http://192.168.1.14:5000/api/creator/getall/feeds', {
+        const response = await fetch('http://192.168.1.77:5000/api/creator/getall/feeds', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -217,7 +119,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
           .filter((feed: any) => feed.type === 'image')
           .map((feed: any) => ({
             id: feed._id,
-            image: { uri: `http://192.168.1.14:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+            image: { uri: `http://192.168.1.77:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
             like: (feed.like ?? 0).toString(),
           }));
 
@@ -226,7 +128,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
           .filter((feed: any) => feed.type === 'video')
           .map((feed: any) => ({
             id: feed._id,
-            image: { uri: `http://192.168.1.14:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+            image: { uri: `http://192.168.1.77:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
             like: (feed.like ?? 0).toString(),
           }));
 
@@ -276,7 +178,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
       }
 
       // Create a proper profile URL (replace with your deployed domain later)
-      const profileUrl = `http://192.168.1.14:5000/profile/${userId}`;
+      const profileUrl = `http://192.168.1.77:5000/profile/${userId}`;
 
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,
@@ -337,7 +239,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => navigation.navigate('EditProfile')}
+                // onPress={() => navigation.navigate('EditProfile')}
                 style={{ position: 'absolute', bottom: 0, right: 0 }}
               >
                 <View style={{ backgroundColor: '#001F50', width: 36, height: 36, borderRadius: 50, alignItems: 'center', justifyContent: 'center' }}>
@@ -404,105 +306,157 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
             />
           </View>
         )}
-
-
-        <View style={{ marginHorizontal: 15 }}>
-          <View
-            style={[
-              GlobalStyleSheet.container,
-              {
-                backgroundColor: theme.dark ? 'rgba(255,255,255,.1)' : '#EFF3FA',
-                padding: 10,
-                marginHorizontal: 20,
-                borderRadius: 6,
-                marginTop: 20
-              }
-            ]}
-          >
-            <Text style={{ ...FONTS.fontXs, lineHeight: 18, color: colors.title }}>{profile.bio}</Text>
-          </View>
-        </View>
-        <View style={GlobalStyleSheet.container}>
-          <View style={{ flexDirection: 'row', marginTop: 10, marginBottom: 0, }}>
-            <TouchableOpacity
-              onPress={() => onPressTouch(0)}
-              style={GlobalStyleSheet.TouchableOpacity2}>
-              <Image
-                style={[{ width: 16, height: 16, tintColor: '#475A77' }, currentIndex == 0 && { tintColor: COLORS.primary }]}
-                source={IMAGES.profilepic}
-              />
-              <Text style={[{ ...FONTS.fontMedium, fontSize: 14, color: '#475A77', marginLeft: 5 }, currentIndex == 0 && { color: COLORS.primary }]}> Post</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => onPressTouch(1)}
-              style={GlobalStyleSheet.TouchableOpacity2}>
-              <Image
-                style={[{ width: 16, height: 16, tintColor: '#475A77' }, currentIndex == 1 && { tintColor: COLORS.primary }]}
-                source={IMAGES.reels}
-              />
-              <Text style={[{ ...FONTS.fontMedium, fontSize: 14, color: '#475A77', marginLeft: 5 }, currentIndex == 1 && { color: COLORS.primary }]}> Reels</Text>
-            </TouchableOpacity>
-            <Animated.View
-              style={{
-                backgroundColor: COLORS.primary,
-                width: '50%',
-                height: 2,
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                transform: [{ translateX: slideIndicator }]
-              }}>
-            </Animated.View>
-          </View>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled
-          scrollEventThrottle={16}
-          ref={scrollRef}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: false }
-          )}
-          onMomentumScrollEnd={(e: any) => {
-            if (e.nativeEvent.contentOffset.x.toFixed(0) == SIZES.width.toFixed(0)) {
-              setCurrentIndex(1)
-            } else if (e.nativeEvent.contentOffset.x.toFixed(0) == 0) {
-              setCurrentIndex(0)
-            } else {
-              setCurrentIndex(0)
-            }
-          }}
-        >
-          <View style={[GlobalStyleSheet.container, { marginTop: 5, width: SIZES.width, padding: 0 }]}>
-            <ProfilePostData navigation={navigation} ProfilepicData={posts} />
-          </View>
-          <View style={[GlobalStyleSheet.container, { marginTop: 5, width: SIZES.width, padding: 0 }]}>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {reels.map((data, index) => (
-                <View key={index} style={{ width: '33.33%', padding: 2 }}>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate("ProfilePost")}   // 👈 only navigate
-                  >
-                    <Image
-                      style={{ width: '100%', height: null, aspectRatio: 1 / 1.8 }}
-                      source={data.image}
-                    />
-                    <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.20)', position: 'absolute', borderRadius: 15, paddingHorizontal: 10, paddingVertical: 3, top: 10, right: 10 }}>
-                      <Image
-                        style={{ width: 12, height: 12, resizeMode: 'contain', tintColor: '#fff' }}
-                        source={IMAGES.eyeopen}
-                      />
-                      <Text style={{ ...FONTS.fontRegular, fontSize: 10, color: COLORS.white, lineHeight: 14 }}>{data.like}</Text>
-                    </View>
-                  </TouchableOpacity>
+        {activeAccountType === "Personal" && (
+          <View style={{ marginHorizontal: 15, marginTop: 20 }}>
+            <Text style={{ ...FONTS.h6, ...FONTS.fontMedium, color: colors.title, fontSize: 18, fontWeight: '600' }}>Account Overview</Text>
+            <View style={{ marginTop: 10, backgroundColor: colors.card, borderRadius: 15, padding: 10 }}>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}
+                onPress={() => navigation.navigate('EditProfile')}>
+                <View style={{ width: 30, height: 30, backgroundColor: '#E0F2FE', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image style={{ width: 20, height: 20, tintColor: '#60A5FA' }} source={IMAGES.user} />
                 </View>
-              ))}
-
+                <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>My Profile</Text>
+                <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.navigate('Friend')}>
+                <View style={{ width: 30, height: 30, backgroundColor: '#D1FAE5', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image style={{ width: 20, height: 20, tintColor: '#34D399' }} source={IMAGES.pricing} />
+                </View>
+                <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Referral Dashboard</Text>
+                <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.navigate('Subcribe')}>
+                <View style={{ width: 30, height: 30, backgroundColor: '#FEE2E2', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image style={{ width: 20, height: 20, tintColor: '#F87171' }} source={IMAGES.badge} />
+                </View>
+                <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Subscription</Text>
+                <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.navigate('Invite')}>
+                <View style={{ width: 30, height: 30, backgroundColor: '#FEF3C7', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image style={{ width: 20, height: 20, tintColor: '#FBBF24' }} source={IMAGES.lock} />
+                </View>
+                <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Invite Friends</Text>
+                <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
+              </TouchableOpacity>
+              {/* <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}>
+        <View style={{ width: 30, height: 30, backgroundColor: '#EDE9FE', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+          <Image style={{ width: 20, height: 20, tintColor: '#A78BFA' }} source={IMAGES.language} />
+        </View>
+        <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Change Language</Text>
+        <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
+      </TouchableOpacity> */}
             </View>
           </View>
-        </ScrollView>
+        )}
+
+        {activeAccountType === "Creator" && (
+          <View style={{ marginHorizontal: 15 }}>
+            <View
+              style={[
+                GlobalStyleSheet.container,
+                {
+                  backgroundColor: theme.dark ? 'rgba(255,255,255,.1)' : '#EFF3FA',
+                  padding: 10,
+                  marginHorizontal: 20,
+                  borderRadius: 6,
+                  marginTop: 20
+                }
+              ]}
+            >
+              <Text style={{ ...FONTS.fontXs, lineHeight: 18, color: colors.title }}>{profile.bio}</Text>
+            </View>
+          </View>
+        )}
+
+
+        {activeAccountType === "Creator" && (
+          <View style={GlobalStyleSheet.container}>
+            <View style={{ flexDirection: 'row', marginTop: 10, marginBottom: 0, }}>
+              <TouchableOpacity
+                onPress={() => onPressTouch(0)}
+                style={GlobalStyleSheet.TouchableOpacity2}>
+                <Image
+                  style={[{ width: 16, height: 16, tintColor: '#475A77' }, currentIndex == 0 && { tintColor: COLORS.primary }]}
+                  source={IMAGES.profilepic}
+                />
+                <Text style={[{ ...FONTS.fontMedium, fontSize: 14, color: '#475A77', marginLeft: 5 }, currentIndex == 0 && { color: COLORS.primary }]}> Post</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => onPressTouch(1)}
+                style={GlobalStyleSheet.TouchableOpacity2}>
+                <Image
+                  style={[{ width: 16, height: 16, tintColor: '#475A77' }, currentIndex == 1 && { tintColor: COLORS.primary }]}
+                  source={IMAGES.reels}
+                />
+                <Text style={[{ ...FONTS.fontMedium, fontSize: 14, color: '#475A77', marginLeft: 5 }, currentIndex == 1 && { color: COLORS.primary }]}> Reels</Text>
+              </TouchableOpacity>
+              <Animated.View
+                style={{
+                  backgroundColor: COLORS.primary,
+                  width: '50%',
+                  height: 2,
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  transform: [{ translateX: slideIndicator }]
+                }}>
+              </Animated.View>
+            </View>
+          </View>
+        )}
+
+        {activeAccountType === "Creator" && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            scrollEventThrottle={16}
+            ref={scrollRef}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: false }
+            )}
+            onMomentumScrollEnd={(e: any) => {
+              if (e.nativeEvent.contentOffset.x.toFixed(0) == SIZES.width.toFixed(0)) {
+                setCurrentIndex(1)
+              } else if (e.nativeEvent.contentOffset.x.toFixed(0) == 0) {
+                setCurrentIndex(0)
+              } else {
+                setCurrentIndex(0)
+              }
+            }}
+          >
+            <View style={[GlobalStyleSheet.container, { marginTop: 5, width: SIZES.width, padding: 0 }]}>
+              <ProfilePostData navigation={navigation} ProfilepicData={posts} />
+            </View>
+            <View style={[GlobalStyleSheet.container, { marginTop: 5, width: SIZES.width, padding: 0 }]}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                {reels.map((data, index) => (
+                  <View key={index} style={{ width: '33.33%', padding: 2 }}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("ProfilePost")}   // 👈 only navigate
+                    >
+                      <Image
+                        style={{ width: '100%', height: null, aspectRatio: 1 / 1.8 }}
+                        source={data.image}
+                      />
+                      <View style={{ flexDirection: 'row', gap: 5, alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.20)', position: 'absolute', borderRadius: 15, paddingHorizontal: 10, paddingVertical: 3, top: 10, right: 10 }}>
+                        <Image
+                          style={{ width: 12, height: 12, resizeMode: 'contain', tintColor: '#fff' }}
+                          source={IMAGES.eyeopen}
+                        />
+                        <Text style={{ ...FONTS.fontRegular, fontSize: 10, color: COLORS.white, lineHeight: 14 }}>{data.like}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+
+              </View>
+            </View>
+          </ScrollView>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   )

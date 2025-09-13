@@ -117,6 +117,7 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
                     onPress: async () => {
                         try {
                             // Clear all stored user data
+                            await AsyncStorage.clear();
                             await AsyncStorage.multiRemove(['userToken','userId',"AppLanguage","FeedLanguage"]);
                             // Navigate to login screen
                             navigation.reset({

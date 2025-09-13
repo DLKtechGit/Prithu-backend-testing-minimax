@@ -7,12 +7,10 @@ import React, {
   useMemo,
   memo,
 } from 'react';
-import { View, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Dimensions, ActivityIndicator, Text } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PostCard from '../../components/PostCard';
-import { ScrollView } from 'react-native';
-import PostoptionSheet from '../../components/bottomsheet/PostoptionSheet';
 
 const { height: windowHeight } = Dimensions.get('window');
 
@@ -33,126 +31,65 @@ const PostList = forwardRef((props: any, ref: any) => {
 
   const boxRefs = useRef<any>({});
 
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const optionSheetRef = useRef(null);
-
-
-  const handleNotInterested = async (postId: string) => {
-  try {
-    const token = await AsyncStorage.getItem("userToken");
-    if (!token) return;
-
-    // 1. Update UI immediately
-    setPosts(prev => prev.filter(post => post._id !== postId));
-
-    // 2. Tell backend
-    await axios.post(
-      "http://192.168.1.14:5000/api/user/not/intrested", // your backend route
-      { feedId: postId },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    console.log("Post marked as not interested:", postId);
-  } catch (error) {
-    console.error("Error marking not interested:", error);
-  }
-};
-
-useEffect(() => {
-  console.log("selectedPostId changed:", selectedPostId);
-  if (selectedPostId && optionSheetRef.current) {
-    console.log("Opening sheet");
-    optionSheetRef.current.openSheet();
-  }
-}, [selectedPostId]);
-
-
-
-
   // ✅ Fetch posts with token
   const fetchPosts = async () => {
-  try {
-    const token = await AsyncStorage.getItem('userToken'); // get token from storage
-    if (!token) {
-      console.warn('No token found, user might not be logged in');
-      return;
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) return;
+
+      const url = props.categoryId
+        ? `http://192.168.1.77:5000/api/all/catagories/${props.categoryId}`
+        : `http://192.168.1.77:5000/api/get/all/feeds/user`;
+
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log(res.data)
+      const feeds = props.categoryId ? res.data.category.feeds : res.data.feeds;
+
+      const mappedFeeds = feeds
+        .map((item: any) => ({
+          _id: item.feedId || item._id,
+          creatorUsername: item.userName,
+          creatorAvatar: item.profileAvatar !== "Unknown" ? item.profileAvatar : null,
+          timeAgo: item.timeAgo,
+          contentUrl: item.contentUrl,
+          caption: item.caption || "",
+          tags: item.tags || [],
+          background: item.background || "#fff",
+          comments: item.comments || [],
+          likesCount: item.likesCount || 0,
+          type: item.type, // Assuming 'type' comes from API (e.g., 'image', 'video')
+        }))
+        // ✅ Filter to only include posts where type === 'image'
+        .filter((item: any) => item.type === 'image');
+
+      setPosts(mappedFeeds);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
     }
+  };
 
-  const res = await axios.get('http://192.168.1.14:5000/api/get/all/feeds/user', {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-});
-    console.log(res)
-    const feeds = res.data.feeds || [];
-    console.log('API response:', res.data);
-
-    // Map backend → frontend shape
-    const mappedFeeds = feeds.map((item: any) => ({
-      _id: item.feedId,  
-      creatorUsername: item.userName,
-      creatorAvatar: item.profileAvatar !== "Unknown" ? item.profileAvatar : null,
-      timeAgo: item.timeAgo,
-      contentUrl: item.contentUrl,
-
-      // engagement details
-      likesCount: item.likesCount || 0,
-      commentsCount: item.commentsCount || 0,
-      viewsCount: item.viewsCount || 0,
-      downloadsCount: item.downloadsCount || 0,
-      shareCount: item.shareCount || 0,
-
-      // states
-      isLiked: item.isLiked || false,
-      isSaved: item.isSaved || false,
-
-      // full comments array is already provided by backend
-      comments: item.comments || [],
-
-      // optional values
-      caption: item.caption || "",
-      tags: item.tags || [],
-      background: item.background || "#fff",
-    }));
-
-    // ✅ filter for only images (if you want separate image feed)
-    const imageFeeds = mappedFeeds.filter((item: any) =>
-      item.contentUrl?.match(/\.(jpg|jpeg|png|gif)$/i)
-    );
-
-    // ✅ or if you want both images + videos, remove this filter
-    setPosts(imageFeeds);
-
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-  }
-};
+  useEffect(() => {
+    fetchPosts();
+  }, [props.categoryId]);
 
 
   // ✅ Expose methods to parent
-useImperativeHandle(ref, () => ({
-  scrollToTop: () => {
-    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-  },
-  refreshPosts: async () => {
-    setRefreshingTop(true);
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await fetchPosts();
-    setRefreshingTop(false);
-  },
-  handleScroll: (e: any) => handleScroll(e),
-  handlePull: (e: any) => {
-    const offsetY = e.nativeEvent.contentOffset.y;
-    if (offsetY < -50 && !refreshingTop) setRefreshingTop(true);
-    if (offsetY >= 0 && refreshingTop) setRefreshingTop(false);
-  },
-}));
+  useImperativeHandle(ref, () => ({
+    refreshPosts: async () => {
+      setRefreshingTop(true);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await fetchPosts();
+      setRefreshingTop(false);
+    },
+    handleScroll: (e: any) => handleScroll(e),
+    handlePull: (e: any) => {
+      const offsetY = e.nativeEvent.contentOffset.y;
+      if (offsetY < -50 && !refreshingTop) setRefreshingTop(true); // show instantly
+      if (offsetY >= 0 && refreshingTop) setRefreshingTop(false); // hide when released
+    },
+  }));
 
   useEffect(() => {
     const loadInitial = async () => {
@@ -202,13 +139,22 @@ useImperativeHandle(ref, () => ({
     );
   }
 
-  return (
+  // ✅ Show message if no image posts
+  if (posts.length === 0) {
+    return (
+      <View
+        style={{
+          height: windowHeight,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Text>No image posts available.</Text>
+      </View>
+    );
+  }
 
-     <ScrollView
-    ref={scrollViewRef} // assign ref
-    onScroll={handleScroll}
-    scrollEventThrottle={16}
-  >
+  return (
     <View>
       {/* Instant pull-down loader */}
       {refreshingTop && (
@@ -235,14 +181,12 @@ useImperativeHandle(ref, () => ({
             profileimage={post.creatorAvatar || null}
             date={post.timeAgo}
             postimage={[{ image: post.contentUrl }]}
-            like={post.likesCount}  
+            like={post.likes?.length || 0}
             comment={post.comments?.length || 0}
             posttitle={post.caption}
             posttag={post.tags?.join(' ')}
             sheetRef={props.sheetRef}
-            // optionSheet={props.optionSheet}
-             optionSheet={optionSheetRef}    
-             setSelectedPostId={setSelectedPostId} //for not instrested section
+            optionSheet={props.optionSheet}
             hasStory={false}
             reelsvideo={null}
             caption={post.caption}
@@ -252,14 +196,6 @@ useImperativeHandle(ref, () => ({
         </View>
       ))}
     </View>
-
-  <PostoptionSheet
-       ref={optionSheetRef}   // ✅ use local ref
-      postId={selectedPostId}
-      onNotInterested={handleNotInterested}
-    />
-
-    </ScrollView>
   );
 });
 

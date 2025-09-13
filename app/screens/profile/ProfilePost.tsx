@@ -239,7 +239,7 @@ const ProfilePost = () => {
       const token = await AsyncStorage.getItem("userToken");
       if (!token) return;
 
-      const res = await fetch("http://192.168.1.14:5000/api/creator/getall/feeds", {
+      const res = await fetch("http://192.168.1.77:5000/api/creator/getall/feeds", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
         
@@ -249,7 +249,7 @@ const ProfilePost = () => {
       if (res.ok && data.feeds) {
         const fixed = data.feeds.map((item: any) => ({
           ...item,
-          contentUrl: `http://192.168.1.14:5000/${item.contentUrl.replace(/\\/g, "/")}`,
+          contentUrl: `http://192.168.1.77:5000/${item.contentUrl.replace(/\\/g, "/")}`,
         }));
         setPosts(fixed);
       }

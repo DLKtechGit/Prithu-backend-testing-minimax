@@ -51,7 +51,7 @@ const EditProfile = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.14:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.77:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -64,7 +64,7 @@ const EditProfile = () => {
         const profile = data.profile;
 
         setDisplayName(profile.displayName || '');
-        setUsername(data.userName || '');
+        setUsername(profile.userName || '');
         setBio(profile.bio || '');
         setPhoneNumber(profile.phoneNumber || '');
         setMaritalStatus(profile.maritalStatus === true || profile.maritalStatus === 'true');
@@ -152,7 +152,7 @@ const handleSave = async () => {
       } as any);
     }
 
-    const res = await fetch('http://192.168.1.14:5000/api/user/profile/detail/update', {
+    const res = await fetch('http://192.168.1.77:5000/api/user/profile/detail/update', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -38,6 +38,8 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
     const commentSheetRef = useRef<any>();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
 
   //  Expose scrollToTop so BottomNavigation can call it
   useEffect(() => {
@@ -100,7 +102,8 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
         <View style={[GlobalStyleSheet.container, { paddingTop: 0 }]}>
           <HomeHeader theme={theme} />
           <StoryList />
-          <Categories />
+         {/* ✅ Pass callback to update selectedCategory */}
+          <Categories onSelectCategory={setSelectedCategory} />
         </View>
       </View>
 
@@ -126,12 +129,12 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
         }
       >
         <View style={{ height: windowHeight * 0.2 }} />
-        <PostList sheetRef={sheetRef} optionSheet={optionSheetRef} commentSheet={commentSheetRef} />
+        <PostList sheetRef={sheetRef} optionSheet={moresheet} commentSheet={commentSheetRef} categoryId={selectedCategory} />
       </ScrollView>
 
       <PostShareSheet ref={sheetRef} />
       <PostoptionSheet ref={moresheet} />
-      <CommentSheet ref={commentSheetRef} />
+      {/* <CommentSheet ref={commentSheetRef} /> */}
     </SafeAreaView>
   );
 };

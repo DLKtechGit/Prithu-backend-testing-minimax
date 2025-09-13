@@ -56,7 +56,8 @@
     "react-native-swiper": "^1.6.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-video": "^6.16.1",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "expo-haptics": "~14.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

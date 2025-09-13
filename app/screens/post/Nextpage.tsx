@@ -43,11 +43,11 @@ const [loadingCategories, setLoadingCategories] = useState(true);
 useEffect(() => {
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('http://192.168.1.14:5000/api/creator/get/feed/category');
+      const res = await axios.get('http://192.168.1.77:5000/api/creator/get/feed/category');
       console.log("ddd", res.data);
 
-      if (Array.isArray(res.data)) {
-        setCategories(res.data); // already in correct shape
+      if (Array.isArray(res.data.categories)) {
+        setCategories(res.data.categories); // already in correct shape
       } else {
         setCategories([]);
       }
@@ -100,8 +100,8 @@ console.log('FormData JSON:', JSON.stringify(formDataJSON, null, 2));
 
 const token = await AsyncStorage.getItem('userToken');
 const res = await axios.post(
-  // 'http://192.168.1.14:5000/api/creator/feed/upload',
-  'http://192.168.1.14:5000/api/creator/feed/upload', 
+  // 'http://192.168.1.77:5000/api/creator/feed/upload',
+  'http://192.168.1.77:5000/api/creator/feed/upload', 
   formData,
   {
     headers: {

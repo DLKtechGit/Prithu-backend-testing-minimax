@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Video } from 'expo-av';
 import { COLORS, FONTS, IMAGES } from '../constants/theme';
 import LikeBtn from './likebtn/LikeBtn';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native'; // 👈 add useIsFocused
 import { GlobalStyleSheet } from '../constants/styleSheet';
 
 const Reelsitem = ({
@@ -22,15 +22,17 @@ const Reelsitem = ({
 }: any) => {
   const navigation = useNavigation<any>();
   const video = useRef<Video>(null);
+   const isFocused = useIsFocused(); // 👈 check if screen is focused
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [isShowText, setIsShowText] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
 
   // ✅ Handle play/pause based on "autoplay" prop
+// Play/pause based on autoplay
   useEffect(() => {
     const playPause = async () => {
       if (video.current) {
-        if (autoplay) {
+        if (autoplay && isFocused) {
           await video.current.playAsync();
           setIsPlaying(true);
         } else {
@@ -40,7 +42,7 @@ const Reelsitem = ({
       }
     };
     playPause();
-  }, [autoplay]);
+  }, [autoplay, isFocused]); // 👈 add isFocused
 
   // ✅ Pause when component unmounts (good cleanup)
   useEffect(() => {
@@ -125,7 +127,7 @@ const Reelsitem = ({
           <Text numberOfLines={isShowText ? 0 : 1} style={{ ...FONTS.fontRegular, color: COLORS.white, fontSize: 12 }}>
             {text}
           </Text>
-          {!isShowText && (
+          {/* {!isShowText && (
             <TouchableOpacity onPress={() => setIsShowText(true)}>
               <Text
                 style={{
@@ -141,7 +143,7 @@ const Reelsitem = ({
                 more
               </Text>
             </TouchableOpacity>
-          )}
+          )} */}
         </View>
 
         {/* Music */}

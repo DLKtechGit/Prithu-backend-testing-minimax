@@ -1,86 +1,4 @@
-// import React, { useEffect, useState } from "react";
-// import { View, Text, Image, TouchableOpacity, FlatList } from "react-native";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
-// import { useRoute, useNavigation } from "@react-navigation/native";
 
-// const AnotherProfile = () => {
-//   const route = useRoute<any>();
-//   const navigation = useNavigation<any>();
-//   const { feedId } = route.params || {}; // 👈 get feedId from PostCard
-
-//     console.log("Route params:", route.params);
-//     console.log("feedId received:", feedId); 
-
-//   const [profile, setProfile] = useState<any>(null);
-//   const [posts, setPosts] = useState<any[]>([]);
-
-// useEffect(() => {
-//   const fetchCreatorProfile = async () => {
-//     if (!feedId) return;
-
-//     try {
-//       const token = await AsyncStorage.getItem("userToken");
-
-//       const res = await fetch(
-//         `http://192.168.1.14:5000/api/get/creator/detail/feed/${feedId}`,
-//         {
-//           method: "GET",
-//           headers: {
-//             "Content-Type": "application/json",
-//             Authorization: `Bearer ${token}`,
-//           },
-//         }
-//       );
-
-//       const data = await res.json();
-//       setProfile(data); // save profile data
-//     } catch (err) {
-//       console.log("Error fetching creator profile:", err);
-//     }
-//   };
-
-//   fetchCreatorProfile();
-// }, [feedId]);
-
-//   return (
-//     <View style={{ flex: 1, padding: 20 }}>
-//       {profile && (
-//         <View style={{ alignItems: "center" }}>
-//           <Image
-//             source={{
-//               uri:
-//                 profile.avatar ||
-//                 "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-//             }}
-//             style={{ width: 80, height: 80, borderRadius: 40 }}
-//           />
-//           <Text style={{ fontSize: 18, fontWeight: "600" }}>
-//             <Text>{profile?.name}</Text>
-//           </Text>
-//         </View>
-//       )}
-
-//       <FlatList
-//         data={posts}
-//         keyExtractor={(item) => item._id}
-//         numColumns={3}
-//         renderItem={({ item }) => (
-//           <TouchableOpacity
-//             style={{ flex: 1 / 3, aspectRatio: 1, margin: 2 }}
-//             onPress={() => navigation.navigate("ProfilePost", { postId: item._id })}
-//           >
-//             <Image
-//               source={{ uri: `http://192.168.1.14:5000/${item.imagePath}` }}
-//               style={{ width: "100%", height: "100%" }}
-//             />
-//           </TouchableOpacity>
-//         )}
-//       />
-//     </View>
-//   );
-// };
-
-// export default AnotherProfile;
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -111,6 +29,9 @@ const AnotherProfile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [reels, setReels] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+    const [postCount, setPostCount] = useState<number>(0);
+  
 
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
@@ -124,7 +45,7 @@ useEffect(() => {
     if (!feedId) return;
     try {
       const res = await fetch(
-        `http://192.168.1.14:5000/api/get/creator/detail/feed/${feedId}`
+        `http://192.168.1.77:5000/api/get/creator/detail/feed/${feedId}`
       );
       const result = await res.json();
 
@@ -141,6 +62,49 @@ useEffect(() => {
   };
   fetchCreatorProfile();
 }, [feedId]);
+
+useEffect(() => {
+  const fetchFeeds = async () => {
+    try {
+      setLoading(true);
+
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert('Error', 'User not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(
+        'http://192.168.1.77:5000/api/creator/get/post',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+      const feeds = data.feeds || [];
+
+      // 🔹 build posts from your actual keys
+      const imagePosts = feeds.map(feed => ({
+        id: feed.feedId,
+        imageUrl: feed.contentUrl.replace(/\\/g, '/'),
+      }));
+
+      setPosts(imagePosts);
+      setPostCount(imagePosts.length);
+      console.log('imagePosts', imagePosts);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchFeeds();
+}, []);
 
 
   const slideIndicator = scrollX.interpolate({
@@ -241,7 +205,7 @@ useEffect(() => {
             <Text
               style={{ ...FONTS.h6, ...FONTS.fontMedium, color: COLORS.white }}
             >
-              {profile?.displayName || "User Name"}
+              {profile?.displayName}
             </Text>
             <Text
               style={{
@@ -252,11 +216,18 @@ useEffect(() => {
                 marginTop: 5,
               }}
             >
-              @{profile?.userName || "username"}
+              @{profile?.userName}
             </Text>
 
+
+            
+
           </View>
+
+          
         </View>
+
+        
       </ImageBackground>
 {/* 
 {profile.bio ? (
@@ -363,23 +334,20 @@ useEffect(() => {
           ]}
         >
           <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-            {posts.map((item, index) => (
-              <View key={index} style={{ width: "33.33%" }}>
-                <TouchableOpacity
-                  style={{ padding: 2 }}
-                  onPress={() =>
-                    navigation.navigate("ProfilePost", { postId: item._id })
-                  }
-                >
-                  <Image
-                    style={{ width: "100%", aspectRatio: 1 }}
-                    source={{
-                      uri: `http://192.168.1.14:5000/${item.imagePath}`,
-                    }}
-                  />
-                </TouchableOpacity>
-              </View>
-            ))}
+           {posts.map(item => (
+  <View key={item.id} style={{ width: '33.33%' }}>
+    <TouchableOpacity
+      style={{ padding: 2 }}
+      onPress={() => navigation.navigate('ProfilePost', { postId: item.id })}
+    >
+      <Image
+        style={{ width: '100%', aspectRatio: 1 }}
+        source={{ uri: item.imageUrl }}   // ✅ this now exists
+      />
+    </TouchableOpacity>
+  </View>
+))}
+
           </View>
         </View>
 
@@ -401,7 +369,7 @@ useEffect(() => {
                   <Image
                     style={{ width: "100%", aspectRatio: 1 / 1.9 }}
                     source={{
-                      uri: `http://192.168.1.14:5000/${item.videoThumb}`,
+                      uri: `http://192.168.1.77:5000/${item.videoThumb}`,
                     }}
                   />
                 </TouchableOpacity>
