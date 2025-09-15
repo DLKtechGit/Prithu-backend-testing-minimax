@@ -38,28 +38,52 @@ const AnotherProfile = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { feedId } = route.params || {};
+  // convert a backend path to full URL
+const buildUrl = (path: string | undefined | null) => {
+  if (!path || path === 'Unknown') return null;
+  return `https://ddbb.onrender.com/${path.replace(/\\/g, '/')}`;
+};
+
 
   // Fetch backend profile + posts
 useEffect(() => {
   const fetchCreatorProfile = async () => {
     if (!feedId) return;
     try {
+      // 🔹 get token from storage
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        console.warn('No token found, user might not be logged in');
+        return;
+      }
+
+      // 🔹 include it in the headers
       const res = await fetch(
-        `http://192.168.1.77:5000/api/get/creator/detail/feed/${feedId}`
+        `https://ddbb.onrender.com/api/get/creator/detail/feed/${feedId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+
       const result = await res.json();
 
       if (res.ok) {
-        setProfile(result.data.profile);   // ✅ correct
-        // setPosts(result.data.posts || []); // only if backend adds
-        // setReels(result.data.reels || []);
+        // ✅ fix avatar URL before putting into state
+        const fixedProfile = {
+          ...result.data.profile,
+          profileAvatar: buildUrl(result.data.profile?.profileAvatar),
+        };
+        setProfile(fixedProfile);
       } else {
-        console.log("API error:", result.message);
+        console.log('API error:', result.message);
       }
     } catch (err) {
-      console.log("Error fetching creator profile:", err);
+      console.log('Error fetching creator profile:', err);
     }
   };
+
   fetchCreatorProfile();
 }, [feedId]);
 
@@ -76,7 +100,7 @@ useEffect(() => {
       }
 
       const response = await fetch(
-        'http://192.168.1.77:5000/api/creator/get/post',
+        'https://ddbb.onrender.com/api/creator/get/post',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -87,15 +111,14 @@ useEffect(() => {
       const data = await response.json();
       const feeds = data.feeds || [];
 
-      // 🔹 build posts from your actual keys
+      // ✅ build posts with full URL
       const imagePosts = feeds.map(feed => ({
         id: feed.feedId,
-        imageUrl: feed.contentUrl.replace(/\\/g, '/'),
+        imageUrl: buildUrl(feed.contentUrl),
       }));
 
       setPosts(imagePosts);
       setPostCount(imagePosts.length);
-      console.log('imagePosts', imagePosts);
     } catch (err) {
       console.error(err);
     } finally {
@@ -105,6 +128,7 @@ useEffect(() => {
 
   fetchFeeds();
 }, []);
+
 
 
   const slideIndicator = scrollX.interpolate({
@@ -369,7 +393,7 @@ useEffect(() => {
                   <Image
                     style={{ width: "100%", aspectRatio: 1 / 1.9 }}
                     source={{
-                      uri: `http://192.168.1.77:5000/${item.videoThumb}`,
+                      uri: `https://ddbb.onrender.com/${item.videoThumb}`,
                     }}
                   />
                 </TouchableOpacity>

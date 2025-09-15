@@ -14,39 +14,50 @@ const StoryList = () => {
 
   // ✅ Fetch profile avatar
     useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-          console.warn('No user token found');
-          return;
-        }
+  const fetchProfile = async () => {
+    try {
+      const userToken = await AsyncStorage.getItem('userToken');
+      if (!userToken) {
+        console.warn('No user token found');
+        return;
+      }
 
-        const res = await fetch(`http://192.168.1.77:5000/api/get/profile/detail`, {
+      const res = await fetch(
+        'https://ddbb.onrender.com/api/get/profile/detail',
+        {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,
             'Content-Type': 'application/json',
           },
-        });
-
-        if (!res.ok) {
-          console.error(`Failed to fetch profile: ${res.status} ${res.statusText}`);
-          return;
         }
+      );
 
-        const data = await res.json();
-        setProfileUrl({ uri: data.profile.profileAvatar });
-
-        console.log(data.profile.profileAvatar)
-        
-      } catch (error) {
-        console.error('Error fetching profile:', error);
+      if (!res.ok) {
+        console.error(`Failed to fetch profile: ${res.status} ${res.statusText}`);
+        return;
       }
-    };
 
-    fetchProfile();
-  }, []);
+      const data = await res.json();
+
+      // ✅ Build full URL + replace backslashes
+      let avatarUrl = IMAGES.profile;
+      if (data?.profile?.profileAvatar && data.profile.profileAvatar !== 'Unknown') {
+        avatarUrl = {
+          uri: `https://ddbb.onrender.com/${data.profile.profileAvatar.replace(/\\/g, '/')}`,
+        };
+      }
+
+      setProfileUrl(avatarUrl);
+      console.log('Profile avatar URL:', avatarUrl);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  fetchProfile();
+}, []);
+
 
   
   // ✅ Fetch active account type

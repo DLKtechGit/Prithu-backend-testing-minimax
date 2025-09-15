@@ -45,7 +45,7 @@ const Comments = () => {
             }
 
             const response = await axios.post(
-                `http://192.168.1.77:5000/api/get/comments/for/feed`,
+                `https://ddbb.onrender.com/api/get/comments/for/feed`,
                 { feedId: currentFeedId },
                 {
                     headers: { Authorization: `Bearer ${token}` },
@@ -73,7 +73,7 @@ const Comments = () => {
             }
 
             const response = await axios.post(
-                'http://192.168.1.77:5000/api/user/feed/comment',
+                'https://ddbb.onrender.com/api/user/feed/comment',
                 { feedId, commentText },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

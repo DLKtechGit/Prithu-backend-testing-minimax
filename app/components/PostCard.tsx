@@ -50,6 +50,12 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
     // ✅ Like state
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(like || 0);
+    // Helper to build full URL for avatars/images
+const buildUrl = (path: string | undefined | null) => {
+  if (!path) return '';
+  return `https://ddbb.onrender.com/${path.replace(/\\/g, '/')}`;
+};
+
 
 
     const [profile, setProfile] = useState<any>({
@@ -97,7 +103,7 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
 
 
-            const res = await fetch('http://192.168.1.77:5000/api/get/profile/detail', {
+            const res = await fetch('https://ddbb.onrender.com/api/get/profile/detail', {
 
                 method: 'GET',
 
@@ -199,8 +205,8 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 
     const endpoint =
       accountType === 'Personal'
-        ? 'http://192.168.1.77:5000/api/user/feed/like'
-        : 'http://192.168.1.77:5000/api/creator/feed/like';
+        ? 'https://ddbb.onrender.com/api/user/feed/like'
+        : 'https://ddbb.onrender.com/api/creator/feed/like';
 
     
 
@@ -617,7 +623,7 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
 <Image
   source={
     profile.profileAvatar
-      ? { uri: profile.profileAvatar }
+      ? { uri: buildUrl(profile.profileAvatar) } // ✅ full URL just here
       : IMAGES.profile
   }
   style={{
@@ -631,6 +637,7 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
     borderColor: "#fff",
   }}
 />
+
 
 {/* ✅ Profile name bar (full width at bottom) */}
 <View
@@ -900,8 +907,8 @@ const PostCard = ({ id, name, profileimage, date, postimage, like, comment, post
                                     // pick endpoint based on role
                                     const endpoint =
                                         accountType === 'Personal'
-                                            ? 'http://192.168.1.77:5000/api/user/feed/save'
-                                            : 'http://192.168.1.77:5000/api/creator/feed/save';
+                                            ? 'https://ddbb.onrender.com/api/user/feed/save'
+                                            : 'https://ddbb.onrender.com/api/creator/feed/save';
 
                                     const res = await fetch(endpoint, {
                                         method: 'POST',

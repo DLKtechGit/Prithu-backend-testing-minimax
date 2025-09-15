@@ -4,11 +4,11 @@
     "slug": "meetflow",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/Prithu.png",
+    "icon": "./assets/p.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/Prithu.png",
+      "image": "./assets/p.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/p.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.deepeshgour.meetflow"

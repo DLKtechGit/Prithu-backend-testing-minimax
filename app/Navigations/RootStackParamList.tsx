@@ -130,5 +130,6 @@ export type RootStackParamList = {
     FeedScreen: undefined;
     Friend:undefined;
     CommentSheet: undefined;
+    LikeFeed: undefined;
 
 };

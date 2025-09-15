@@ -1,20 +1,12 @@
-import React, {
-  useRef,
-  useState,
-  forwardRef,
-  useImperativeHandle,
-  useEffect,
-  useMemo,
-  memo,
-} from 'react';
+//post list
+import React, { useRef, useState, forwardRef, useImperativeHandle, useEffect, useMemo, memo } from 'react';
 import { View, Dimensions, ActivityIndicator, Text } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PostCard from '../../components/PostCard';
-
+ 
 const { height: windowHeight } = Dimensions.get('window');
-
-// ✅ Memoized PostCard to avoid unnecessary re-renders
+ 
 const MemoPostCard = memo(PostCard, (prevProps, nextProps) => {
   return (
     prevProps.visibleBoxes === nextProps.visibleBoxes &&
@@ -22,84 +14,82 @@ const MemoPostCard = memo(PostCard, (prevProps, nextProps) => {
     prevProps.caption === nextProps.caption
   );
 });
-
-const PostList = forwardRef((props: any, ref: any) => {
+ 
+const PostList = forwardRef(({ scrollRef, ...props }: any, ref: any) => {
   const [visibleBoxes, setVisibleBoxes] = useState<any>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshingTop, setRefreshingTop] = useState(false);
-
+ 
   const boxRefs = useRef<any>({});
-
-  // ✅ Fetch posts with token
+ 
   const fetchPosts = async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) return;
-
+      if (!token) {
+        console.warn('No user token found in AsyncStorage');
+        return;
+      }
+ 
       const url = props.categoryId
-        ? `http://192.168.1.77:5000/api/all/catagories/${props.categoryId}`
-        : `http://192.168.1.77:5000/api/get/all/feeds/user`;
-
+        ? `https://ddbb.onrender.com/api/all/catagories/${props.categoryId}`
+        : `https://ddbb.onrender.com/api/get/all/feeds/user`;
+ 
+      console.log('Fetching posts from:', url); // Debug log
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(res.data)
+      console.log('API Response:', JSON.stringify(res.data, null, 2)); // Debug log
+
+      console.log("Token",token)
+ 
       const feeds = props.categoryId ? res.data.category.feeds : res.data.feeds;
-
+      if (!feeds) {
+        console.warn('No feeds found in API response');
+        setPosts([]);
+        return;
+      }
+ 
       const mappedFeeds = feeds
-        .map((item: any) => ({
-          _id: item.feedId || item._id,
-          creatorUsername: item.userName,
-          creatorAvatar: item.profileAvatar !== "Unknown" ? item.profileAvatar : null,
-          timeAgo: item.timeAgo,
-          contentUrl: item.contentUrl,
-          caption: item.caption || "",
-          tags: item.tags || [],
-          background: item.background || "#fff",
-          comments: item.comments || [],
-          likesCount: item.likesCount || 0,
-          type: item.type, // Assuming 'type' comes from API (e.g., 'image', 'video')
-        }))
-        // ✅ Filter to only include posts where type === 'image'
-        .filter((item: any) => item.type === 'image');
+  .map((item: any) => {
+    // Build correct URLs like in Profile
+    const profileAvatar =
+      item.profileAvatar && item.profileAvatar !== 'Unknown'
+        ? `https://ddbb.onrender.com/${item.profileAvatar.replace(/\\/g, '/')}`
+        : null;
 
-      setPosts(mappedFeeds);
+    const contentUrl = item.contentUrl
+      ? `https://ddbb.onrender.com/${item.contentUrl.replace(/\\/g, '/')}`
+      : null;
+
+    return {
+      _id: item.feedId || item._id,
+      creatorUsername: item.userName,
+      creatorAvatar: profileAvatar,
+      timeAgo: item.timeAgo,
+      contentUrl: contentUrl,
+      caption: item.caption || '',
+      tags: item.tags || [],
+      background: item.background || '#fff',
+      comments: item.comments || [],
+      likesCount: item.likesCount || 0,
+      type: item.type,
+    };
+  })
+  .filter((item: any) => item.type === 'image');
+
+      setPosts(mappedFeeds); // Update posts state
+      console.log('Mapped Feeds:', mappedFeeds); // Debug log
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      console.error('Error fetching posts:', error.response?.data || error.message);
+      setPosts([]); // Clear posts on error to avoid stale data
     }
   };
-
+ 
   useEffect(() => {
     fetchPosts();
   }, [props.categoryId]);
-
-
-  // ✅ Expose methods to parent
-  useImperativeHandle(ref, () => ({
-    refreshPosts: async () => {
-      setRefreshingTop(true);
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      await fetchPosts();
-      setRefreshingTop(false);
-    },
-    handleScroll: (e: any) => handleScroll(e),
-    handlePull: (e: any) => {
-      const offsetY = e.nativeEvent.contentOffset.y;
-      if (offsetY < -50 && !refreshingTop) setRefreshingTop(true); // show instantly
-      if (offsetY >= 0 && refreshingTop) setRefreshingTop(false); // hide when released
-    },
-  }));
-
-  useEffect(() => {
-    const loadInitial = async () => {
-      setLoading(true);
-      await fetchPosts();
-      setLoading(false);
-    };
-    loadInitial();
-  }, []);
-
+ 
   const handleScroll = (event: any) => {
     const scrollY = event.nativeEvent.contentOffset.y;
     const visibleBoxIds = posts
@@ -116,16 +106,48 @@ const PostList = forwardRef((props: any, ref: any) => {
       .filter((id) => id !== null);
     setVisibleBoxes(visibleBoxIds);
   };
-
+ 
+  const handlePull = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    if (offsetY < -50 && !refreshingTop) setRefreshingTop(true);
+    if (offsetY >= 0 && refreshingTop) setRefreshingTop(false);
+  };
+ 
+  useImperativeHandle(ref, () => ({
+    refreshPosts: async () => {
+      setRefreshingTop(true);
+      setPosts([]); // Clear posts to force re-render
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await fetchPosts();
+      setRefreshingTop(false);
+    },
+    scrollToTop: () => {
+      if (scrollRef?.current) {
+        scrollRef.current.scrollTo({ y: 0, animated: true });
+      }
+    },
+    handleScroll,
+    handlePull,
+  }));
+ 
+  useEffect(() => {
+    const loadInitial = async () => {
+      setLoading(true);
+      await fetchPosts();
+      setLoading(false);
+    };
+    loadInitial();
+  }, []);
+ 
   const handleBoxLayout = (id: any) => (event: any) => {
     const pageY = event.nativeEvent.layout.y;
     const height = event.nativeEvent.layout.height;
     boxRefs.current[id] = { y: pageY, height };
   };
-
+ 
   const memoVisibleBoxes = useMemo(() => visibleBoxes, [visibleBoxes]);
-
-  if (loading) {
+ 
+  if (loading || refreshingTop) {
     return (
       <View
         style={{
@@ -138,8 +160,7 @@ const PostList = forwardRef((props: any, ref: any) => {
       </View>
     );
   }
-
-  // ✅ Show message if no image posts
+ 
   if (posts.length === 0) {
     return (
       <View
@@ -149,14 +170,13 @@ const PostList = forwardRef((props: any, ref: any) => {
           alignItems: 'center',
         }}
       >
-        <Text>No image posts available.</Text>
+        <ActivityIndicator size="large" color="#000" />
       </View>
     );
   }
-
+ 
   return (
     <View>
-      {/* Instant pull-down loader */}
       {refreshingTop && (
         <View
           style={{
@@ -168,7 +188,7 @@ const PostList = forwardRef((props: any, ref: any) => {
           <ActivityIndicator size="small" color="#000" />
         </View>
       )}
-
+ 
       {posts.map((post: any) => (
         <View
           key={post._id}
@@ -181,7 +201,7 @@ const PostList = forwardRef((props: any, ref: any) => {
             profileimage={post.creatorAvatar || null}
             date={post.timeAgo}
             postimage={[{ image: post.contentUrl }]}
-            like={post.likes?.length || 0}
+            like={post.likesCount || 0}
             comment={post.comments?.length || 0}
             posttitle={post.caption}
             posttag={post.tags?.join(' ')}
@@ -198,5 +218,6 @@ const PostList = forwardRef((props: any, ref: any) => {
     </View>
   );
 });
-
+ 
 export default PostList;
+ 

@@ -25,7 +25,7 @@ const AccountType = ({ navigation }) => {
 
                 // Make API call to fetch account status
                 const response = await axios.post(
-                    'http://192.168.1.77:5000/api/account/status',
+                    'https://ddbb.onrender.com/api/account/status',
                     {}, // Empty body, assuming userId is derived from token in middleware
                     {
                         headers: {
@@ -118,7 +118,7 @@ const AccountType = ({ navigation }) => {
                 if (option.role === 'Personal') {
                     // API call to switch to User account
                     const response = await axios.post(
-                        'http://192.168.1.77:5000/api/account/switch/user',
+                        'https://ddbb.onrender.com/api/account/switch/user',
                         {},
                         {
                             headers: {
@@ -137,7 +137,7 @@ const AccountType = ({ navigation }) => {
                 } else if (option.role === 'Creator') {
                     // API call to switch to Creator account
                     const response = await axios.post(
-                        'http://192.168.1.77:5000/api/account/switch/creator',
+                        'https://ddbb.onrender.com/api/account/switch/creator',
                         {},
                         {
                             headers: {

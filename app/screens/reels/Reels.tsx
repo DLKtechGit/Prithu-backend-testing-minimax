@@ -12,6 +12,13 @@ const Reels = () => {
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  // at the top of Reels.tsx
+const buildUrl = (path: string | undefined | null) => {
+  if (!path) return null;
+  // prepend server base + normalize slashes
+  return `https://ddbb.onrender.com/${path.replace(/\\/g, '/')}`;
+};
+
 
   useEffect(() => {
     const fetchReels = async () => {
@@ -22,7 +29,7 @@ const Reels = () => {
       return;
     }
 
-  const res = await axios.get('http://192.168.1.77:5000/api/get/all/feeds/user', {
+  const res = await axios.get('https://ddbb.onrender.com/api/get/all/feeds/user', {
   headers: {
     Authorization: `Bearer ${token}`,
   },
@@ -53,32 +60,33 @@ console.log("dfdfdfdfdf",res.data.feeds)
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
       <Header title="Reels" transparent={true} />
 
-      <Swiper
-        horizontal={false}
-        loop={false}
-        autoplay={false} // ❌ No auto scroll
-        showsButtons={false}
-        showsPagination={false}
-        onIndexChanged={(index) => setCurrentIndex(index)} // ✅ track visible index
-      >
-        {reelsData.map((data, index) => (
-          <Reelsitem
-            key={index}
-            like={data.likesCount}
-            comment={data.commentsCount || 0}
-            save={data.downloadsCount}
-            send={0}
-            image={{ uri: data.profileAvatar }}
-            holder={data.userName || 'Ashik'}
-            text={data.caption || ''}
-            music={data.music || 'Prithu Music'}
-            sheetRef={sheetRef}
-            reelsvideo={{ uri: data.contentUrl }}
-            hasStory={false}
-            autoplay={currentIndex === index} // ✅ only play current
-          />
-        ))}
-      </Swiper>
+     <Swiper
+  horizontal={false}
+  loop={false}
+  autoplay={false}
+  showsButtons={false}
+  showsPagination={false}
+  onIndexChanged={(index) => setCurrentIndex(index)}
+>
+  {reelsData.map((data, index) => (
+    <Reelsitem
+      key={index}
+      like={data.likesCount}
+      comment={data.commentsCount || 0}
+      save={data.downloadsCount}
+      send={0}
+      image={{ uri: buildUrl(data.profileAvatar) }}   // ✅ profile pic fixed
+      holder={data.userName || 'Ashik'}
+      text={data.caption || ''}
+      music={data.music || 'Prithu Music'}
+      sheetRef={sheetRef}
+      reelsvideo={{ uri: buildUrl(data.contentUrl) }} // ✅ video URL fixed
+      hasStory={false}
+      autoplay={currentIndex === index}
+    />
+  ))}
+</Swiper>
+
 
       <PostShareSheet ref={sheetRef} />
     </SafeAreaView>

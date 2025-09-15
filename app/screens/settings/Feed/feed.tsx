@@ -11,6 +11,7 @@ const Feed = ({ navigation }: any) => {
   const options = [
     { id: '1', text: 'Feed Language', screen: 'FeedLanguage' },
     { id: '2', text: 'App Language', screen: 'AppLanguage' },
+    { id: '3', text: 'Like Feed', screen: 'LikeFeed' },
   ];
 
   return (

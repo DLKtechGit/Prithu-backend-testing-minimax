@@ -31,6 +31,10 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
+  const buildUrl = (path: string | undefined | null) => {
+  if (!path) return '';
+  return `https://ddbb.onrender.com/${path.replace(/\\/g, '/')}`;
+};
 
 
   // 🔹 Fetch active account type once
@@ -55,7 +59,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.77:5000/api/get/profile/detail', {
+      const res = await fetch('https://ddbb.onrender.com/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -64,19 +68,17 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
       const data = await res.json();
 
       if (res.ok && data.profile) {
-        const profileData = data.profile;
-        const fixedAvatar = profileData.profileAvatar
-        console.log(fixedAvatar)
+  const profileData = data.profile;
 
-
-        setProfile({
-          displayName: profileData.displayName || '',
-          username: data.userName || '',
-          bio: profileData.bio || '',
-          balance: profileData.balance || '',
-          profileAvatar: fixedAvatar,
-        });
-      } else {
+  setProfile({
+    displayName: profileData.displayName || '',
+    username: data.userName || '',
+    bio: profileData.bio || '',
+    balance: profileData.balance || '',
+    profileAvatar: buildUrl(profileData.profileAvatar), // ✅ full URL
+  });
+}
+      else {
         console.log('Error fetching profile:', data.message);
         // Alert.alert('Error', data.message || 'Failed to fetch profile');
       }
@@ -102,7 +104,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
           return;
         }
 
-        const response = await fetch('http://192.168.1.77:5000/api/creator/getall/feeds', {
+        const response = await fetch('https://ddbb.onrender.com/api/creator/getall/feeds', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -119,7 +121,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
           .filter((feed: any) => feed.type === 'image')
           .map((feed: any) => ({
             id: feed._id,
-            image: { uri: `http://192.168.1.77:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+            image: { uri: `https://ddbb.onrender.com/${feed.contentUrl.replace(/\\/g, '/')}` },
             like: (feed.like ?? 0).toString(),
           }));
 
@@ -128,7 +130,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
           .filter((feed: any) => feed.type === 'video')
           .map((feed: any) => ({
             id: feed._id,
-            image: { uri: `http://192.168.1.77:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+            image: { uri: `https://ddbb.onrender.com/${feed.contentUrl.replace(/\\/g, '/')}` },
             like: (feed.like ?? 0).toString(),
           }));
 
@@ -178,7 +180,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
       }
 
       // Create a proper profile URL (replace with your deployed domain later)
-      const profileUrl = `http://192.168.1.77:5000/profile/${userId}`;
+      const profileUrl = `https://ddbb.onrender.com/profile/${userId}`;
 
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,

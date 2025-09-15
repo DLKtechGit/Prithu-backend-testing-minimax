@@ -103,6 +103,7 @@ import FeedLanguage from '../screens/settings/Feed/FeedLanguage';
 import FeedScreen from '../screens/auth/FeedScreen';
 import ReferralDashboard from '../screens/settings/Referrals/ReferralDashboard';
 import CommentSheet from '../screens/comment/CommentSheet';
+import LikeFeed from '../screens/settings/Feed/likescreen';
 
 // import BottomSheetComments from '../components/bottomsheet/BottomSheetComments';
 // import { View } from 'react-native-reanimated/lib/typescript/Animated';
@@ -161,6 +162,7 @@ const StackNavigator = () => {
                 <Stack.Screen name="Invite" component={InviteFriends} />
                 <Stack.Screen name="Forgot" component={Forgot} />
                 <Stack.Screen name="Otp" component={Otp} />
+                 <Stack.Screen name='LikeFeed' component={LikeFeed}/>
                 <Stack.Screen name="ChangePassword" component={ChangePassword} />
                 <Stack.Screen name="DrawerNavigation" component={DrawerNavigation} />
                 <Stack.Screen name="Comments" component={Comments} />

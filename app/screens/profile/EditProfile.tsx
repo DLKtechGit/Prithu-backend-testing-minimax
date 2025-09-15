@@ -31,6 +31,12 @@ const EditProfile = () => {
   const [language, setLanguage] = useState('en');
   const [dob, setDob] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  // At the top of EditProfile.tsx, after imports:
+const buildUrl = (path: string | undefined | null) => {
+  if (!path) return '';
+  return `https://ddbb.onrender.com/${path.replace(/\\/g, '/')}`;
+};
+
 
   // Format date to YYYY-MM-DD
   const formatDate = (date) => {
@@ -51,7 +57,7 @@ const EditProfile = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.77:5000/api/get/profile/detail', {
+      const res = await fetch('https://ddbb.onrender.com/api/get/profile/detail', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -77,11 +83,11 @@ const EditProfile = () => {
           setDob(null);
         }
 
-        if (profile.profileAvatar) {
-          setImageUrl(profile.profileAvatar);
-        } else {
-          setImageUrl('');
-        }
+       if (profile.profileAvatar) {
+  setImageUrl(buildUrl(profile.profileAvatar)); // ✅ full URL
+} else {
+  setImageUrl('');
+}
       } else {
         console.log('Error fetching profile:', data.message);
       }
@@ -152,7 +158,7 @@ const handleSave = async () => {
       } as any);
     }
 
-    const res = await fetch('http://192.168.1.77:5000/api/user/profile/detail/update', {
+    const res = await fetch('https://ddbb.onrender.com/api/user/profile/detail/update', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

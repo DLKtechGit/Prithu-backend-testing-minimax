@@ -53,7 +53,7 @@ const fetchSavedFeeds = async () => {
     }
 
     const res = await axios.get(
-      "http://192.168.1.77:5000/api/user/get/saved/feeds",
+      "https://ddbb.onrender.com/api/user/get/saved/feeds",
       {
         headers: {
           Authorization: `Bearer ${token}`,

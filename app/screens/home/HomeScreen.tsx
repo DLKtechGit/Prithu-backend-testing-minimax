@@ -1,5 +1,6 @@
+ 
+// HomeScreen.tsx
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
-
 import {
   View,
   SafeAreaView,
@@ -18,46 +19,42 @@ import Categories from './Categories';
 import PostShareSheet from '../../components/bottomsheet/PostShareSheet';
 import PostoptionSheet from '../../components/bottomsheet/PostoptionSheet';
 import { useFocusEffect } from '@react-navigation/native';
-import CommentSheet from '../comment/CommentSheet';
-
+ 
 const { height: windowHeight } = Dimensions.get('window');
-
-
+ 
 interface HomeScreenProps {
-  postListRef: React.RefObject<any>; // ✅ receive the ref from BottomNavigation
+  postListRef: React.RefObject<any>;
 }
-
+ 
 const HomeScreen = ({ postListRef }: HomeScreenProps) => {
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
-
+ 
   const sheetRef = useRef<any>();
   const moresheet = useRef<any>();
   const scrollRef = useRef<ScrollView>(null);
-    const optionSheetRef = useRef(null);
-    const commentSheetRef = useRef<any>();
-
+  const optionSheetRef = useRef(null);
+  const commentSheetRef = useRef<any>();
+  const internalPostListRef = useRef<any>(null); // Internal ref for PostList
+ 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-
-  //  Expose scrollToTop so BottomNavigation can call it
+ 
+  // Expose methods to BottomTab via postListRef
   useEffect(() => {
-    if (postListRef) {
+    if (postListRef && internalPostListRef.current) {
       postListRef.current = {
-        scrollToTop: () => {
-          scrollRef.current?.scrollTo({ y: 0, animated: true });
-        },
+        scrollToTop: () => internalPostListRef.current?.scrollToTop(),
         refreshPosts: async () => {
-          if (postListRef.current?.refreshPosts) {
-            await postListRef.current.refreshPosts();
+          if (internalPostListRef.current?.refreshPosts) {
+            await internalPostListRef.current.refreshPosts();
           }
         },
       };
     }
   }, [postListRef]);
-
-  // ✅ Android Back Button
+ 
+  // Android Back Button
   useFocusEffect(
     React.useCallback(() => {
       const backAction = () => {
@@ -67,28 +64,27 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
         ]);
         return true;
       };
-
+ 
       const backHandler = BackHandler.addEventListener(
         'hardwareBackPress',
         backAction
       );
-
+ 
       return () => backHandler.remove();
     }, [])
   );
-
-  // ✅ Pull to Refresh
+ 
+  // Pull to Refresh
   const onRefresh = async () => {
     setRefreshing(true);
-    if (postListRef.current?.refreshPosts) {
-      await postListRef.current.refreshPosts(); // call PostList refresh
+    if (internalPostListRef.current?.refreshPosts) {
+      await internalPostListRef.current.refreshPosts();
     }
     setRefreshing(false);
   };
-
+ 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.card }}>
-      {/* Sticky Header */}
       <View
         style={{
           position: 'absolute',
@@ -102,12 +98,10 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
         <View style={[GlobalStyleSheet.container, { paddingTop: 0 }]}>
           <HomeHeader theme={theme} />
           <StoryList />
-         {/* ✅ Pass callback to update selectedCategory */}
           <Categories onSelectCategory={setSelectedCategory} />
         </View>
       </View>
-
-      {/* ScrollView with Pull-to-Refresh */}
+ 
       <ScrollView
         ref={scrollRef}
         scrollEventThrottle={16}
@@ -127,16 +121,25 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
             colors={['#000']}
           />
         }
+        onScroll={(e) => internalPostListRef.current?.handleScroll?.(e)}
+        onScrollEndDrag={(e) => internalPostListRef.current?.handlePull?.(e)}
       >
         <View style={{ height: windowHeight * 0.2 }} />
-        <PostList sheetRef={sheetRef} optionSheet={moresheet} commentSheet={commentSheetRef} categoryId={selectedCategory} />
+        <PostList
+          ref={internalPostListRef}
+          sheetRef={sheetRef}
+          optionSheet={moresheet}
+          commentSheet={commentSheetRef}
+          categoryId={selectedCategory}
+          scrollRef={scrollRef}
+        />
       </ScrollView>
-
+ 
       <PostShareSheet ref={sheetRef} />
       <PostoptionSheet ref={moresheet} />
-      {/* <CommentSheet ref={commentSheetRef} /> */}
     </SafeAreaView>
   );
 };
-
+ 
 export default HomeScreen;
+ 
