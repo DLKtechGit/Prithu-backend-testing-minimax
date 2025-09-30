@@ -1,9 +1,57 @@
-import { View, FlatList } from 'react-native';
+import { View, FlatList, Image, TouchableOpacity, ActivityIndicator,Text } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { IMAGES } from '../../constants/theme';
-import StoryItem from '../../components/story/StoryItem';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Sample StoryItem component (replace with your actual StoryItem if different)
+const StoryItem = ({ title, image, storyItem, id }: { title: string; image: any; storyItem: any[]; id: string }) => {
+  const theme = useTheme();
+  const { colors }: { colors: any } = theme;
+  const [isProfileImageLoading, setIsProfileImageLoading] = useState(id === '1'); // Only enable loading for "Add story"
+
+  return (
+    <TouchableOpacity style={{ marginRight: 10, alignItems: 'center' }}>
+      <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {id === '1' && isProfileImageLoading && (
+          <ActivityIndicator
+            style={{ position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -10 }, { translateY: -10 }] }}
+            size="small"
+            color={colors.primary}
+          />
+        )}
+        <Image
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            borderWidth: id === '1' ? 2 : 0, // Border for "Add story" item
+            borderColor: colors.primary,
+            opacity: id === '1' && isProfileImageLoading ? 0.1 : 1, // Reduce opacity only for "Add story" during loading
+          }}
+          source={image}
+          onLoadStart={() => id === '1' && setIsProfileImageLoading(true)}
+          onLoadEnd={() => id === '1' && setIsProfileImageLoading(false)}
+          onError={(error) => {
+            if (id === '1') {
+              console.log(`StoryItem ${id} image load error:`, error.nativeEvent);
+              setIsProfileImageLoading(false);
+            }
+          }}
+        />
+        {id !== '1' && ( // Story circle for non-"Add story" items
+          <Image
+            style={{ width: 68, height: 68, position: 'absolute', resizeMode: 'contain' }}
+            source={IMAGES.cricle}
+          />
+        )}
+      </View>
+      <View style={{ marginTop: 5 }}>
+        <Text style={{ fontSize: 12, color: colors.title, textAlign: 'center' }}>{title}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const StoryList = () => {
   const theme = useTheme();
@@ -12,55 +60,50 @@ const StoryList = () => {
   const [profileUrl, setProfileUrl] = useState<any>(IMAGES.profile);
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
 
-  // ✅ Fetch profile avatar
-    useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        console.warn('No user token found');
-        return;
-      }
+  // Fetch profile avatar
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const userToken = await AsyncStorage.getItem('userToken');
+        if (!userToken) {
+          console.warn('No user token found');
+          return;
+        }
 
-      const res = await fetch(
-        'https://ddbb.onrender.com/api/get/profile/detail',
-        {
+        const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,
             'Content-Type': 'application/json',
           },
+        });
+
+        if (!res.ok) {
+          console.error(`Failed to fetch profile: ${res.status} ${res.statusText}`);
+          return;
         }
-      );
 
-      if (!res.ok) {
-        console.error(`Failed to fetch profile: ${res.status} ${res.statusText}`);
-        return;
+        const data = await res.json();
+
+        // Build full URL + replace backslashes
+        let avatarUrl = IMAGES.profile;
+        if (data?.profile?.profileAvatar && data.profile.profileAvatar !== 'Unknown') {
+          avatarUrl = {
+            uri: data.profile.profileAvatar,
+          };
+        }
+
+        setProfileUrl(avatarUrl);
+        console.log('Profile avatar URL:', avatarUrl);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
       }
+    };
 
-      const data = await res.json();
+    fetchProfile();
+  }, []);
 
-      // ✅ Build full URL + replace backslashes
-      let avatarUrl = IMAGES.profile;
-      if (data?.profile?.profileAvatar && data.profile.profileAvatar !== 'Unknown') {
-        avatarUrl = {
-          uri: `https://ddbb.onrender.com/${data.profile.profileAvatar.replace(/\\/g, '/')}`,
-        };
-      }
-
-      setProfileUrl(avatarUrl);
-      console.log('Profile avatar URL:', avatarUrl);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
-  };
-
-  fetchProfile();
-}, []);
-
-
-  
-  // ✅ Fetch active account type
+  // Fetch active account type
   useEffect(() => {
     const fetchAccountType = async () => {
       try {
@@ -75,7 +118,7 @@ const StoryList = () => {
     fetchAccountType();
   }, []);
 
-  // ✅ Story Data
+  // Story Data
   const StoryData = [
     ...(activeAccountType === 'Creator'
       ? [

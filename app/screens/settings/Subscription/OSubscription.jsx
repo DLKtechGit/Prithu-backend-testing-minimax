@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,46 +9,46 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import axios from "axios"; // Import axios for API calls
 
 const { width, height } = Dimensions.get("window");
 
-const plans = [
-  {
-    id: 1,
-    duration: "3",
-    unit: "months",
-    price: "₹299",
-    perMonth: "96.6 / month",
-    badge: "Save 0 %",
-    badgeColor: "#f1f1f1",
-    badgeTextColor: "gray",
-  },
-  {
-    id: 2,
-    duration: "6",
-    unit: "months",
-    price: "₹549",
-    perMonth: "91.5 / month",
-    badge: "Save 25 %",
-    badgeColor: "#FFF4CC",
-    badgeTextColor: "#2d2d54",
-  },
-  {
-    id: 3,
-    duration: "12",
-    unit: "months",
-    price: "₹959",
-    perMonth: "79.9 / month",
-    badge: "Save 40 %",
-    badgeColor: "#E0F8E9",
-    badgeTextColor: "#2d2d54",
-    popular: true,
-  },
-];
-
 const SubscriptionPlans = () => {
   const navigation = useNavigation();
-  const [selectedPlan, setSelectedPlan] = useState(3); // Default selected = 12 months
+  const [selectedPlan, setSelectedPlan] = useState(null); // Default selected = null until fetched
+  const [plans, setPlans] = useState([]); // State to store fetched plans
+
+  // Fetch plans from backend
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await axios.get("http://192.168.1.6:5000/api/user/getall/subscriptions");
+        console.log(response);
+        const fetchedPlans = response.data.plans.map((plan) => ({
+          id: plan._id, // Use MongoDB _id instead of index-based ID
+          duration: plan.durationYears, // Use durationYears from backend
+          unit: plan.durationYears === "1" ? "year" : "years", // Convert to singular/plural
+          price: `₹${plan.price}`, // Format price with ₹ symbol
+          perMonth: `${(plan.price / (plan.durationDays / 30)).toFixed(1)} / month`, // Calculate per month
+          badge: `Save ${plan.discount || 0} %`, // Use discount if available, else 0
+          badgeColor: plan.discount >= 40 ? "#E0F8E9" : plan.discount >= 25 ? "#FFF4CC" : "#f1f1f1", // Set badge color based on discount
+          badgeTextColor: plan.discount >= 25 ? "#2d2d54" : "gray", // Set badge text color
+          popular: plan.discount >= 40, // Mark as popular if discount is 40% or more
+        }));
+        setPlans(fetchedPlans);
+        // Set default selected plan to the one with the highest duration
+        const maxDurationPlan = fetchedPlans.reduce((max, plan) =>
+          parseInt(plan.duration) > parseInt(max.duration) ? plan : max
+        );
+        setSelectedPlan(maxDurationPlan.id);
+      } catch (error) {
+        console.error("Error fetching plans:", error);
+        // Fallback to empty array if fetch fails
+        setPlans([]);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -117,7 +117,19 @@ const SubscriptionPlans = () => {
       ))}
 
       {/* Subscribe Button */}
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => {
+          const selectedPlanData = plans.find((plan) => plan.id === selectedPlan);
+          if (selectedPlanData) {
+            navigation.navigate("Subcribe", {
+              id: selectedPlanData.id,
+              price: selectedPlanData.price.replace("₹", ""), // Remove ₹ symbol
+              duration: `${selectedPlanData.duration} ${selectedPlanData.unit}`,
+            });
+          }
+        }}
+      >
         <LinearGradient
           colors={["#FFD700", "green"]}
           start={{ x: 0, y: 0 }}

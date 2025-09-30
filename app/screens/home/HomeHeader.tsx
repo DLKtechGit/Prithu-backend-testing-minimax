@@ -47,7 +47,7 @@ const HomeHeader = ({ theme }: any) => {
                             GlobalStyleSheet.btnicon,
                             { marginRight: 10, backgroundColor: theme.dark ? 'rgba(255,255,255,.1)' : '#EFF3FA' }
                         ]}
-                        onPress={() => navigation.navigate('createpost')}
+                        onPress={() => navigation.navigate('AddStory')}
                     >
                         <Image
                             style={{ width: 16, height: 16, tintColor: theme.dark ? '#fff' : '#475A77' }}

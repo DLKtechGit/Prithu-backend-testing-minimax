@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, TextInput, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Image, Alert, TouchableOpacity, TextInput, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useTheme } from '@react-navigation/native';
@@ -21,6 +21,39 @@ const Forgot = ({ navigation } : ForgotScreenProps)  => {
         onFocus1: false,
         onFocus2: false
     })
+
+    //  state for email
+    const [email, setEmail] = React.useState("");
+
+    //  function for Next button
+    const handleNext = async () => {
+        if (!email) {
+            Alert.alert("Error", "Please enter your email");
+            return;
+        }
+
+        try {
+            const res = await fetch("http://192.168.1.6:5000/api/auth/user/otp-send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await res.json();
+            console.log("Forgot Response:", data);
+
+            if (res.ok) {
+                Alert.alert("Success", "OTP has been sent to your email");
+                navigation.navigate('Otp') // 👈 pass email to OTP screen
+            } else {
+                Alert.alert("Error", data.message || "Please fill the required email");
+            }
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Failed to connect to server");
+        }
+    };
+
 
     return (
         <SafeAreaView style={[GlobalStyleSheet.container,{padding:0, flex: 1 }]}>
@@ -62,30 +95,31 @@ const Forgot = ({ navigation } : ForgotScreenProps)  => {
                                     }
                                 ]}
                             >
-                                <Image
-                                    style={[
-                                        GlobalStyleSheet.inputimage,
-                                        {
-                                            tintColor: theme.dark ? colors.title : colors.text,
-                                        }
-                                    ]}
-                                    source={IMAGES.email}
-                                />
+                               <Image
+    style={[
+        GlobalStyleSheet.inputimage,
+        {
+            tintColor: theme.dark ? colors.title : colors.text,
+            width: 23,   // increase width
+            height: 23,  // increase height
+        }
+    ]}
+    source={IMAGES.post}
+/>
 
                                 <TextInput
                                     style={[GlobalStyleSheet.input, { color: colors.title }]}
                                     placeholder='Enter your email'
                                     placeholderTextColor={colors.placeholder}
+                                     value={email}
+                                     onChangeText={setEmail}
                                     onFocus={() => setFocus({ ...inputFocus, onFocus1: true })}
                                     onBlur={() => setFocus({ ...inputFocus, onFocus1: false })}
                                 />
                             </View>
 
                             <View style={{ marginTop: 10 }}>
-                                <Button
-                                    title="Next"
-                                    onPress={() => navigation.navigate('Otp')}
-                                />
+                                <Button title="Next" onPress={handleNext} />
                             </View>
 
                             <View style={{ flex: 1 }}></View>

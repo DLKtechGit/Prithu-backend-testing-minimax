@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './RootStackParamList';
 import { SafeAreaView,View,ActivityIndicator } from 'react-native';
-
+ 
 import Login from '../screens/auth/Login';
 import Register from '../screens/auth/Register';
 import Forgot from '../screens/auth/Forgot-password';
@@ -104,18 +104,23 @@ import FeedScreen from '../screens/auth/FeedScreen';
 import ReferralDashboard from '../screens/settings/Referrals/ReferralDashboard';
 import CommentSheet from '../screens/comment/CommentSheet';
 import LikeFeed from '../screens/settings/Feed/likescreen';
-
+import GenderScreen from '../screens/auth/GenderScreen';
+import RoleScreen from '../screens/auth/RoleSelection';
+import HiddenPosts from '../screens/settings/Feed/HiddenPosts';
+import NotInterestedCategories from '../screens/settings/Feed/NotInterestedCategories';
+import SubscriptionDetails from '../screens/settings/Subscription/SubscriptionDetails';
+ 
 // import BottomSheetComments from '../components/bottomsheet/BottomSheetComments';
 // import { View } from 'react-native-reanimated/lib/typescript/Animated';
 // import { ActivityIndicator } from 'react-native-paper';
-
+ 
 const Stack = createStackNavigator<RootStackParamList>();
-
+ 
 const StackNavigator = () => {
      const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState<string | null>(null);
-
-
+ 
+ 
   // Check if user is logged in on app start
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -128,11 +133,11 @@ const StackNavigator = () => {
         setIsLoading(false);
       }
     };
-
+ 
     checkLoginStatus();
   }, []);
-
-
+ 
+ 
     // Show loading screen while checking auth status
   if (isLoading) {
     return (
@@ -141,7 +146,7 @@ const StackNavigator = () => {
       </View>
     );
   }
-
+ 
     return (
         <SafeAreaView style={{width:'100%', flex: 1 }}>
             <Stack.Navigator
@@ -198,6 +203,7 @@ const StackNavigator = () => {
                 <Stack.Screen name="About" component={About } />
                 <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy } />
                 <Stack.Screen name="Terms" component={Terms } />
+                 
                 <Stack.Screen name="Theme" component={Theme } />
                 <Stack.Screen name="Profile" component={Profile} />
                 <Stack.Screen name="EditProfile" component={EditProfile } />
@@ -209,8 +215,8 @@ const StackNavigator = () => {
                 <Stack.Screen name="Savepost" component={SavePost} />
                 <Stack.Screen name="SaveReels" component={SaveReels} />
                  <Stack.Screen name="Friend" component={ReferralDashboard} />
-
-
+ 
+ 
                 <Stack.Screen name="Components" component={Components} />
                 <Stack.Screen name="Accordion" component={AccordionScreen} />
                 <Stack.Screen name="ActionSheet" component={ActionSheet} />
@@ -253,11 +259,16 @@ const StackNavigator = () => {
                 <Stack.Screen name='FeedLanguage' component={FeedLanguage}/>
                 <Stack.Screen name='LanguageScreen' component={LanguageScreen}/>
                 <Stack.Screen name='FeedScreen' component={FeedScreen}/>
+                 <Stack.Screen name="gender" component={GenderScreen} />
                 <Stack.Screen name='CommentSheet' component={CommentSheet}/>
-            
+                <Stack.Screen name="role" component={RoleScreen} />
+                <Stack.Screen name='HiddenPosts' component={HiddenPosts} />
+                <Stack.Screen name='NotInterestedCategories' component={NotInterestedCategories}/>
+                <Stack.Screen name='SubscriptionDetails' component={SubscriptionDetails}/>
+           
             </Stack.Navigator>
         </SafeAreaView>
     )
 }
-
+ 
 export default StackNavigator;

@@ -20,7 +20,7 @@ import ProfilePostData from '../profile/ProfilePostData';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE = 'https://ddbb.onrender.com/api';
+const API_BASE = 'http://192.168.1.6:5000/api';
 
 const Search = ({ navigation }: any) => {
   const theme = useTheme();
@@ -28,18 +28,27 @@ const Search = ({ navigation }: any) => {
 
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
   const [catLoading, setCatLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  // Converts a backend path into a usable full URL
-const buildUrl = (path: string | undefined | null) => {
-  if (!path) return null;
-  // Replace backslashes and prepend base
-  return `https://ddbb.onrender.com/${path.replace(/\\/g, '/')}`;
-};
 
+  // Converts a backend path into a usable full URL
+  const buildUrl = (path: string | undefined | null) => {
+    if (!path) return null;
+    // Replace backslashes and prepend base
+    return `http://192.168.1.6:5000/${path.replace(/\\/g, '/')}`;
+  };
+
+  // Shuffle array using Fisher-Yates algorithm
+  const shuffleArray = (array: any[]) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   // Fetch all posts initially or on refresh
   const fetchPosts = async () => {
@@ -54,17 +63,18 @@ const buildUrl = (path: string | undefined | null) => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-     const feeds = res.data.feeds || [];
-const imageFeeds = feeds
-  .filter((item: any) => item.type === 'image')
-  .map((item: any) => ({
-    id: item._id,
-    image: { uri: buildUrl(item.contentUrl) },   // ✅ fixed
-    like: item.likesCount || 0,
-  }));
-setPosts(imageFeeds);
+      const feeds = res.data.feeds || [];
+      const imageFeeds = feeds
+        .filter((item: any) => item.type === 'image')
+        .map((item: any) => ({
+          id: item._id,
+          image: { uri: item.contentUrl },
+          like: item.likesCount || 0,
+        }));
+      // Shuffle the posts before setting state
+      setPosts(shuffleArray(imageFeeds));
 
-      // clear search and categories when refresh
+      // Clear search and categories when refresh
       setQuery('');
       setCategories([]);
     } catch (error) {
@@ -116,17 +126,17 @@ setPosts(imageFeeds);
         headers: { Authorization: `Bearer ${token}` },
       });
 
-     const feeds = res.data?.category?.feeds || [];
-const imageFeeds = feeds
-  .filter((item: any) => item.type === 'image')
-  .map((item: any) => ({
-    id: item._id,
-    image: { uri: buildUrl(item.contentUrl) },   // ✅ fixed
-    like: item.likesCount || 0,
-  }));
-setPosts(imageFeeds);
+      const feeds = res.data?.category?.feeds || [];
+      const imageFeeds = feeds
+        .filter((item: any) => item.type === 'image')
+        .map((item: any) => ({
+          id: item._id,
+          image: { uri: item.contentUrl },
+          like: item.likesCount || 0,
+        }));
+      setPosts(imageFeeds);
 
-      // hide category list
+      // Hide category list
       setCategories([]);
       setQuery('');
     } catch (err) {

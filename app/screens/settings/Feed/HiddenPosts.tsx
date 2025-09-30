@@ -10,23 +10,23 @@ import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
- 
-type LikeScreenProps = StackScreenProps<RootStackParamList, 'LikeFeed'>;
- 
-const LikeFeed = ({ navigation }: LikeScreenProps) => {
+
+type HiddenPostsScreenProps = StackScreenProps<RootStackParamList, 'HiddenPosts'>;
+
+const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
   const scrollRef = useRef<any>();
   const [currentIndex, setCurrentIndex] = useState<any>(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [profilePosts, setProfilePosts] = useState<any[]>([]);
   const [reelsPosts, setReelsPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
- 
+
   const slideIndicator = scrollX.interpolate({
     inputRange: [0, SIZES.width],
     outputRange: [0, (SIZES.width - 30) / 2],
     extrapolate: 'clamp',
   });
- 
+
   const onPressTouch = (val: any) => {
     setCurrentIndex(val);
     scrollRef.current?.scrollTo({
@@ -34,59 +34,73 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
       animated: true,
     });
   };
- 
+
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
- 
-  // Fetch Liked Feeds
-// Fetch Liked Feeds
-  const fetchLikedFeeds = async () => {
+
+  // Fetch Hidden Posts
+  const fetchHiddenPosts = async () => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('userToken');
-
+       console.log(token)
       if (!token) {
         console.log('❌ No token found in AsyncStorage');
         setLoading(false);
         return;
       }
-      console.log('🔑 Retrieved token:', token);
 
+      // CORRECTED API ENDPOINT
       const res = await axios.get(
-        'http://192.168.1.6:5000/api/user/liked/feeds',
+        'http://192.168.1.6:5000/api/get/user/hide/post', // Updated endpoint
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
+      
+      console.log('✅ Hidden Posts API Response:', res.data);
 
-      console.log('✅ API Response:', res.data);
+      // Check if the response structure matches your backend
+      const allHiddenPosts = res.data.data || res.data.hiddenPosts || [];
 
-      const allFeeds = res.data.likedFeeds || [];
-
-      // Separate images & videos by type
-      const images = allFeeds.filter((feed: any) => feed.type === 'image');
-      const videos = allFeeds.filter((feed: any) => feed.type === 'video');
+      // Separate images & videos by contentUrl extension or type field if available
+      const images = allHiddenPosts.filter((post: any) => {
+        const url = post.contentUrl || post.url || '';
+        return url.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i);
+      });
+      
+      const videos = allHiddenPosts.filter((post: any) => {
+        const url = post.contentUrl || post.url || '';
+        return url.match(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i);
+      });
 
       // Map with correct structure
       setProfilePosts(
-        images.map((f: any) => ({
-          image: f.url,
-          likeCount: f.totalLikes || 0,
+        images.map((post: any) => ({
+          id: post._id,
+          image: post.contentUrl || post.url,
+        //   likeCount: post.likesCount || post.totalLikes || 0,
+          title: post.title || '',
+          createdAt: post.createdAt,
+          createdBy: post.createdByAccount || post.createdBy,
         }))
       );
 
       setReelsPosts(
-        videos.map((f: any) => ({
-          thumbnail: f.url.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg'), // Generate thumbnail URL
-          videoUrl: f.url, // Store actual video URL for playback
-          views: f.totalLikes || 0, // Using totalLikes as views for consistency
+        videos.map((post: any) => ({
+          id: post._id,
+          thumbnail: post.contentUrl || post.url,
+          views: post.views || post.totalViews || 0,
+          title: post.title || '',
+          createdAt: post.createdAt,
+          createdBy: post.createdByAccount || post.createdBy,
         }))
       );
     } catch (err: any) {
       console.log(
-        '❌ Error fetching liked feeds:',
+        '❌ Error fetching hidden posts:',
         err.response?.data || err.message
       );
       setProfilePosts([]);
@@ -95,11 +109,11 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
       setLoading(false);
     }
   };
- 
+
   useEffect(() => {
-    fetchLikedFeeds();
+    fetchHiddenPosts();
   }, []);
- 
+
   return (
     <SafeAreaView
       style={[
@@ -107,7 +121,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
         { padding: 0, backgroundColor: colors.card, flex: 1 },
       ]}
     >
-      <Header title="Liked Posts" />
+      <Header title="Hidden Posts" />
       <View style={{ backgroundColor: colors.card, flex: 1 }}>
         {loading ? (
           <View
@@ -186,7 +200,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                 />
               </View>
             </View>
- 
+
             <ScrollView
               horizontal
               scrollEventThrottle={16}
@@ -210,7 +224,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                 }
               }}
             >
-              {/* Liked Posts */}
+              {/* Hidden Posts */}
               <View
                 style={[
                   GlobalStyleSheet.container,
@@ -226,7 +240,9 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                       height: SIZES.height - 200,
                     }}
                   >
-                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text style={{ color: colors.text, ...FONTS.fontMedium }}>
+                      No hidden posts found
+                    </Text>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -234,7 +250,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                       <View key={index} style={{ width: '33.33%' }}>
                         <TouchableOpacity
                           style={{ padding: 2 }}
-                          onPress={() => navigation.navigate('LikePost', { data })}
+                          onPress={() => navigation.navigate('HiddenPostDetail', { data })}
                         >
                           <Image
                             style={{ width: '100%', height: null, aspectRatio: 1 }}
@@ -254,7 +270,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                               left: 10,
                             }}
                           >
-                            <Image
+                            {/* <Image
                               style={{
                                 width: 10,
                                 height: 10,
@@ -262,8 +278,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                                 tintColor: '#fff',
                               }}
                               source={IMAGES.like}
-                            />
-                            <Text
+                            /> */}
+                            {/* <Text
                               style={{
                                 ...FONTS.fontRegular,
                                 fontSize: 10,
@@ -272,7 +288,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                               }}
                             >
                               {data.likeCount || 0}
-                            </Text>
+                            </Text> */}
                           </View>
                         </TouchableOpacity>
                       </View>
@@ -280,8 +296,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                   </View>
                 )}
               </View>
- 
-              {/* Liked Reels */}
+
+              {/* Hidden Reels */}
               <View
                 style={[
                   GlobalStyleSheet.container,
@@ -297,14 +313,16 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                       height: SIZES.height - 200,
                     }}
                   >
-                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text style={{ color: colors.text, ...FONTS.fontMedium }}>
+                      No hidden reels found
+                    </Text>
                   </View>
                 ) : (
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                     {reelsPosts.map((data: any, index) => (
                       <View key={index} style={{ width: '33.33%', padding: 2 }}>
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('LikeReels', { data })}
+                          onPress={() => navigation.navigate('HiddenReelDetail', { data })}
                         >
                           <Image
                             style={{
@@ -361,6 +379,5 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
     </SafeAreaView>
   );
 };
- 
-export default LikeFeed;
- 
+
+export default HiddenPosts;

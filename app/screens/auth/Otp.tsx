@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, TextInput, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Image, Alert, TouchableOpacity, TextInput, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
 import { useTheme } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import Button from '../../components/button/Button';
 import OTPTextInput from 'react-native-otp-textinput';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type OtpScreenProps = StackScreenProps<RootStackParamList, 'Otp'>;
 
@@ -17,11 +18,47 @@ const Otp = ({ navigation } : OtpScreenProps) => {
     const { colors } : {colors : any} = theme;
 
     const [show, setshow] = React.useState(true);
+    const [otp, setOtp] = React.useState("");
 
     const [inputFocus, setFocus] = React.useState({
         onFocus1: false,
         onFocus2: false
     })
+
+     const handleVerifyOtp = async () => {
+        if (!otp || otp.length < 4) {
+            Alert.alert("Error", "Please enter the full OTP");
+            return;
+        }
+
+        try {
+            const response = await fetch("http://192.168.1.6:5000/api/auth/exist/user/verify-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ otp }),   // 👈 send OTP to backend
+            });
+
+            const data = await response.json();
+            console.log("Backend response:", data); 
+        
+            if (response.ok) {
+                console.log(data.email);
+                
+                   await AsyncStorage.removeItem('verifiedEmail');
+                await AsyncStorage.setItem('verifiedEmail', data.email);
+                Alert.alert("Success", "OTP verified successfully!", [
+                    { text: "OK", onPress: () => navigation.navigate("ChangePassword") }
+                ]);
+            } else {
+                Alert.alert("Error", data.message || "Invalid OTP, please try again");
+                console.log(data.message)
+            }
+        } catch (error) {
+            console.error("OTP Verify Error:", error);
+            Alert.alert("Error", "Something went wrong. Please try again later.");
+            console.log(otp)
+        }
+    };
 
     return (
         <SafeAreaView style={[GlobalStyleSheet.container,{padding:0, flex: 1 }]}>
@@ -55,6 +92,7 @@ const Otp = ({ navigation } : OtpScreenProps) => {
                             <View style={{alignItems:'center',marginBottom:20}}>
                                 <OTPTextInput 
                                     tintColor={colors.background}
+                                     handleTextChange={(text: string) => setOtp(text)} 
                                     inputCount={4}
                                     textInputStyle={{
                                         borderBottomWidth:0,
@@ -69,9 +107,7 @@ const Otp = ({ navigation } : OtpScreenProps) => {
                             </View> 
 
                             <View style={{ marginTop: 10 }}>
-                                <Button title="Next"
-                                    onPress={() => navigation.navigate('ChangePassword')}
-                                />
+                                 <Button title="Next" onPress={handleVerifyOtp}/>
                             </View>
 
                             <View style={{ flex: 1 }}></View>

@@ -8,17 +8,19 @@ import Button from '../../components/button/Button';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import {connectSocket} from '../../../webSocket/webScoket';
+import {startHeartbeat} from "../../../webSocket/heartBeat";
+ 
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
-
+ 
 const Login = ({ navigation }: LoginScreenProps) => {
-
+ 
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
-
+ 
   const [show, setshow] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
-
+ 
   const [inputFocus, setFocus] = React.useState({
     onFocus1: false,
     onFocus2: false
@@ -26,57 +28,74 @@ const Login = ({ navigation }: LoginScreenProps) => {
   // ✅ add states for inputs
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-
+ 
   const LoginButton = async () => {
-    if (!email || !password) {
-      alert("Please enter email and password");
-      return;
-    }
+  if (!email || !password) {
+    alert("Please enter email and password");
+    return;
+  }
+ 
+  setLoading(true);
+ 
+  try {
+    const res = await fetch("http://192.168.1.6:5000/api/auth/user/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: email, password })
+    });
+    await connectSocket();
 
-    setLoading(true);
-
-    try {
-      const res = await fetch("https://ddbb.onrender.com/api/auth/user/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: email, password })
-      });
-
-      const data = await res.json();
-      console.log("Login response:", data);
-
-      if (res.ok) {
-        // ✅ if backend says success → go to homepage
-        // Store token and user data
-        await AsyncStorage.setItem('userToken', data.accessToken);
-        // await AsyncStorage.setItem('userId', data.user.userId);
-        // await AsyncStorage.setItem('userData', JSON.stringify(data.creator));
-        // navigation.navigate('DrawerNavigation', {screen : 'Home'});
-
-        // Save userId and accountId
-        // await AsyncStorage.setItem('userId', data.user?.id || '');
-        // await AsyncStorage.setItem('accountId', data.user?.accountId || '');
-     if (data?.userStart === true) {
-  navigation.navigate('DrawerNavigation', { screen: 'Home' });
-} else {
-  navigation.navigate("LanguageScreen");
-}
-      } else {
-        alert(data.message || "Invalid email or password");
-        setLoading(false);
-        console.log(data)
+     startHeartbeat();
+    const data = await res.json();
+    console.log("Login response:", data);
+ 
+    if (res.ok) {
+      // Save token
+      await AsyncStorage.setItem('userToken', data.accessToken);
+    await AsyncStorage.setItem("refreshToken", data.refreshToken);
+    await AsyncStorage.setItem("sessionId", data.sessionId);
+    await AsyncStorage.setItem("deviceId", data.deviceId);
+      const { appLanguage, feedLanguage, gender } = data;
+ 
+      // ✅ Navigation logic:
+      if (appLanguage === true && feedLanguage === true && gender === true) {
+        // All true → Home
+        navigation.navigate('DrawerNavigation', { screen: 'Home' });
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Something went wrong, try again later");
-      setLoading(false);
+      else if (appLanguage === true && feedLanguage !== true) {
+        // Only appLanguage true → FeedLanguageScreen
+        navigation.navigate('FeedScreen');
+      }
+      else if (appLanguage === true && feedLanguage === true && gender !== true) {
+        // App+Feed true but gender not true → Gender
+        navigation.navigate('gender');
+      }
+      else if (appLanguage === false && feedLanguage === false && gender === false) {
+        // All false → LanguageScreen
+        navigation.navigate('LanguageScreen');
+      }
+      else {
+        // Default → LanguageScreen
+        navigation.navigate('LanguageScreen');
+      }
+ 
+    } else {
+      alert(data.message || "Invalid email or password");
     }
-  };
-
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("Something went wrong, try again later");
+  } finally {
+    setLoading(false);
+  }
+};
+ 
+ 
+ 
   useFocusEffect(() => {
     setLoading(false);
   })
-
+ 
   return (
     <>
       {loading &&
@@ -121,7 +140,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                   />
                 </View>
                 <Text style={GlobalStyleSheet.formtitle}>Login Account</Text>
-                <Text style={GlobalStyleSheet.forndescription}>Please enter your credentials to access your account and detail</Text>
+                <Text style={GlobalStyleSheet.forndescription}>Welcome To Login Account to access your account and detail</Text>
               </View>
               <View style={[GlobalStyleSheet.loginarea, { backgroundColor: colors.card }]}>
                 <Text style={[GlobalStyleSheet.inputlable, { color: colors.title }]}>Email/Username</Text>
@@ -144,10 +163,10 @@ const Login = ({ navigation }: LoginScreenProps) => {
                     ]}
                     source={IMAGES.email}
                   />
-
+ 
                   <TextInput
                     style={[GlobalStyleSheet.input, { color: colors.title }]}
-                    placeholder='Enter your email'
+                    placeholder='Enter your email/Username'
                     placeholderTextColor={colors.placeholder}
                     value={email}
                     onChangeText={setEmail}
@@ -155,7 +174,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                     onBlur={() => setFocus({ ...inputFocus, onFocus1: false })}
                   />
                 </View>
-
+ 
                 <Text style={[GlobalStyleSheet.inputlable, { color: colors.title }]}>Password</Text>
                 <View
                   style={[
@@ -176,7 +195,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                     ]}
                     source={IMAGES.lock}
                   />
-
+ 
                   <TextInput
                     style={[GlobalStyleSheet.input, { color: colors.title }]}
                     placeholder='Enter your password'
@@ -184,7 +203,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                     secureTextEntry={show}
                     value={password}
                     onChangeText={setPassword}
-                    keyboardType='number-pad'
+                    keyboardType='default'
                     onFocus={() => setFocus({ ...inputFocus, onFocus2: true })}
                     onBlur={() => setFocus({ ...inputFocus, onFocus2: false })}
                   />
@@ -193,7 +212,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                       flexDirection: 'row',
                       position: 'absolute',
                       right: 15,
-
+ 
                     }}
                     onPress={() => {
                       setshow(!show)
@@ -220,9 +239,9 @@ const Login = ({ navigation }: LoginScreenProps) => {
                     <Text style={GlobalStyleSheet.btnlink}> Forgot Password? </Text>
                   </TouchableOpacity>
                 </View>
-
+ 
                 <Button title="Login" onPress={LoginButton} />
-
+ 
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 40, flex: 1 }}>
                   <View style={{ flex: 1, width: 0, backgroundColor: colors.border, height: 1 }}></View>
                   <View>
@@ -230,7 +249,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                   </View>
                   <View style={{ flex: 1, width: 0, backgroundColor: colors.border, height: 1 }}></View>
                 </View>
-
+ 
                 <TouchableOpacity style={[GlobalStyleSheet.mediabtn, { backgroundColor: theme.dark ? 'rgba(255,255,255,.1)' : '#E8ECF2' }]}>
                   <Image
                     style={{ position: 'absolute', left: 25, width: 20, height: 20 }}
@@ -238,7 +257,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
                   />
                   <Text style={{ ...FONTS.font, fontSize: 15, color: colors.title }}>Login with Google</Text>
                 </TouchableOpacity>
-
+ 
                 <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 15 }}>
                   <Text style={{ ...FONTS.font, color: colors.text }}>Don't have an account?
                   </Text>
@@ -256,5 +275,5 @@ const Login = ({ navigation }: LoginScreenProps) => {
     </>
   );
 };
-
+ 
 export default Login;

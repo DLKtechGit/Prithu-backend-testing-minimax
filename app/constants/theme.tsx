@@ -1,19 +1,21 @@
 import { Dimensions } from "react-native";
+import { red } from "react-native-reanimated/lib/typescript/Colors";
 const { width, height } = Dimensions.get('screen');
-
+ 
 export const COLORS = {
     primary: "#2979F8",
     primaryLight: "#7BAEFF",
     secondary: "#002C72",
     success: "#0ecb81",
-    danger: "#ff4a5c",
+    danger: "#ff4a5cff",
     info: "#627EEA",
     warning: "#ffb02c",
     yellow: "#fff346",
     white: "#fff",
     dark: "#2f2f2f",
     light: "#E6E6E6",
-
+    red:"#de1d31ff",
+ 
     // light
     title: "#000",
     text: "#475A77",
@@ -22,8 +24,8 @@ export const COLORS = {
     border: "rgba(0, 0, 0, 0.10)",
     input: "#EFF3FA",
     placeholder: 'rgba(71,90,119,.5)',
-
-    // dark 
+ 
+    // dark
     darkTitle: "#fff",
     darkText: "rgba(255,255,255,.6)",
     darkBackground: "#070C1F",
@@ -31,9 +33,9 @@ export const COLORS = {
     darkBorder: "rgba(255,255,255,.15)",
     darkInput: "rgba(255,255,255,.1)",
     darkPlaceholder: "rgba(255,255,255,.5)",
-
+ 
 }
-
+ 
 export const SIZES = {
     font: 14,
     fontSm: 13,
@@ -41,11 +43,11 @@ export const SIZES = {
     radius: 10,
     radius_lg: 20,
     radius_sm: 8,
-
+ 
     //space
     padding: 15,
     margin: 15,
-
+ 
     //Font Sizes
     h1: 40,
     h2: 28,
@@ -53,13 +55,13 @@ export const SIZES = {
     h4: 20,
     h5: 18,
     h6: 16,
-
+ 
     //App dimensions
     width,
     height,
-
+ 
     container : 800,
-    
+   
     contentArea: {
         paddingTop: 70,
         paddingBottom: 150,
@@ -75,14 +77,15 @@ export const FONTS = {
     h4: { fontSize: SIZES.h4, lineHeight: 26, color: COLORS.title, fontFamily: 'PoppinsSemiBold' },
     h5: { fontSize: SIZES.h5, lineHeight: 24, color: COLORS.title, fontFamily: 'PoppinsSemiBold' },
     h6: { fontSize: SIZES.h6, lineHeight: 20, color: COLORS.title, fontFamily: 'PoppinsSemiBold' },
-
+ 
     fontRegular: { fontFamily: 'PoppinsRegular' },
     fontMedium: { fontFamily: 'PoppinsMedium' },
     fontSemiBold: { fontFamily: 'PoppinsSemiBold' },
     fontBold: { fontFamily: 'PoppinsBold' },
 }
-
+ 
 export const IMAGES = {
+    post:require('../assets/images/icons/post.png'),
     badge:require('../assets/images/icons/badge.png'),
     pricing:require('../assets/images/icons/pricing.png'),
     tabs:require('../assets/images/icons/tabs.png'),
@@ -116,8 +119,9 @@ export const IMAGES = {
     payment:require('../assets/images/icons/credit-card.png'),
     Referrals:require('../assets/images/icons/collaborate.png'),
     Sub:require('../assets/images/icons/crown.png'),
+    crown:require('../assets/images/icons/crown2.png'),
     Invite:require('../assets/images/icons/add-user.png'),
-
+ 
     chillzone: require('../assets/images/icons/chill-out.png'),
     CoffeeChat: require('../assets/images/icons/CoffeeChat.png'),
     Hangout: require('../assets/images/icons/google-hangouts.png'),
@@ -128,8 +132,8 @@ export const IMAGES = {
     marketing: require('../assets/images/icons/marketing.png'),
     standup: require('../assets/images/icons/standup-comedy.png'),
     bugrepellent: require('../assets/images/icons/bug-repellent.png'),
-
-
+ 
+ 
     profile: require('../assets/images/profile/profile.jpg'),
     profile2: require('../assets/images/profile/profile-2.jpg'),
     profilepic1: require('../assets/images/profile/pic-1.jpg'),
@@ -228,18 +232,19 @@ export const IMAGES = {
     smallpic9: require('../assets/images/small/small-9.jpg'),
     smallpic10: require('../assets/images/small/small-10.jpg'),
     smallpic11: require('../assets/images/small/small-11.jpg'),
-    
-    
+   
+   
 }
-
+ 
 export const VIDEO = {
     video1: require('../assets/video/video1.mp4'),
     video2: require('../assets/video/video2.mp4'),
     video3: require('../assets/video/video3.mp4'),
     video4: require('../assets/video/video4.mp4'),
 }
-
-
+ 
+ 
 const appTheme = { COLORS, SIZES, FONTS, IMAGES, VIDEO }
-
+ 
 export default appTheme;
+ 

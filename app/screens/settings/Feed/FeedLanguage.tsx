@@ -21,21 +21,21 @@ type Language = {
 
 // ✅ Initial 5 Languages
 const firstLanguages: Language[] = [
-  { code: "ta", name: "Tamil", flag: "https://flagcdn.com/w40/in.png" },
-  { code: "en", name: "English", flag: "https://flagcdn.com/w40/us.png" },
-  { code: "ml", name: "Malayalam", flag: "https://flagcdn.com/w40/in.png" },
-  { code: "hi", name: "Hindi", flag: "https://flagcdn.com/w40/in.png" },
-  { code: "te", name: "Telugu", flag: "https://flagcdn.com/w40/in.png" },
+  { code: "ta", name: "Tamil", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "en", name: "English", flag: "http://flagcdn.com/w40/us.png" },
+  { code: "ml", name: "Malayalam", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "hi", name: "Hindi", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "te", name: "Telugu", flag: "http://flagcdn.com/w40/in.png" },
 ];
 
 // ✅ Full Language List (can extend later)
 const allLanguages: Language[] = [
   ...firstLanguages,
- { code: "kn", name: "Kannada", flag: "https://flagcdn.com/w40/in.png" },
-  { code: "mr", name: "Marathi", flag: "https://flagcdn.com/w40/in.png" },
-  { code: "es", name: "Spanish", flag: "https://flagcdn.com/w40/es.png" },
-  { code: "de", name: "German", flag: "https://flagcdn.com/w40/de.png" },
-  { code: "it", name: "Italian", flag: "https://flagcdn.com/w40/it.png" },
+ { code: "kn", name: "Kannada", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "mr", name: "Marathi", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "es", name: "Spanish", flag: "http://flagcdn.com/w40/es.png" },
+  { code: "de", name: "German", flag: "http://flagcdn.com/w40/de.png" },
+  { code: "it", name: "Italian", flag: "http://flagcdn.com/w40/it.png" },
  
 ];
 

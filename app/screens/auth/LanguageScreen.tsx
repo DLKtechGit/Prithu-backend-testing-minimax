@@ -13,14 +13,14 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { Dimensions } from "react-native";
-
-
+ 
+ 
 type Language = {
     code: string;
     name: string;
     flag: string;
 };
-
+ 
 const languages: Language[] = [
     { code: "en", name: "English", flag: "https://flagcdn.com/w40/us.png" },
     { code: "ta", name: "Tamil", flag: "https://flagcdn.com/w40/in.png" },
@@ -29,12 +29,12 @@ const languages: Language[] = [
     { code: "hi", name: "Hindi", flag: "https://flagcdn.com/w40/in.png" },
 ];
 const { width, height } = Dimensions.get("window");
-
+ 
 const LanguageScreen: React.FC = () => {
     const navigation = useNavigation<any>();
     const [selectedLang, setSelectedLang] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-
+ 
     useEffect(() => {
         const checkLanguage = async () => {
             const savedLang = await AsyncStorage.getItem("AppLanguage");
@@ -46,29 +46,30 @@ const LanguageScreen: React.FC = () => {
         };
         checkLanguage();
     }, []);
-
+ 
     const handleNext = async () => {
         if (selectedLang) {
             try {
                 // Save locally
                 await AsyncStorage.setItem("AppLanguage", selectedLang);
-
+ 
                 // Get token (assuming you store it in AsyncStorage after login)
                 const token = await AsyncStorage.getItem("userToken");
-
+ 
                 // Send to backend
-                const response = await fetch("https://ddbb.onrender.com/api/app/language", {
+                const response = await fetch("http://192.168.1.6:5000/api/user/app/language", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`, // ✅ auth middleware expects token
                     },
-                    body: JSON.stringify({ language: selectedLang }),
+                    body: JSON.stringify({ appLanguage: selectedLang }),
                 });
-
+ 
                 const data = await response.json();
+               
                 console.log("Language saved:", data);
-
+ 
                 // Navigate after success
                 navigation.navigate("FeedScreen");
             } catch (error) {
@@ -76,10 +77,10 @@ const LanguageScreen: React.FC = () => {
             }
         }
     };
-
-
+ 
+ 
     if (loading) return null;
-
+ 
     const renderLanguageItem = ({ item }: { item: Language }) => (
         <TouchableOpacity
             style={[
@@ -100,7 +101,7 @@ const LanguageScreen: React.FC = () => {
             )}
         </TouchableOpacity>
     );
-
+ 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.headerRow}>
@@ -110,17 +111,17 @@ const LanguageScreen: React.FC = () => {
                         source={IMAGES.arrowleft}
                     />
                 </TouchableOpacity>
-
+ 
                 <Text style={styles.title}>Choose Your App Language</Text>
             </View>
-
+ 
             <FlatList
                 data={languages}
                 keyExtractor={(item) => item.code}
                 renderItem={renderLanguageItem}
                 contentContainerStyle={{ paddingVertical: 30 }}
             />
-
+ 
             {/* Next Button */}
             <TouchableOpacity
                 style={[styles.nextButton, { opacity: selectedLang ? 1 : 0.5 }]}
@@ -132,9 +133,9 @@ const LanguageScreen: React.FC = () => {
         </SafeAreaView>
     );
 };
-
+ 
 export default LanguageScreen;
-
+ 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         paddingTop: height * 0.1, // instead of 80
     },
-
+ 
     headerRow: {
         flexDirection: "row",
         alignItems: "center",
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: "700",
         color: "#222",
-
+ 
     },
     languageItem: {
         flexDirection: "row",
@@ -200,10 +201,12 @@ const styles = StyleSheet.create({
         left: 20,
         right: 20,
     },
-
+ 
     nextButtonText: {
         fontSize: 18,
         fontWeight: "600",
         color: "#fff",
     },
 });
+ 
+ 

@@ -1,6 +1,6 @@
 import { NavigatorScreenParams } from "@react-navigation/native";
 import { BottomTabParamList } from "./BottomTabParamList";
-
+ 
 export type RootStackParamList = {
     DrawerNavigation: NavigatorScreenParams<BottomTabParamList>;
     Damo: undefined;
@@ -62,7 +62,7 @@ export type RootStackParamList = {
     SaveReels: undefined;
     ActionSheet: undefined;
     JobApplied: undefined;
-    AboutCompany: { data?: any }; 
+    AboutCompany: { data?: any };
     AboutGalary: undefined;
     Components: undefined;
     Coupons: undefined;
@@ -131,5 +131,9 @@ export type RootStackParamList = {
     Friend:undefined;
     CommentSheet: undefined;
     LikeFeed: undefined;
-
+    gender:undefined;
+    role:undefined;
+    HiddenPosts: undefined;
+    NotInterestedCategories: undefined;
+    SubscriptionDetails: undefined;
 };

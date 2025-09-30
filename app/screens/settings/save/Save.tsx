@@ -39,7 +39,7 @@ const Save = ({ navigation }: SaveScreenProps) => {
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
 
-// 🔥 Fetch Saved Feeds
+//  Fetch Saved Feeds
 const fetchSavedFeeds = async () => {
   try {
     setLoading(true);
@@ -53,7 +53,7 @@ const fetchSavedFeeds = async () => {
     }
 
     const res = await axios.get(
-      "https://ddbb.onrender.com/api/user/get/saved/feeds",
+      "http://192.168.1.6:5000/api/user/get/saved/feeds",
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -69,16 +69,22 @@ const fetchSavedFeeds = async () => {
     const images = allFeeds.filter((feed: any) => feed.type === "image");
     const videos = allFeeds.filter((feed: any) => feed.type === "video");
 
-    // Map with correct structure
-    setProfilePosts(images.map((f: any) => ({
-      image: f.contentUrl,
-      likeCount: f.likeCount,
-    })));
+    // Map images
+    setProfilePosts(
+      images.map((f: any) => ({
+        image: f.contentUrl,
+        likeCount: f.likeCount,
+      }))
+    );
 
-    setReelsPosts(videos.map((f: any) => ({
-      thumbnail: f.contentUrl,
-      views: f.views || 0,
-    })));
+    // Map videos with thumbnail URL
+    setReelsPosts(
+      videos.map((f: any) => ({
+        thumbnail: f.contentUrl.replace("/video/upload/", "/video/upload/so_0/").replace(".mp4", ".jpg"),
+        videoUrl: f.contentUrl, // Store the actual video URL for playback
+        views: f.views || 0,
+      }))
+    );
   } catch (err: any) {
     console.log(
       "❌ Error fetching saved feeds:",
@@ -88,7 +94,6 @@ const fetchSavedFeeds = async () => {
     setLoading(false);
   }
 };
-
 
   useEffect(() => {
     fetchSavedFeeds();

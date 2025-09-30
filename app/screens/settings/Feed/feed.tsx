@@ -12,6 +12,9 @@ const Feed = ({ navigation }: any) => {
     { id: '1', text: 'Feed Language', screen: 'FeedLanguage' },
     { id: '2', text: 'App Language', screen: 'AppLanguage' },
     { id: '3', text: 'Like Feed', screen: 'LikeFeed' },
+    { id: '4', text: ' Hidden Posts', screen: 'HiddenPosts' },
+    { id: '5', text: ' Not-Intrested Categories', screen: 'NotInterestedCategories' },
+
   ];
 
   return (
