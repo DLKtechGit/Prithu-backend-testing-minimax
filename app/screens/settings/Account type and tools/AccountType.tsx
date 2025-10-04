@@ -25,7 +25,7 @@ const AccountType = ({ navigation }) => {
 
                 // Make API call to fetch account status
                 const response = await axios.post(
-                    'http://192.168.1.6:5000/api/account/status',
+                    'http://192.168.1.17:5000/api/account/status',
                     {}, // Empty body, assuming userId is derived from token in middleware
                     {
                         headers: {
@@ -105,7 +105,7 @@ const AccountType = ({ navigation }) => {
             // Retrieve user token from AsyncStorage
             const userToken = await AsyncStorage.getItem('userToken');
             const refreshToken = await AsyncStorage.getItem('refreshToken');
-            const sessionId = await AsyncStorage.getItem('sessionId');
+             const sessionId = await AsyncStorage.getItem('sessionId');
              const deviceId = await AsyncStorage.getItem('deviceId');
 
             if (!userToken) {
@@ -122,11 +122,12 @@ const AccountType = ({ navigation }) => {
                 if (option.role === 'Personal') {
                     // API call to switch to User account
                     const response = await axios.post(
-                        'http://192.168.1.6:5000/api/account/switch/user',
+                        'http://192.168.1.17:5000/api/account/switch/user',
                         {
-                            refreshToken: refreshToken,
-                            sessionId: sessionId,
-                            deviceId: deviceId,
+                             refreshToken: refreshToken,
+                             sessionId: sessionId,
+                             deviceId: deviceId,
+                             deviceType:"mobile",
                         },
                         {
                             headers: {
@@ -138,6 +139,7 @@ const AccountType = ({ navigation }) => {
                     if (response.status === 200) {
                         // Update token in AsyncStorage
                         await AsyncStorage.setItem('userToken', response.data.token);
+                        await AsyncStorage.setItem('sessionId', response.data.sessionId);
                         await AsyncStorage.setItem('activeAccountType', 'Personal');
                         // Navigate to DrawerNavigation Home screen
                         navigation.navigate('DrawerNavigation', { screen: 'Home' });
@@ -145,8 +147,13 @@ const AccountType = ({ navigation }) => {
                 } else if (option.role === 'Creator') {
                     // API call to switch to Creator account
                     const response = await axios.post(
-                        'http://192.168.1.6:5000/api/account/switch/creator',
-                        {},
+                        'http://192.168.1.17:5000/api/account/switch/creator',
+                        {
+                            refreshToken: refreshToken,
+                             sessionId: sessionId,
+                             deviceId: deviceId,
+                             deviceType:"mobile",
+                        },
                         {
                             headers: {
                                 Authorization: `Bearer ${userToken}`,
@@ -157,9 +164,7 @@ const AccountType = ({ navigation }) => {
                     if (response.status === 200) {
                         // Update token in AsyncStorage
                         await AsyncStorage.setItem('userToken', response.data.token);
-                          await AsyncStorage.setItem("refreshToken", response.data.refreshToken);
                           await AsyncStorage.setItem("sessionId", response.data.sessionId);
-                          await AsyncStorage.setItem("deviceId",response.data.deviceId);
                         await AsyncStorage.setItem('activeAccountType', 'Creator');
                         // Navigate to DrawerNavigation Home screen
                         navigation.navigate('DrawerNavigation', { screen: 'Home' });

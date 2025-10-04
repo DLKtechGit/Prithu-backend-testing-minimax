@@ -40,10 +40,15 @@ const PostCard = ({
   onNotInterested,
   onHidePost,
   accountId,
+  isLiked: initialIsLiked, // Add isLiked prop
+  isSaved: initialIsSaved, // Add isSaved prop
+  
+
 }: any) => {
   const navigation = useNavigation<any>();
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialIsLiked || false); // Initialize with prop
+  const [isSaved, setIsSaved] = useState(initialIsSaved || false); // Initialize with prop
   const [likeCount, setLikeCount] = useState(like || 0);
  const [commentCount, setCommentCount] = useState(commentsCount || 0); // Changed from comment to commentsCount
   const [profile, setProfile] = useState<any>({
@@ -64,29 +69,84 @@ const PostCard = ({
   const viewShotRef = useRef(null); // Ref for ViewShot
   
 
-  console.log('PostCard received account Id id:', accountId);
-  console.log('PostCard received feed Id id:', id);
-
 // Request media library permissions
-  const requestPermissions = async () => {
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Storage permission is required to save images.');
-      return false;
+// Request media library permissions
+const requestPermissions = async () => {
+  try {
+    // 1️⃣ Check AsyncStorage first
+    const storedPermission = await AsyncStorage.getItem('mediaPermission');
+
+    if (storedPermission === 'granted') {
+
+      return true; // Already granted before
     }
-    return true;
-  };
 
-  const handleDownload = async () => {
-    try {
-      // Check subscription status
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
+    // 2️⃣ Use getPermissionsAsync to check current status
+    const { status, canAskAgain } = await MediaLibrary.getPermissionsAsync();
+    console.log("Current MediaLibrary permission status:", status, "Can ask again:", canAskAgain);
+    if (status === 'granted') {
+      console.log("MediaLibrary permission already granted, saving to AsyncStorage");
+      await AsyncStorage.setItem('mediaPermission', 'granted');
+      return true;
+    }
+
+    // 3️⃣ If permission is denied but can ask again, request permission
+    if (canAskAgain) {
+      console.log("Requesting MediaLibrary permission...");
+      const { status: requestStatus } = await MediaLibrary.requestPermissionsAsync();
+      console.log("Requested permission status:", requestStatus);
+      if (requestStatus !== 'granted') {
+        console.log("Permission denied by user");
+        Alert.alert('Permission Denied', 'Storage permission is required to save images.');
+        return false;
       }
+      console.log("Permission granted, saving to AsyncStorage");
+      await AsyncStorage.setItem('mediaPermission', 'granted');
+      return true;
+    }
 
-      const res = await fetch('http://192.168.1.6:5000/api/user/user/subscriptions', {
+    // 4️⃣ If permission is denied and cannot ask again, inform user
+    console.log("Permission denied and cannot ask again");
+    Alert.alert(
+      'Permission Required',
+      'Storage permission is required to save images. Please enable it in your device settings.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => Linking.openSettings() }
+      ]
+    );
+    return false;
+  } catch (error) {
+    console.error('Permission error:', error);
+    Alert.alert('Error', 'Failed to check or request permissions');
+    return false;
+  }
+};
+
+
+const handleDownload = async () => {
+  try {
+    // Check subscription status (keeping your original logic)
+    const userToken = await AsyncStorage.getItem('userToken');
+    if (!userToken) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    // Keep your original subscription check
+    const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${userToken}`,
+      },
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.plan && data.plan.isActive) {
+      // Additional check for trial plan status
+      const trialCheckRes = await fetch('http://192.168.1.17:5000/api/user/check/active/subcription', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -94,10 +154,10 @@ const PostCard = ({
         },
       });
 
-      const data = await res.json();
+      const trialData = await trialCheckRes.json();
 
-      if (res.ok && data.plan && data.plan.isActive) {
-        // Check permissions
+      if (trialCheckRes.ok || trialData.isActive) {
+        // Both checks passed - proceed with download
         const hasPermission = await requestPermissions();
         if (!hasPermission) return;
 
@@ -112,15 +172,26 @@ const PostCard = ({
           Alert.alert('Error', 'Failed to capture PostCard');
         }
       } else {
-        // Navigate to subscription page if not subscribed
-        navigation.navigate('Subcribe', {});
+        // Trial has ended - show alert
+        Alert.alert(
+          'Subscription Required',
+          'Your trial plan has ended. If you want to download the post, you have to subscribe.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Subscribe', onPress: () => navigation.navigate('Subcribe', {}) }
+          ]
+        );
       }
-    } 
-    catch (error) {
-      // console.error('Download error:', error);
-      // Alert.alert('Error', 'Something went wrong while downloading the PostCard');
+    } else {
+      // Navigate to subscription page if not subscribed (keeping your original behavior)
+      navigation.navigate('Subcribe', {});
     }
-  };
+  } 
+  catch (error) {
+    // console.error('Download error:', error);
+    // Alert.alert('Error', 'Something went wrong while downloading the PostCard');
+  }
+};
 
 
   useEffect(() => {
@@ -143,7 +214,7 @@ const PostCard = ({
         Alert.alert('Error', 'User not authenticated');
         return;
       }
-      const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -173,6 +244,11 @@ const PostCard = ({
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    setIsLiked(initialIsLiked || false); // Update state when prop changes
+    setIsSaved(initialIsSaved || false); // Update state when prop changes
+  }, [initialIsLiked, initialIsSaved]);
+
   const handleLike = async () => {
     try {
       const userToken = await AsyncStorage.getItem('userToken');
@@ -183,11 +259,12 @@ const PostCard = ({
       }
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
+      console.log("setIsLiked",setIsLiked)
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
       const endpoint =
         accountType === 'Personal'
-          ? 'http://192.168.1.6:5000/api/user/feed/like'
-          : 'http://192.168.1.6:5000/api/creator/feed/like';
+          ? 'http://192.168.1.17:5000/api/user/feed/like'
+          : 'http://192.168.1.17:5000/api/creator/feed/like';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -533,8 +610,8 @@ const PostCard = ({
                   }
                   const endpoint =
                     accountType === 'Personal'
-                      ? 'http://192.168.1.6:5000/api/user/feed/save'
-                      : 'http://192.168.1.6:5000/api/creator/feed/save';
+                      ? 'http://192.168.1.17:5000/api/user/feed/save'
+                      : 'http://192.168.1.17:5000/api/creator/feed/save';
                   const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
@@ -684,7 +761,7 @@ export default PostCard;
 //         Alert.alert('Error', 'User not authenticated');
 //         return;
 //       }
-//       const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
+//       const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
 //         method: 'GET',
 //         headers: {
 //           Authorization: `Bearer ${userToken}`,
@@ -727,8 +804,8 @@ export default PostCard;
 //       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
 //       const endpoint =
 //         accountType === 'Personal'
-//           ? 'http://192.168.1.6:5000/api/user/feed/like'
-//           : 'http://192.168.1.6:5000/api/creator/feed/like';
+//           ? 'http://192.168.1.17:5000/api/user/feed/like'
+//           : 'http://192.168.1.17:5000/api/creator/feed/like';
 //       const res = await fetch(endpoint, {
 //         method: 'POST',
 //         headers: {
@@ -1003,7 +1080,7 @@ export default PostCard;
 //                     Alert.alert('Error', 'User not authenticated');
 //                     return;
 //                   }
-//                   const res = await fetch('http://192.168.1.6:5000/api/user/user/subscriptions', {
+//                   const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
 //                     method: 'GET',
 //                     headers: {
 //                       'Content-Type': 'application/json',
@@ -1049,8 +1126,8 @@ export default PostCard;
 //                   }
 //                   const endpoint =
 //                     accountType === 'Personal'
-//                       ? 'http://192.168.1.6:5000/api/user/feed/save'
-//                       : 'http://192.168.1.6:5000/api/creator/feed/save';
+//                       ? 'http://192.168.1.17:5000/api/user/feed/save'
+//                       : 'http://192.168.1.17:5000/api/creator/feed/save';
 //                   const res = await fetch(endpoint, {
 //                     method: 'POST',
 //                     headers: {

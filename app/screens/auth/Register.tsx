@@ -68,7 +68,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         try {
             console.log('Checking username:', name);
             const res = await fetch(
-                `http://192.168.1.6:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
+                `http://192.168.1.17:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
                 { method: 'GET' }
             );
 
@@ -95,7 +95,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         try {
             console.log('Checking email:', email);
             const res = await fetch(
-                `http://192.168.1.6:5000/api/check/email/availability?email=${encodeURIComponent(email)}`,
+                `http://192.168.1.17:5000/api/check/email/availability?email=${encodeURIComponent(email)}`,
                 { method: 'GET' }
             );
 
@@ -157,7 +157,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         console.log('Email domain:', domain);
 
         try {
-            const res = await fetch('http://192.168.1.6:5000/api/auth/user/otp-send', {
+            const res = await fetch('http://192.168.1.17:5000/api/auth/user/otp-send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -193,7 +193,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         }
 
         try {
-            const res = await fetch('http://192.168.1.6:5000/api/auth/new/user/verify-otp', {
+            const res = await fetch('http://192.168.1.17:5000/api/auth/new/user/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp })
@@ -254,7 +254,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         }
 
         try {
-            const res = await fetch('http://192.168.1.6:5000/api/auth/user/register', {
+            const res = await fetch('http://192.168.1.17:5000/api/auth/user/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, email, password, otp })

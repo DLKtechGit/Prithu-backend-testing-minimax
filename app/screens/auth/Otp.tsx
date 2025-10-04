@@ -12,59 +12,130 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type OtpScreenProps = StackScreenProps<RootStackParamList, 'Otp'>;
 
-const Otp = ({ navigation } : OtpScreenProps) => {
-
+const Otp = ({ navigation }: OtpScreenProps) => {
     const theme = useTheme();
-    const { colors } : {colors : any} = theme;
+    const { colors }: { colors: any } = theme;
 
-    const [show, setshow] = React.useState(true);
+    const [show, setShow] = React.useState(true);
     const [otp, setOtp] = React.useState("");
-
+    const [showPopup, setShowPopup] = React.useState(false); // State for popup visibility
+    const [popupMessage, setPopupMessage] = React.useState(''); // Popup title
+    const [popupSubtitle, setPopupSubtitle] = React.useState(''); // Popup subtitle
     const [inputFocus, setFocus] = React.useState({
         onFocus1: false,
         onFocus2: false
-    })
+    });
 
-     const handleVerifyOtp = async () => {
+    const handleVerifyOtp = async () => {
         if (!otp || otp.length < 4) {
-            Alert.alert("Error", "Please enter the full OTP");
+            setPopupMessage('Error!');
+            setPopupSubtitle('Please enter the full OTP');
+            setShowPopup(true);
             return;
         }
 
         try {
-            const response = await fetch("http://192.168.1.6:5000/api/auth/exist/user/verify-otp", {
+            const response = await fetch("http://192.168.1.17:5000/api/auth/exist/user/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ otp }),   // 👈 send OTP to backend
+                body: JSON.stringify({ otp }),
             });
 
             const data = await response.json();
-            console.log("Backend response:", data); 
-        
+            console.log("Backend response:", data);
+
             if (response.ok) {
                 console.log(data.email);
-                
-                   await AsyncStorage.removeItem('verifiedEmail');
+                await AsyncStorage.removeItem('verifiedEmail');
                 await AsyncStorage.setItem('verifiedEmail', data.email);
-                Alert.alert("Success", "OTP verified successfully!", [
-                    { text: "OK", onPress: () => navigation.navigate("ChangePassword") }
-                ]);
+                setPopupMessage('Success');
+                setPopupSubtitle('OTP verified successfully!');
+                setShowPopup(true);
             } else {
-                Alert.alert("Error", data.message || "Invalid OTP, please try again");
-                console.log(data.message)
+                setPopupMessage('Error!');
+                setPopupSubtitle(data.message || "Invalid OTP, please try again");
+                setShowPopup(true);
             }
         } catch (error) {
             console.error("OTP Verify Error:", error);
-            Alert.alert("Error", "Something went wrong. Please try again later.");
-            console.log(otp)
+            setPopupMessage('Error!');
+            setPopupSubtitle('Something went wrong. Please try again later.');
+            setShowPopup(true);
         }
     };
 
+    // Custom Popup Component
+    const Popup = () => (
+        <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+        }}>
+            <View style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                padding: 20,
+                alignItems: 'center',
+                width: '90%',
+                elevation: 10,
+            }}>
+                <Image
+                    style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 40,
+                        marginBottom: 15,
+                    }}
+                    source={IMAGES.bugrepellent} // Use same image as Forgot
+                />
+                <Text style={{
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    textAlign: 'center',
+                }}>{popupMessage}</Text>
+                <Text style={{
+                    fontSize: 14,
+                    color: '#666',
+                    textAlign: 'center',
+                    marginVertical: 10,
+                }}>{popupSubtitle}</Text>
+                <TouchableOpacity
+                    style={{
+                        backgroundColor: '#28A745',
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
+                        borderRadius: 8,
+                        marginTop: 15,
+                    }}
+                    onPress={() => {
+                        setShowPopup(false);
+                        if (popupMessage === 'Success') {
+                            navigation.navigate('ChangePassword');
+                        }
+                    }}
+                >
+                    <Text style={{
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                    }}>Let's Go</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
     return (
-        <SafeAreaView style={[GlobalStyleSheet.container,{padding:0, flex: 1 }]}>
+        <SafeAreaView style={[GlobalStyleSheet.container, { padding: 0, flex: 1 }]}>
             <KeyboardAvoidingView
-            style={{flex: 1}}
-            //behavior={Platform.OS === 'ios' ? 'padding' : ''}
+                style={{ flex: 1 }}
+                //behavior={Platform.OS === 'ios' ? 'padding' : ''}
             >
                 <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
                     <View style={{ backgroundColor: COLORS.secondary, flex: 1 }}>
@@ -88,26 +159,23 @@ const Otp = ({ navigation } : OtpScreenProps) => {
                             <Text style={GlobalStyleSheet.forndescription}>Please enter your credentials to access your account and detail</Text>
                         </View>
                         <View style={[GlobalStyleSheet.loginarea, { backgroundColor: colors.card }]}>
-                            
-                            <View style={{alignItems:'center',marginBottom:20}}>
-                                <OTPTextInput 
+                            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                                <OTPTextInput
                                     tintColor={colors.background}
-                                     handleTextChange={(text: string) => setOtp(text)} 
+                                    handleTextChange={(text: string) => setOtp(text)}
                                     inputCount={4}
                                     textInputStyle={{
-                                        borderBottomWidth:0,
-                                        height:48,
-                                        width:48,
-                                        borderRadius:SIZES.radius,
-                                        backgroundColor:colors.input,
-                                        //color:colors.title,
+                                        borderBottomWidth: 0,
+                                        height: 48,
+                                        width: 48,
+                                        borderRadius: SIZES.radius,
+                                        backgroundColor: colors.input,
                                     }}
-                                    
                                 />
-                            </View> 
+                            </View>
 
                             <View style={{ marginTop: 10 }}>
-                                 <Button title="Next" onPress={handleVerifyOtp}/>
+                                <Button title="Next" onPress={handleVerifyOtp} />
                             </View>
 
                             <View style={{ flex: 1 }}></View>
@@ -124,6 +192,7 @@ const Otp = ({ navigation } : OtpScreenProps) => {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+            {showPopup && <Popup />}
         </SafeAreaView>
     );
 };

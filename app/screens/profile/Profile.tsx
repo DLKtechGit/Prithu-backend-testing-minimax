@@ -33,7 +33,7 @@
 //   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
 //   const buildUrl = (path: string | undefined | null) => {
 //   if (!path) return '';
-//   return `http://192.168.1.6:5000/${path.replace(/\\/g, '/')}`;
+//   return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
 // };
 
 
@@ -59,7 +59,7 @@
 //         return;
 //       }
 
-//       const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
+//       const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
 //         method: 'GET',
 //         headers: {
 //           Authorization: `Bearer ${userToken}`,
@@ -106,7 +106,7 @@
 //           return;
 //         }
 
-//         const response = await fetch('http://192.168.1.6:5000/api/creator/getall/feeds', {
+//         const response = await fetch('http://192.168.1.17:5000/api/creator/getall/feeds', {
 //           headers: {
 //             Authorization: `Bearer ${token}`,
 //           },
@@ -122,7 +122,7 @@
 //           .filter((feed: any) => feed.type === 'image')
 //           .map((feed: any) => ({
 //             id: feed._id,
-//             image: { uri: `http://192.168.1.6:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+//             image: { uri: `http://192.168.1.17:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
 //             like: (feed.like ?? 0).toString(),
 //           }));
 
@@ -131,7 +131,7 @@
 //           .filter((feed: any) => feed.type === 'video')
 //           .map((feed: any) => ({
 //             id: feed._id,
-//             image: { uri: `http://192.168.1.6:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+//             image: { uri: `http://192.168.1.17:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
 //             like: (feed.like ?? 0).toString(),
 //           }));
 
@@ -198,7 +198,7 @@
 //       }
 
 //       // Create a proper profile URL (replace with your deployed domain later)
-//       const profileUrl = `http://192.168.1.6:5000/profile/${userId}`;
+//       const profileUrl = `http://192.168.1.17:5000/profile/${userId}`;
 
 //       const result = await Share.share({
 //         message: `Check out this profile: ${profileUrl}`,
@@ -523,7 +523,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.6:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
   };
 
   // Fetch active account type
@@ -551,7 +551,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
       return;
     }
 
-    const res = await fetch('http://192.168.1.6:5000/api/user/following/data', {
+    const res = await fetch('http://192.168.1.17:5000/api/user/following/data', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${userToken}`,
@@ -582,7 +582,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -624,7 +624,7 @@ useEffect(() => {
           return;
         }
 
-        const response = await fetch('http://192.168.1.6:5000/api/creator/getall/feeds', {
+        const response = await fetch('http://192.168.1.17:5000/api/creator/getall/feeds', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -711,7 +711,7 @@ useEffect(() => {
         return;
       }
 
-      const profileUrl = `http://192.168.1.6:5000/profile/${userId}`;
+      const profileUrl = `http://192.168.1.17:5000/profile/${userId}`;
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,
       });
@@ -727,6 +727,58 @@ useEffect(() => {
       }
     } catch (error: any) {
       Alert.alert(error.message);
+    }
+  };
+
+  
+  const handleSubscriptionNavigation = async () => {
+    try {
+      // Fetch user token
+      const userToken = await AsyncStorage.getItem('userToken');
+      console.log('Fetched userToken:', userToken);
+      if (!userToken) {
+        console.log('No userToken found, navigating to Login');
+        Alert.alert('Error', 'You must be logged in to check subscription.');
+        navigation.navigate('Login');
+        return;
+      }
+
+      // Check subscription status
+      const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log('Subscription status response:', data);
+
+      if (res.ok && data.plan && data.plan.isActive === true) {
+        // User has an active subscription, navigate to SubscriptionDetails
+        console.log('Active subscription found, navigating to SubscriptionDetails');
+        navigation.navigate('SubscriptionDetails', {
+          plan: {
+            id: data.plan._id,
+            name: data.plan.planId.name || 'Premium Plan',
+            price: data.plan.planId.price,
+            duration: data.plan.planId.durationDays || 'Unknown',
+            userName: data.plan.userId.name || 'Unknown',
+            userEmail: data.plan.userId.email || 'Unknown',
+            startDate: data.plan.startDate || 'N/A',
+            endDate: data.plan.endDate || 'N/A',
+          },
+        });
+      } else {
+        // No active subscription (isActive: false or no plan), navigate to Subcribe
+        console.log('No active subscription (isActive: false or no plan), navigating to Subcribe');
+        navigation.navigate('Subcribe');
+      }
+    } catch (error) {
+      console.log('Error occurred, navigating to Subcribe');
+      Alert.alert('Error', 'Something went wrong while checking subscription status.');
+      navigation.navigate('Subcribe');
     }
   };
 
@@ -869,13 +921,15 @@ useEffect(() => {
                 <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Referral Dashboard</Text>
                 <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
               </TouchableOpacity>
-              <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.navigate('Subcribe')}>
+
+             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={handleSubscriptionNavigation}>
                 <View style={{ width: 30, height: 30, backgroundColor: '#FEE2E2', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
                   <Image style={{ width: 20, height: 20, tintColor: '#F87171' }} source={IMAGES.badge} />
                 </View>
                 <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Subscription</Text>
                 <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
               </TouchableOpacity>
+
               <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.navigate('Invite')}>
                 <View style={{ width: 30, height: 30, backgroundColor: '#FEF3C7', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
                   <Image style={{ width: 20, height: 20, tintColor: '#FBBF24' }} source={IMAGES.lock} />

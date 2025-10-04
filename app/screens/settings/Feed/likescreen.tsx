@@ -53,7 +53,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
       console.log('🔑 Retrieved token:', token);
 
       const res = await axios.get(
-        'http://192.168.1.6:5000/api/user/liked/feeds',
+        'http://192.168.1.17:5000/api/user/liked/feeds',
         {
           headers: {
             Authorization: `Bearer ${token}`,

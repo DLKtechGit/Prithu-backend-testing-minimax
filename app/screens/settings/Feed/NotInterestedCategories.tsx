@@ -25,7 +25,7 @@ const NotInterestedCategories = () => {
         }
 
         // Make API request
-        const response = await axios.get('http://192.168.1.6:5000/api/user/notintrested/category', {
+        const response = await axios.get('http://192.168.1.17:5000/api/user/notintrested/category', {
           headers: {
             Authorization: `Bearer ${token}`,
           },

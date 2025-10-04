@@ -62,7 +62,7 @@
 //           Alert.alert('Error', 'User not authenticated');
 //           return;
 //         }
-//         const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
+//         const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
 //           method: 'GET',
 //           headers: {
 //             Authorization: `Bearer ${userToken}`,
@@ -135,8 +135,8 @@
 //       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
 //       const endpoint =
 //         activeAccountType === 'Personal'
-//           ? 'http://192.168.1.6:5000/api/user/feed/like'
-//           : 'http://192.168.1.6:5000/api/creator/feed/like';
+//           ? 'http://192.168.1.17:5000/api/user/feed/like'
+//           : 'http://192.168.1.17:5000/api/creator/feed/like';
 //       const res = await fetch(endpoint, {
 //         method: 'POST',
 //         headers: {
@@ -182,8 +182,8 @@
 //       setIsSaved(newSaveState);
 //       const endpoint =
 //         activeAccountType === 'Personal'
-//           ? 'http://192.168.1.6:5000/api/user/feed/save'
-//           : 'http://192.168.1.6:5000/api/creator/feed/save';
+//           ? 'http://192.168.1.17:5000/api/user/feed/save'
+//           : 'http://192.168.1.17:5000/api/creator/feed/save';
 //       const res = await fetch(endpoint, {
 //         method: 'POST',
 //         headers: {
@@ -471,7 +471,7 @@ const Reelsitem = ({
           Alert.alert('Error', 'User not authenticated');
           return;
         }
-        const res = await fetch('http://192.168.1.6:5000/api/get/profile/detail', {
+        const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,
@@ -544,8 +544,8 @@ const Reelsitem = ({
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
       const endpoint =
         activeAccountType === 'Personal'
-          ? 'http://192.168.1.6:5000/api/user/feed/like'
-          : 'http://192.168.1.6:5000/api/creator/feed/like';
+          ? 'http://192.168.1.17:5000/api/user/feed/like'
+          : 'http://192.168.1.17:5000/api/creator/feed/like';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -591,8 +591,8 @@ const Reelsitem = ({
       setIsSaved(newSaveState);
       const endpoint =
         activeAccountType === 'Personal'
-          ? 'http://192.168.1.6:5000/api/user/feed/save'
-          : 'http://192.168.1.6:5000/api/creator/feed/save';
+          ? 'http://192.168.1.17:5000/api/user/feed/save'
+          : 'http://192.168.1.17:5000/api/creator/feed/save';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {

@@ -63,7 +63,7 @@
 
 //             // Make API call to add account with default type
 //             const response = await axios.post(
-//                 "http://192.168.1.6:5000/api/account/add",
+//                 "http://192.168.1.17:5000/api/account/add",
 //                 {
 //                     type:"Creator", // Use selected category or default to "Creator"
 //                 },
@@ -372,15 +372,20 @@ const Categories = forwardRef(({ onSelectCategory, navigation }, ref) => {
         try {
             // Retrieve user token from AsyncStorage
             const userToken = await AsyncStorage.getItem("userToken");
+            const deviceId=  await AsyncStorage.getItem("deviceId");
+            const refreshToken= await AsyncStorage.getItem("refreshToken");
             if (!userToken) {
                 throw new Error("No user token found");
             }
 
             // Make API call to add account with selected category or default type
             const response = await axios.post(
-                "http://192.168.1.6:5000/api/account/add",
+                "http://192.168.1.17:5000/api/account/add",
                 {
                     type: selected || "Creator", // Use selected category or default to "Creator"
+                    deviceId: deviceId,
+                    deviceType: "mobile",
+                    refreshToken: refreshToken,
                 },
                 {
                     headers: {
@@ -394,6 +399,7 @@ const Categories = forwardRef(({ onSelectCategory, navigation }, ref) => {
                 // Store the new token if provided in the response
                 if (response.data.token) {
                     await AsyncStorage.setItem("userToken", response.data.token);
+                    await AsyncStorage.setItem("sessionId", response.data.sessionId);
                 }
                 // Navigate to DrawerNavigation with Home screen
                 navigation.navigate("DrawerNavigation", { screen: "Home" });

@@ -32,7 +32,7 @@ const RoleSelectionScreen: React.FC = () => {
         setLoading(true);
         try {
           const response = await axios.post(
-            "http://192.168.1.6:5000/api/account/add",
+            "http://192.168.1.17:5000/api/account/add",
             { type: "Creator" },
             {
               headers: {

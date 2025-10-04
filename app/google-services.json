@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1032343355991",
+    "project_id": "prithu-app-35919",
+    "storage_bucket": "prithu-app-35919.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1032343355991:android:d08a35ba8eae1cb552d912",
+        "android_client_info": {
+          "package_name": "com.deepeshgour.meetflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNaE2Jgc_dgdFPj3KU8Bt8hx95StEELks"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

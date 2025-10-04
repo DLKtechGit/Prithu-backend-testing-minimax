@@ -32,7 +32,15 @@
     },
     "owner": "dlkreact",
     "plugins": [
-      "react-native-video"
+      "react-native-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Prithu to access your photos to save images to your gallery.",
+          "savePhotosPermission": "Allow Prithu to save photos to your gallery.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
     ]
   }
 }

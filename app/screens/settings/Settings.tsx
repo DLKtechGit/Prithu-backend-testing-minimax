@@ -172,7 +172,7 @@
 //         }
 
 //         // Check subscription status
-//         const res = await fetch('http://192.168.1.6:5000/api/user/user/subscriptions', {
+//         const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
 //           method: 'GET',
 //           headers: {
 //             'Content-Type': 'application/json',
@@ -415,7 +415,7 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
         }
 
         // Check subscription status
-        const res = await fetch('http://192.168.1.6:5000/api/user/user/subscriptions', {
+        const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

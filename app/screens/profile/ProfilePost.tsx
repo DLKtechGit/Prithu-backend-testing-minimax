@@ -1,23 +1,22 @@
-// import React, { useRef, useState, useEffect } from 'react';
-// import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
-// import { COLORS, IMAGES, FONTS, SIZES } from '../../constants/theme';
-// import { useNavigation } from '@react-navigation/native';
+// import React, { useEffect, useState, useRef } from 'react';
+// import { SafeAreaView, View, Text, Image, TouchableOpacity, Alert, ActivityIndicator, FlatList } from 'react-native';
 // import { useTheme } from '@react-navigation/native';
-// import Header from '../../layout/Header';
-// import { GlobalStyleSheet } from '../../constants/styleSheet';
+// import { useNavigation, useIsFocused } from '@react-navigation/native';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import axios from 'axios';
+// import * as Haptics from 'expo-haptics';
+// import * as FileSystem from 'expo-file-system';
+// import * as Sharing from 'expo-sharing';
+// import * as MediaLibrary from 'expo-media-library';
 // import Swiper from 'react-native-swiper';
+// import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
+// import { GlobalStyleSheet } from '../../constants/styleSheet';
 // import LikeBtn from '../../components/likebtn/LikeBtn';
 // import PostShareSheet from '../../components/bottomsheet/PostShareSheet';
 // import PostoptionSheet from '../../components/bottomsheet/PostoptionSheet';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import axios from 'axios';
-// import * as Sharing from 'expo-sharing';
-// import * as FileSystem from 'expo-file-system';
-// import * as MediaLibrary from 'expo-media-library';
-// import * as Haptics from 'expo-haptics';
+// import Header from '../../layout/Header'; // Assuming Header is a custom component
 
-// const API_BASE = 'http://192.168.1.6:5000/api';
+// const API_BASE = 'http://192.168.1.17:5000/api';
 
 // const ProfilePost = () => {
 //     const sheetRef = useRef<any>();
@@ -25,9 +24,17 @@
 //     const theme = useTheme();
 //     const { colors }: { colors: any } = theme;
 //     const navigation = useNavigation<any>();
+//     const isFocused = useIsFocused();
 //     const [posts, setPosts] = useState<any[]>([]);
 //     const [loading, setLoading] = useState(true);
 //     const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
+//     const [profile, setProfile] = useState<any>({
+//         displayName: '',
+//         username: '',
+//         bio: '',
+//         balance: '',
+//         profileAvatar: '',
+//     });
 
 //     const fetchPosts = async () => {
 //         try {
@@ -54,11 +61,12 @@
 //                     date: item.timeAgo || 'Unknown',
 //                     postimage: [{ image: { uri: item.contentUrl } }],
 //                     like: item.likesCount || 0,
-//                     comment: item.comments?.length || 0,
+//                     comment: item.commentsCount || 0,
 //                     posttitle: item.caption || '',
 //                     posttag: item.tags?.join(' ') || '',
 //                     hasStory: false,
-//                     isLiked: false, // Track like state per post
+//                     isLiked: item.isLiked || false,
+//                     isSaved: item.isSaved || false,
 //                 }));
 
 //             setPosts(mappedFeeds);
@@ -67,6 +75,38 @@
 //             setPosts([]);
 //         } finally {
 //             setLoading(false);
+//         }
+//     };
+
+//     const fetchProfile = async () => {
+//         try {
+//             const userToken = await AsyncStorage.getItem('userToken');
+//             if (!userToken) {
+//                 Alert.alert('Error', 'User not authenticated');
+//                 return;
+//             }
+//             const res = await fetch(`${API_BASE}/get/profile/detail`, {
+//                 method: 'GET',
+//                 headers: {
+//                     Authorization: `Bearer ${userToken}`,
+//                 },
+//             });
+//             const data = await res.json();
+//             if (res.ok && data.profile) {
+//                 const profileData = data.profile;
+//                 const fixedAvatar = profileData.profileAvatar;
+//                 setProfile({
+//                     displayName: profileData.displayName || '',
+//                     username: data.userName || '',
+//                     bio: profileData.bio || '',
+//                     balance: profileData.balance || '',
+//                     profileAvatar: fixedAvatar,
+//                 });
+//             } else {
+//                 console.log('Error fetching profile:', data.message);
+//             }
+//         } catch (err) {
+//             console.error('Fetch profile error:', err);
 //         }
 //     };
 
@@ -81,7 +121,8 @@
 //         };
 //         fetchAccountType();
 //         fetchPosts();
-//     }, []);
+//         fetchProfile();
+//     }, [isFocused]);
 
 //     const handleLike = async (postId: string, index: number) => {
 //         try {
@@ -116,7 +157,6 @@
 //             );
 
 //             if (!res.data.success) {
-//                 // Revert state if API call fails
 //                 updatedPosts[index] = {
 //                     ...updatedPosts[index],
 //                     isLiked: !newLikeState,
@@ -159,10 +199,13 @@
 
 //     const handleDownload = async (imageUrl: string) => {
 //         try {
-//             const { status } = await MediaLibrary.requestPermissionsAsync();
+//             const { status } = await MediaLibrary.getPermissionsAsync();
 //             if (status !== 'granted') {
-//                 Alert.alert('Permission Denied', 'Storage permission is required to download images.');
-//                 return;
+//                 const { status: newStatus } = await MediaLibrary.requestPermissionsAsync();
+//                 if (newStatus !== 'granted') {
+//                     Alert.alert('Error', 'Permission to access media library was denied');
+//                     return;
+//                 }
 //             }
 
 //             const fileUri = `${FileSystem.cacheDirectory}downloadedImage.jpg`;
@@ -174,245 +217,280 @@
 //             Alert.alert('Error', 'Something went wrong while downloading the image');
 //         }
 //     };
-//     const [isShow, setIsShow] = useState(false);
+
+//     const renderItem = ({ item, index }: { item: any; index: number }) => {
+//         return (
+//             <View style={{ 
+//                 flex: 1, 
+//                 borderBottomWidth: 1, 
+//                 borderBottomColor: colors.border,
+//                 marginHorizontal: -15,
+//                 height: SIZES.height // Full screen height
+//             }}>
+//                 {/* Header Section */}
+//                 <View style={[GlobalStyleSheet.flexalingjust, { paddingVertical: 5, paddingHorizontal: 15, paddingRight: 5 }]}>
+//                     <View style={[GlobalStyleSheet.flexaling]}>
+//                         <View>
+//                             <TouchableOpacity
+//                                 onPress={() =>
+//                                     item.hasStory
+//                                         ? navigation.navigate('status', {
+//                                               name: item.name,
+//                                               image: item.image,
+//                                               statusData: [IMAGES.profilepic17, IMAGES.profilepic18],
+//                                           })
+//                                         : navigation.navigate('AnotherProfile', { feedId: item.id, accountId: item.accountId })
+//                                 }
+//                             >
+//                                 {item.hasStory ? (
+//                                     <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+//                                         <Image
+//                                             style={{ width: 40, height: 40, borderRadius: 50 }}
+//                                             source={item.image}
+//                                         />
+//                                         <Image
+//                                             style={{ width: 48, height: 48, position: 'absolute', resizeMode: 'contain' }}
+//                                             source={IMAGES.cricle}
+//                                         />
+//                                     </View>
+//                                 ) : (
+//                                     <Image
+//                                         style={{ width: 40, height: 40, borderRadius: 50 }}
+//                                         source={item.image}
+//                                     />
+//                                 )}
+//                             </TouchableOpacity>
+//                         </View>
+//                         <View style={{ marginLeft: 10 }}>
+//                             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+//                                 <Text style={{ ...FONTS.fontSm, ...FONTS.fontMedium, color: colors.title }}>{item.name}</Text>
+//                             </TouchableOpacity>
+//                             <Text style={{ ...FONTS.fontMedium, fontSize: 11, color: colors.text }}>{item.date}</Text>
+//                         </View>
+//                     </View>
+//                     <View style={{ flexDirection: 'row' }}>
+//                         <TouchableOpacity onPress={() => moresheet.current.openSheet(item.id)}>
+//                             <Image
+//                                 style={{ width: 18, height: 18, margin: 10, tintColor: colors.title }}
+//                                 source={IMAGES.more}
+//                             />
+//                         </TouchableOpacity>
+//                     </View>
+//                 </View>
+
+//                 {/* Image/Content Section */}
+//                 <View
+//                     style={{
+//                         height: SIZES.width < SIZES.container ? SIZES.width - SIZES.width * 0.04 : SIZES.container - SIZES.container * 0.1,
+//                         position: 'relative',
+//                     }}
+//                 >
+//                     <Swiper
+//                         height={'auto'}
+//                         showsButtons={false}
+//                         loop={false}
+//                         paginationStyle={{ bottom: 10 }}
+//                         dotStyle={{ width: 5, height: 5, backgroundColor: 'rgba(255, 255, 255, 0.40)' }}
+//                         activeDotStyle={{ width: 6, height: 6, backgroundColor: '#fff' }}
+//                     >
+//                         {item.postimage.map((post: any, idx: number) => (
+//                             <View key={idx} style={{ width: '100%', height: '100%', position: 'relative' }}>
+//                                 <Image
+//                                     style={{ width: '100%', height: '100%' }}
+//                                     source={post.image}
+//                                     resizeMode="contain"
+//                                 />
+//                                 <Image
+//                                     source={{ uri: profile.profileAvatar }}
+//                                     style={{
+//                                         position: 'absolute',
+//                                         bottom: 48,
+//                                         left: 20,
+//                                         width: 70,
+//                                         height: 70,
+//                                         borderRadius: 50,
+//                                         // borderWidth: 2,
+//                                         // borderColor: '#fff',
+//                                     }}
+//                                 />
+//                                 <View
+//                                     style={{
+//                                         position: 'absolute',
+//                                         bottom: 0,
+//                                         left: 0,
+//                                         width: '100%',
+//                                         backgroundColor: '#d2a904ff',
+//                                         paddingVertical: 5,
+//                                         paddingHorizontal: 20,
+//                                         flexDirection: 'row',
+//                                         justifyContent: 'space-between',
+//                                         alignItems: 'center',
+//                                     }}
+//                                 >
+//                                     <Text
+//                                         style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}
+//                                         numberOfLines={1}
+//                                         ellipsizeMode="tail"
+//                                     >
+//                                         {profile.displayName}
+//                                     </Text>
+//                                     <Text
+//                                         style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}
+//                                         numberOfLines={1}
+//                                         ellipsizeMode="tail"
+//                                     >
+//                                         {profile.phoneNumber}
+//                                     </Text>
+//                                 </View>
+//                             </View>
+//                         ))}
+//                     </Swiper>
+//                 </View>
+
+//                 {/* Action Buttons */}
+//                 <View style={{ paddingHorizontal: 20, paddingBottom: 20, paddingRight: 5 }}>
+//                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+//                         <View style={[GlobalStyleSheet.flexaling, { gap: 22 }]}>
+//                             <View style={GlobalStyleSheet.flexaling}>
+//                                 <LikeBtn
+//                                     onPress={() => handleLike(item.id, index)}
+//                                     color={item.isLiked ? COLORS.red : colors.title}
+//                                     sizes={'sm'}
+//                                     liked={item.isLiked}
+//                                 />
+//                                 <TouchableOpacity onPress={() => navigation.navigate('like')}>
+//                                     <Text style={[GlobalStyleSheet.postlike, { color: colors.title }]}>{item.like}</Text>
+//                                 </TouchableOpacity>
+//                             </View>
+//                             <TouchableOpacity
+//                                 onPress={async () => {
+//                                     try {
+//                                         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+//                                         navigation.navigate('Comments', { feedId: item.id });
+//                                     } catch (error) {
+//                                         console.log('Haptic error:', error);
+//                                         navigation.navigate('Comments', { feedId: item.id });
+//                                     }
+//                                 }}
+//                             >
+//                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+//                                     <Image
+//                                         style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: colors.title }}
+//                                         source={IMAGES.comment}
+//                                     />
+//                                     <Text style={[GlobalStyleSheet.postlike, { color: colors.title }]}>{item.comment}</Text>
+//                                 </View>
+//                             </TouchableOpacity>
+//                             <TouchableOpacity
+//                                 onPress={() => handleShare(item.postimage[0].image.uri, item.name)}
+//                             >
+//                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+//                                     <Image
+//                                         style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: colors.title }}
+//                                         source={IMAGES.share}
+//                                     />
+//                                 </View>
+//                             </TouchableOpacity>
+//                             <TouchableOpacity
+//                                 onPress={() => handleDownload(item.postimage[0].image.uri)}
+//                             >
+//                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+//                                     <Image
+//                                         style={{
+//                                             width: 28,
+//                                             height: 28,
+//                                             resizeMode: 'contain',
+//                                             tintColor: colors.title,
+//                                         }}
+//                                         source={IMAGES.download}
+//                                     />
+//                                 </View>
+//                             </TouchableOpacity>
+//                         </View>
+//                         <View>
+//                             <TouchableOpacity
+//                                 onPress={async () => {
+//                                     try {
+//                                         const updatedPosts = [...posts];
+//                                         updatedPosts[index] = { ...updatedPosts[index], isSaved: !item.isSaved };
+//                                         setPosts(updatedPosts);
+
+//                                         const userToken = await AsyncStorage.getItem('userToken');
+//                                         if (!userToken || !activeAccountType) {
+//                                             Alert.alert('Error', 'User not authenticated or account type missing');
+//                                             return;
+//                                         }
+
+//                                         const endpoint = activeAccountType === 'Personal'
+//                                             ? `${API_BASE}/user/feed/save`
+//                                             : `${API_BASE}/creator/feed/save`;
+
+//                                         const res = await axios.post(
+//                                             endpoint,
+//                                             { feedId: item.id },
+//                                             {
+//                                                 headers: {
+//                                                     'Content-Type': 'application/json',
+//                                                     Authorization: `Bearer ${userToken}`,
+//                                                 },
+//                                             }
+//                                         );
+
+//                                         if (!res.data.success) {
+//                                             updatedPosts[index] = { ...updatedPosts[index], isSaved: !item.isSaved };
+//                                             setPosts(updatedPosts);
+//                                             Alert.alert('Error', res.data.message || 'Failed to save feed');
+//                                         }
+//                                     } catch (error) {
+//                                         console.error('Save feed error:', error);
+//                                         const updatedPosts = [...posts];
+//                                         updatedPosts[index] = { ...updatedPosts[index], isSaved: !item.isSaved };
+//                                         setPosts(updatedPosts);
+//                                         Alert.alert('Error', 'Something went wrong while saving feed');
+//                                     }
+//                                 }}
+//                             >
+//                                 <Image
+//                                     style={{
+//                                         width: 18,
+//                                         height: 18,
+//                                         resizeMode: 'contain',
+//                                         margin: 15,
+//                                         tintColor: item.isSaved ? colors.primary : colors.title,
+//                                     }}
+//                                     source={item.isSaved ? IMAGES.save2 : IMAGES.save}
+//                                 />
+//                             </TouchableOpacity>
+//                         </View>
+//                     </View>
+//                 </View>
+//             </View>
+//         );
+//     };
 
 //     return (
 //         <SafeAreaView style={{ backgroundColor: colors.card, flex: 1 }}>
 //             <Header title="Post" />
-//             <ScrollView showsVerticalScrollIndicator={false}>
-//                 <View style={GlobalStyleSheet.container}>
-//                     {loading ? (
-//                         <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-//                             <ActivityIndicator size="large" color={colors.primary || colors.title} />
-//                         </View>
-//                     ) : posts.length === 0 ? (
-//                         <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-//                             <Text style={{ color: colors.title }}>No posts found</Text>
-//                         </View>
-//                     ) : (
-//                         posts.map((data, index) => {
-
-//                             return (
-//                                 <View key={index} style={{ borderBottomWidth: 1, borderBottomColor: colors.border, marginHorizontal: -15 }}>
-//                                     <View style={[GlobalStyleSheet.flexalingjust, { paddingVertical: 10, paddingHorizontal: 15 }]}>
-//                                         <View style={GlobalStyleSheet.flexaling}>
-//                                             <View>
-//                                                 <TouchableOpacity
-//                                                     onPress={() =>
-//                                                         navigation.navigate('status', {
-//                                                             name: data.name,
-//                                                             image: data.image,
-//                                                             statusData: [IMAGES.profilepic17, IMAGES.profilepic18],
-//                                                         })
-//                                                     }
-//                                                 >
-//                                                     <View>
-//                                                         <Image
-//                                                             style={{ width: 42, height: 42, borderRadius: 50 }}
-//                                                             source={data.image}
-//                                                         />
-//                                                         <Image
-//                                                             style={{ width: 50, height: 50, position: 'absolute', bottom: -4, right: -4, resizeMode: 'contain' }}
-//                                                             source={IMAGES.cricle}
-//                                                         />
-//                                                     </View>
-//                                                 </TouchableOpacity>
-//                                             </View>
-//                                             <View style={{ marginLeft: 10 }}>
-//                                                 <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-//                                                     <Text style={{ ...FONTS.fontSm, ...FONTS.fontMedium, color: colors.title }}>{data.name}</Text>
-//                                                 </TouchableOpacity>
-//                                                 <Text style={{ ...FONTS.fontMedium, fontSize: 11, color: colors.text }}>{data.date}</Text>
-//                                             </View>
-//                                         </View>
-//                                         <View style={{ flexDirection: 'row' }}>
-//                                             <TouchableOpacity onPress={() => moresheet.current.openSheet()}>
-//                                                 <Image
-//                                                     style={{ width: 18, height: 18, tintColor: colors.title }}
-//                                                     source={IMAGES.more}
-//                                                 />
-//                                             </TouchableOpacity>
-//                                         </View>
-//                                     </View>
-//                                     <View
-//                                         style={{
-//                                             height: SIZES.width < SIZES.container ? SIZES.width - SIZES.width * 0.2 : SIZES.container - SIZES.container * 0.2,
-//                                         }}
-//                                     >
-//                                         <Swiper
-//                                             height={'auto'}
-//                                             showsButtons={false}
-//                                             loop={false}
-//                                             paginationStyle={{ bottom: 30 }}
-//                                             dotStyle={{ width: 5, height: 5, backgroundColor: 'rgba(255, 255, 255, 0.40)' }}
-//                                             activeDotStyle={{ width: 6, height: 6, backgroundColor: '#ffff' }}
-//                                         >
-//                                             {data.postimage.map((post: any, index: number) => (
-//                                                 <Image key={index} style={{ width: '100%', height: '100%' }} source={post.image} />
-//                                             ))}
-//                                         </Swiper>
-//                                     </View>
-//                                     <View style={{ paddingVertical: 10, paddingHorizontal: 15, paddingBottom: 10 }}>
-//                                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-//                                             <View style={[GlobalStyleSheet.flexaling, { gap: 22 }]}>
-//                                                 <View style={GlobalStyleSheet.flexaling}>
-//                                                     <LikeBtn
-//                                                         onPress={() => handleLike(data.id, index)}
-//                                                         color={data.isLiked ? colors.primary : colors.title}
-//                                                         sizes={'sm'}
-//                                                         liked={data.isLiked}
-//                                                     />
-//                                                     <TouchableOpacity onPress={() => navigation.navigate('like')}>
-//                                                         <Text style={[GlobalStyleSheet.postlike, { color: colors.title }]}>{data.like}</Text>
-//                                                     </TouchableOpacity>
-//                                                 </View>
-//                                                 <TouchableOpacity
-//                                                     onPress={async () => {
-//                                                         try {
-//                                                             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-//                                                             navigation.navigate('Comments', { feedId: data.id });
-//                                                         } catch (error) {
-//                                                             console.log('Haptic error:', error);
-//                                                             navigation.navigate('Comments', { feedId: data.id });
-//                                                         }
-//                                                     }}
-//                                                 >
-//                                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-//                                                         <Image
-//                                                             style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: colors.title }}
-//                                                             source={IMAGES.comment}
-//                                                         />
-//                                                         <Text style={[GlobalStyleSheet.postlike, { color: colors.title }]}>{data.comment}</Text>
-//                                                     </View>
-//                                                 </TouchableOpacity>
-//                                                 <TouchableOpacity
-//                                                     onPress={() => handleShare(data.postimage[0].image.uri, data.name)}
-//                                                 >
-//                                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-//                                                         <Image
-//                                                             style={{ width: 24, height: 24, resizeMode: 'contain', tintColor: colors.title }}
-//                                                             source={IMAGES.share}
-//                                                         />
-//                                                     </View>
-//                                                 </TouchableOpacity>
-//                                                 <TouchableOpacity
-//                                                                         onPress={() => {
-//                                                                             navigation.navigate("Subcribe", {
-
-//                                                                             });
-//                                                                         }}
-//                                                                     >
-//                                                                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-//                                                                             <Image
-//                                                                                 style={{
-//                                                                                     width: 28,
-//                                                                                     height: 28,
-//                                                                                     resizeMode: 'contain',
-//                                                                                     tintColor: colors.title,
-//                                                                                 }}
-//                                                                                 source={IMAGES.download}
-//                                                                             />
-//                                                                         </View>
-//                                                                     </TouchableOpacity>
-//                                             </View>
-//                                             <View>
-//                                                 <TouchableOpacity
-//                                                     onPress={async () => {
-//                                                         try {
-//                                                             const updatedPosts = [...posts];
-//                                                             updatedPosts[index] = { ...updatedPosts[index], isSaved: !data.isSaved };
-//                                                             setPosts(updatedPosts);
-
-//                                                             const userToken = await AsyncStorage.getItem('userToken');
-//                                                             if (!userToken || !activeAccountType) {
-//                                                                 Alert.alert('Error', 'User not authenticated or account type missing');
-//                                                                 return;
-//                                                             }
-
-//                                                             const endpoint = activeAccountType === 'Personal'
-//                                                                 ? `${API_BASE}/user/feed/save`
-//                                                                 : `${API_BASE}/creator/feed/save`;
-
-//                                                             const res = await axios.post(
-//                                                                 endpoint,
-//                                                                 { feedId: data.id },
-//                                                                 {
-//                                                                     headers: {
-//                                                                         'Content-Type': 'application/json',
-//                                                                         Authorization: `Bearer ${userToken}`,
-//                                                                     },
-//                                                                 }
-//                                                             );
-
-//                                                             if (!res.data.success) {
-//                                                                 updatedPosts[index] = { ...updatedPosts[index], isSaved: !data.isSaved };
-//                                                                 setPosts(updatedPosts);
-//                                                                 Alert.alert('Error', res.data.message || 'Failed to save feed');
-//                                                             }
-//                                                         } catch (error) {
-//                                                             console.error('Save feed error:', error);
-//                                                             const updatedPosts = [...posts];
-//                                                             updatedPosts[index] = { ...updatedPosts[index], isSaved: !data.isSaved };
-//                                                             setPosts(updatedPosts);
-//                                                             Alert.alert('Error', 'Something went wrong while saving feed');
-//                                                         }
-//                                                     }}
-//                                                 >
-//                                                     <Image
-//                                                         style={{
-//                                                             width: 18,
-//                                                             height: 18,
-//                                                             resizeMode: 'contain',
-//                                                             margin: 10,
-//                                                             tintColor: data.isSaved ? colors.primary : colors.title,
-//                                                         }}
-//                                                         source={data.isSaved ? IMAGES.save2 : IMAGES.save}
-//                                                     />
-//                                                 </TouchableOpacity>
-//                                             </View>
-//                                         </View>
-//                                         {/* <View style={{ marginTop: 15 }}>
-//                                             <View style={{ paddingRight: 35 }}>
-//                                                 <Text
-//                                                     numberOfLines={isShow ? 0 : 2}
-//                                                     style={{ ...FONTS.fontRegular, color: colors.title, fontSize: 13 }}
-//                                                 >
-//                                                     {data.posttitle}
-//                                                 </Text>
-//                                                 {!isShow && data.posttitle.length > 100 && (
-//                                                     <TouchableOpacity
-//                                                         onPress={() => setIsShow(true)}
-//                                                         style={{ position: 'absolute', bottom: -4, right: 0 }}
-//                                                     >
-//                                                         <Text
-//                                                             style={{
-//                                                                 ...FONTS.fontRegular,
-//                                                                 color: theme.dark ? 'rgba(255,255,255,0.5)' : 'rgba(71, 90, 119, 0.50)',
-//                                                                 fontSize: 13,
-//                                                             }}
-//                                                         >
-//                                                             more
-//                                                         </Text>
-//                                                     </TouchableOpacity>
-//                                                 )}
-//                                             </View>
-//                                             <Text
-//                                                 style={{
-//                                                     ...FONTS.fontRegular,
-//                                                     color: theme.dark ? 'rgba(255,255,255,0.4)' : '#475A77',
-//                                                     fontSize: 13,
-//                                                 }}
-//                                             >
-//                                                 {data.posttag}
-//                                             </Text>
-//                                         </View> */}
-//                                     </View>
-//                                 </View>
-//                             );
-//                         })
-//                     )}
+//             {loading ? (
+//                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+//                     <ActivityIndicator size="large" color={colors.primary || colors.title} />
 //                 </View>
-//             </ScrollView>
+//             ) : posts.length === 0 ? (
+//                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+//                     <Text style={{ color: colors.title, ...FONTS.h4 }}>No posts found</Text>
+//                 </View>
+//             ) : (
+//                 <FlatList
+//                     data={posts}
+//                     renderItem={renderItem}
+//                     keyExtractor={(item) => item.id}
+//                     pagingEnabled
+//                     showsVerticalScrollIndicator={false}
+//                     snapToInterval={SIZES.height} // Snap to full screen height
+//                     snapToAlignment="start"
+//                     decelerationRate="fast"
+//                 />
+//             )}
 //             <PostShareSheet ref={sheetRef} />
 //             <PostoptionSheet ref={moresheet} />
 //         </SafeAreaView>
@@ -420,6 +498,7 @@
 // };
 
 // export default ProfilePost;
+
 
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, ActivityIndicator, Alert } from 'react-native';
@@ -440,7 +519,7 @@ import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
-const API_BASE = 'http://192.168.1.6:5000/api';
+const API_BASE = 'http://192.168.1.17:5000/api';
 
 const ProfilePost = () => {
     const sheetRef = useRef<any>();
@@ -485,12 +564,12 @@ const ProfilePost = () => {
                     date: item.timeAgo || 'Unknown',
                     postimage: [{ image: { uri: item.contentUrl } }],
                     like: item.likesCount || 0,
-                    comment: item.comments?.length || 0, // Ensure comment count is mapped
+                    comment: item.commentsCount|| 0, // Ensure comment count is mapped
                     posttitle: item.caption || '',
                     posttag: item.tags?.join(' ') || '',
                     hasStory: false,
-                    isLiked: false,
-                    isSaved: false,
+                    isLiked: item.isLiked || false,
+                    isSaved: item.isSaved || false,
                 }));
 
             setPosts(mappedFeeds);
@@ -525,6 +604,7 @@ const ProfilePost = () => {
                     bio: profileData.bio || '',
                     balance: profileData.balance || '',
                     profileAvatar: fixedAvatar,
+                    phoneNumber: profileData.phoneNumber || '',
                 });
             } else {
                 console.log('Error fetching profile:', data.message);
@@ -702,7 +782,7 @@ const ProfilePost = () => {
                                     </View>
                                     <View
                                         style={{
-                                            height: SIZES.width < SIZES.container ? SIZES.width - SIZES.width * 0.2 : SIZES.container - SIZES.container * 0.2,
+                                            height: SIZES.width < SIZES.container ? SIZES.width - SIZES.width * 0.1 : SIZES.container - SIZES.container * 0.1,
                                             position: 'relative',
                                         }}
                                     >
@@ -730,33 +810,31 @@ const ProfilePost = () => {
                                                             width: 70,
                                                             height: 70,
                                                             borderRadius: 50,
-                                                            borderWidth: 2,
-                                                            borderColor: '#fff',
+                                                            // borderWidth: 2,
+                                                            // borderColor: '#fff',
                                                         }}
                                                     />
-                                                    <View
-                                                        style={{
-                                                            position: 'absolute',
-                                                            bottom: 0,
-                                                            left: 0,
-                                                            width: '100%',
-                                                            backgroundColor: '#d2a904ff',
-                                                            paddingVertical: 5,
-                                                            alignItems: 'center',
-                                                        }}
-                                                    >
-                                                        <Text
-                                                            style={{
-                                                                fontSize: 16,
-                                                                fontWeight: 'bold',
-                                                                color: '#fff',
-                                                            }}
-                                                            numberOfLines={1}
-                                                            ellipsizeMode="tail"
-                                                        >
-                                                            {data.name}
-                                                        </Text>
-                                                    </View>
+                                                 <View
+                                                                style={{
+                                                                  position: 'absolute',
+                                                                  bottom: 0,
+                                                                  left: 0,
+                                                                  width: '100%',
+                                                                  backgroundColor: '#d2a904ff',
+                                                                  paddingVertical: 5,
+                                                                  paddingHorizontal: 20,
+                                                                  flexDirection: 'row',
+                                                                  justifyContent: 'space-between',
+                                                                  alignItems: 'center',
+                                                                }}
+                                                              >
+                                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                                                                  {profile.displayName}
+                                                                </Text>
+                                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                                                                  {profile.phoneNumber}
+                                                                </Text>
+                                                              </View>
                                                 </View>
                                             ))}
                                         </Swiper>

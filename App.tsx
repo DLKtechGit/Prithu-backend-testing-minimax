@@ -33,3 +33,43 @@ const App = () =>{
 };
 
 export default App;
+
+
+// import React, { useEffect } from 'react';
+// import { View, Text } from 'react-native';
+// import {
+//   requestUserPermission,
+//   getFcmToken,
+//   registerTokenToServer,
+//   handleForegroundNotifications,
+// } from './utils/notification';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+ 
+// const App: React.FC = () => {
+//   useEffect(() => {
+//     const setupNotifications = async () => {
+//       const hasPermission = await requestUserPermission();
+//       if (!hasPermission) return;
+ 
+//    const userToken = await AsyncStorage.getItem('userToken');
+//       const token = await getFcmToken();
+
+//       if (token) {
+//         const jwtToken = ' userToken '; // replace with real auth token
+//         await registerTokenToServer(token, jwtToken);
+//       }
+ 
+//       handleForegroundNotifications();
+//     };
+ 
+//     setupNotifications();
+//   }, []);
+ 
+//   return (
+// <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+// <Text>React Native FCM Notifications Setup ✅</Text>
+// </View>
+//   );
+// };
+ 
+// export default App;

@@ -1,8 +1,4 @@
-import messaging, {
-
-  FirebaseMessagingTypes,
-
-} from '@react-native-firebase/messaging';
+import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -18,13 +14,13 @@ export async function requestUserPermission(): Promise<boolean> {
 
   const authStatus = await messaging().requestPermission();
 
-  const enabled =
+  return (
 
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
 
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
- 
-  return enabled;
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL
+
+  );
 
 }
  
@@ -70,13 +66,7 @@ export async function getFcmToken(): Promise<string | null> {
 
 */
 
-export async function registerTokenToServer(
-
-  token: string,
-
-  jwtToken: string,
-
-): Promise<void> {
+export async function registerTokenToServer(token: string, jwtToken: string) {
 
   try {
 
@@ -130,7 +120,7 @@ export async function switchAccountMode({
 
   jwtToken: string;
 
-}): Promise<void> {
+}) {
 
   const subscribeTo =
 
@@ -182,9 +172,9 @@ export async function switchAccountMode({
 
 export function handleForegroundNotifications(
 
-  onMessageCallback?: (msg: FirebaseMessagingTypes.RemoteMessage) => void,
+  onMessageCallback?: (msg: FirebaseMessagingTypes.RemoteMessage) => void
 
-): void {
+) {
 
   messaging().onMessage(async remoteMessage => {
 
@@ -198,7 +188,7 @@ export function handleForegroundNotifications(
 
         remoteMessage.notification?.title ?? 'New Notification',
 
-        remoteMessage.notification?.body ?? '',
+        remoteMessage.notification?.body ?? ''
 
       );
 
@@ -216,7 +206,7 @@ export function handleForegroundNotifications(
 
 */
 
-export function setupBackgroundHandler(): void {
+export function setupBackgroundHandler() {
 
   messaging().setBackgroundMessageHandler(
 
@@ -224,7 +214,7 @@ export function setupBackgroundHandler(): void {
 
       console.log('Message handled in the background!', remoteMessage);
 
-    },
+    }
 
   );
 

@@ -27,7 +27,7 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
         // get token from AsyncStorage
         const token = await AsyncStorage.getItem("userToken");
 
-        const res = await fetch("http://192.168.1.6:5000/api/user/get/content/catagories", {
+        const res = await fetch("http://192.168.1.17:5000/api/user/get/content/catagories", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

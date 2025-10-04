@@ -12,7 +12,7 @@ export const connectSocket = async () => {
   console.log("Token:", token);
   if (!token) return;
 
-  socket = io("http://192.168.1.6:5000", {
+  socket = io("http://192.168.1.17:5000", {
     auth: { token },
   });
 

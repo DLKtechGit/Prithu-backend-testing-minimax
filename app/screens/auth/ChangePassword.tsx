@@ -19,6 +19,9 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
     const [show2, setShow2] = React.useState(true);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPopup, setShowPopup] = React.useState(false); // State for popup visibility
+    const [popupMessage, setPopupMessage] = React.useState(''); // Popup title
+    const [popupSubtitle, setPopupSubtitle] = React.useState(''); // Popup subtitle
     const [inputFocus, setFocus] = React.useState({
         onFocus1: false,
         onFocus2: false,
@@ -33,22 +36,25 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
     const handleSubmit = async () => {
         // Check for empty fields
         if (!newPassword || !confirmPassword) {
-            Alert.alert('Error', 'Please fill all fields');
+            setPopupMessage('Error!');
+            setPopupSubtitle('Please fill all fields');
+            setShowPopup(true);
             return;
         }
 
         // Check if passwords match
         if (newPassword !== confirmPassword) {
-            Alert.alert('Error', 'Passwords do not match');
+            setPopupMessage('Error!');
+            setPopupSubtitle('Passwords do not match');
+            setShowPopup(true);
             return;
         }
 
         // Validate password for special character and other requirements
         if (!validatePassword(newPassword)) {
-            Alert.alert(
-                'Error',
-                'Password must be at least 8 characters and include at least one special character (e.g., @, #, $, %), one letter,one number'
-            );
+            setPopupMessage('Error!');
+            setPopupSubtitle('Password must be at least 8 characters and include at least one special character (e.g., @, #, $, %), one letter, one number');
+            setShowPopup(true);
             return;
         }
 
@@ -57,35 +63,108 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
             console.log('Retrieved email:', email);
 
             if (!email) {
-                Alert.alert('Error', 'Email not found. Please verify again.');
+                setPopupMessage('Error!');
+                setPopupSubtitle('Email not found. Please verify again.');
+                setShowPopup(true);
                 return;
             }
 
-            const response = await fetch('http://192.168.1.6:5000/api/auth/user/reset-password', {
+            const response = await fetch('http://192.168.1.17:5000/api/auth/user/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email,
-                    newPassword, // Ensure backend expects 'newPassword'
+                    newPassword,
                 }),
             });
 
             const data = await response.json();
-            console.log('Reset password response:', data); // Debug: Log backend response
+            console.log('Reset password response:', data);
 
             if (response.ok) {
                 await AsyncStorage.removeItem('verifiedEmail');
-                Alert.alert('Success', 'Password changed successfully', [
-                    { text: 'OK', onPress: () => navigation.navigate('Login') },
-                ]);
+                setPopupMessage('Success');
+                setPopupSubtitle('Password changed successfully!');
+                setShowPopup(true);
             } else {
-                Alert.alert('Error', data.error || 'Failed to change password');
+                setPopupMessage('Error!');
+                setPopupSubtitle(data.error || 'Failed to change password');
+                setShowPopup(true);
             }
         } catch (err: any) {
             console.error('Reset password error:', err);
-            Alert.alert('Error', 'Failed to connect to server');
+            setPopupMessage('Error!');
+            setPopupSubtitle('Failed to connect to server');
+            setShowPopup(true);
         }
     };
+
+    // Custom Popup Component
+    const Popup = () => (
+        <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+        }}>
+            <View style={{
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                padding: 20,
+                alignItems: 'center',
+                width: '90%',
+                elevation: 10,
+            }}>
+                <Image
+                    style={{
+                        width: 80,
+                        height: 80,
+                        borderRadius: 40,
+                        marginBottom: 15,
+                    }}
+                    source={IMAGES.bugrepellent} // Use same image as Forgot and Otp
+                />
+                <Text style={{
+                    fontSize: 20,
+                    fontWeight: 'bold',
+                    color: '#333',
+                    textAlign: 'center',
+                }}>{popupMessage}</Text>
+                <Text style={{
+                    fontSize: 14,
+                    color: '#666',
+                    textAlign: 'center',
+                    marginVertical: 10,
+                }}>{popupSubtitle}</Text>
+                <TouchableOpacity
+                    style={{
+                        backgroundColor: '#28A745',
+                        paddingVertical: 10,
+                        paddingHorizontal: 20,
+                        borderRadius: 8,
+                        marginTop: 15,
+                    }}
+                    onPress={() => {
+                        setShowPopup(false);
+                        if (popupMessage === 'Success') {
+                            navigation.navigate('Login');
+                        }
+                    }}
+                >
+                    <Text style={{
+                        color: '#fff',
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                    }}>Let's Go</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 
     return (
         <SafeAreaView style={[GlobalStyleSheet.container, { padding: 0, flex: 1 }]}>
@@ -203,6 +282,7 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
+            {showPopup && <Popup />}
         </SafeAreaView>
     );
 };
