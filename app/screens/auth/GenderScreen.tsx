@@ -26,7 +26,7 @@ const GenderScreen: React.FC = () => {
       formData.append("gender", gender!);
  
       const res = await fetch(
-        "http://192.168.1.17:5000/api/user/profile/detail/update",
+        "http://192.168.1.7:5000/api/user/profile/detail/update",
         {
           method: "POST",
           headers: {

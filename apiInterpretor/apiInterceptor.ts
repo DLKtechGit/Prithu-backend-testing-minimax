@@ -1,7 +1,7 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const api = axios.create({ baseURL: "http://192.168.1.17:5000" });
+const api = axios.create({ baseURL: "http://192.168.1.7:5000" });
 
 // Request Interceptor
 api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
@@ -26,19 +26,19 @@ api.interceptors.response.use(
         if (!refreshToken) throw new Error("No refresh token");
 
         const res = await axios.post<{ accessToken: string }>(
-          "http://192.168.1.17:5000/api/refresh-token",
+          "http://192.168.1.7:5000/api/refresh-token",
           { refreshToken }
         );
 
         const newAccessToken = res.data.accessToken;
-        await AsyncStorage.setItem("accessToken", newAccessToken);
+        await AsyncStorage.setItem("userToken", newAccessToken);
 
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         return api(originalRequest); // retry with updated token
       } catch (err) {
         // optional: clear tokens and redirect to login
-        await AsyncStorage.removeItem("accessToken");
+        await AsyncStorage.removeItem("userToken");
         await AsyncStorage.removeItem("refreshToken");
         return Promise.reject(err);
       }

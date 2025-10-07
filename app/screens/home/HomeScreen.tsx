@@ -189,7 +189,7 @@ const HomeScreen = ({ postListRef }: HomeScreenProps) => {
   const optionSheetRef = useRef(null);
   const commentSheetRef = useRef<any>();
   const internalPostListRef = useRef<any>(null);
-  const categoriesRef = useRef<any>(null); // Add ref for Categories
+  // const categoriesRef = useRef<any>(null); // Add ref for Categories
 
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -319,7 +319,7 @@ const Popup = () => (
           <StoryList />
           <Categories 
             key={categoriesKey} // Force re-render when key changes
-            ref={categoriesRef}
+            // ref={categoriesRef}
             onSelectCategory={setSelectedCategory} 
           />
         </View>

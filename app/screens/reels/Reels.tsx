@@ -29,7 +29,7 @@
   
 //   const buildUrl = (path: string | undefined | null) => {
 //     if (!path) return null;
-//     return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
+//     return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
 //   };
 
 //   useEffect(() => {
@@ -41,7 +41,7 @@
 //           return;
 //         }
 
-//         const res = await axios.get('http://192.168.1.17:5000/api/get/all/feeds/user', {
+//         const res = await axios.get('http://192.168.1.7:5000/api/get/all/feeds/user', {
 //           headers: {
 //             Authorization: `Bearer ${token}`,
 //           },
@@ -97,7 +97,7 @@
 //       // }
 //       console.log("view",token)
 //       const response = await axios.post(
-//         'http://192.168.1.17:5000/api/user/watching/vidoes',
+//         'http://192.168.1.7:5000/api/user/watching/vidoes',
 //         { feedId, watchedSeconds },
 //         { headers: { Authorization: `Bearer ${token}` } }
 //       );
@@ -215,7 +215,7 @@ const Reels = () => {
   
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return null;
-    return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
   };
 
   useEffect(() => {
@@ -227,13 +227,13 @@ const Reels = () => {
           return;
         }
 
-        const res = await axios.get('http://192.168.1.17:5000/api/get/all/feeds/user', {
+        const res = await axios.get('http://192.168.1.7:5000/api/get/all/feeds/user', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        console.log("Fetched feeds:", res.data.feeds);
+        // console.log("Fetched feeds:", res.data.feeds);
         const videoFeeds = res.data.feeds
           .filter((feed: any) => feed.type === 'video')
           .map((feed: any) => ({
@@ -251,40 +251,40 @@ const Reels = () => {
     fetchReels();
   }, []);
 
-  const recordVideoView = async (feedId: string, watchedSeconds: number) => {
-    try {
-      if (viewedVideos.current.has(feedId)) {
-        console.log(`Video ${feedId} already viewed, skipping API call`);
-        return;
-      }
+  // const recordVideoView = async (feedId: string, watchedSeconds: number) => {
+  //   try {
+  //     if (viewedVideos.current.has(feedId)) {
+  //       console.log(`Video ${feedId} already viewed, skipping API call`);
+  //       return;
+  //     }
 
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.warn('No user token found in AsyncStorage');
-        return;
-      }
+  //     const token = await AsyncStorage.getItem('userToken');
+  //     if (!token) {
+  //       console.warn('No user token found in AsyncStorage');
+  //       return;
+  //     }
 
-      const userId = await AsyncStorage.getItem('userId'); // Fetch userId
-      if (!userId) {
-        console.warn('No userId found in AsyncStorage');
-        return;
-      }
+  //     const userId = await AsyncStorage.getItem('userId'); // Fetch userId
+  //     if (!userId) {
+  //       console.warn('No userId found in AsyncStorage');
+  //       return;
+  //     }
 
-      console.log("Recording view for feedId:", feedId, "watchedSeconds:", watchedSeconds, "userId:", userId);
-      const response = await axios.post(
-        'http://192.168.1.17:5000/api/user/watching/videos', // Corrected endpoint URL
-        { feedId, userId, watchedSeconds },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+  //     console.log("Recording view for feedId:", feedId, "watchedSeconds:", watchedSeconds, "userId:", userId);
+  //     const response = await axios.post(
+  //       'http://192.168.1.7:5000/api/user/watching/videos', // Corrected endpoint URL
+  //       { feedId, userId, watchedSeconds },
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
 
-      if (response.data.watched) {
-        viewedVideos.current.add(feedId);
-        console.log(`View recorded for feedId: ${feedId}`);
-      }
-    } catch (error) {
-      console.error('Error recording video view:', error.response?.data || error.message);
-    }
-  };
+  //     if (response.data.watched) {
+  //       viewedVideos.current.add(feedId);
+  //       console.log(`View recorded for feedId: ${feedId}`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error recording video view:', error.response?.data || error.message);
+  //   }
+  // };
 
  const handleViewableItemsChanged = useRef(({ viewableItems }: any) => {
   if (viewableItems.length > 0) {
@@ -305,9 +305,9 @@ useEffect(() => {
         ? Math.floor(prevFeed.duration * 0.9)
         : 0;
 
-    console.log(
-      `🎯 Checking previous feedId: ${prevFeed.feedId}, watched: ${watchedSeconds}, minRequired: ${minRequired}, duration: ${prevFeed.duration}`
-    );
+    // console.log(
+    //   `🎯 Checking previous feedId: ${prevFeed.feedId}, watched: ${watchedSeconds}, minRequired: ${minRequired}, duration: ${prevFeed.duration}`
+    // );
 
     if (
       watchedSeconds >= minRequired &&
@@ -381,7 +381,7 @@ useEffect(() => {
       )
     );
   } else {
-    console.log(`⚠️ onLoad fired but no valid duration for ${item.feedId}`);
+    console.log(`onLoad fired but no valid duration for ${item.feedId}`);
   }
 }}
 

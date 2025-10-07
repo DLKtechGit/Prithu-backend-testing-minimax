@@ -33,7 +33,7 @@
 //   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
 //   const buildUrl = (path: string | undefined | null) => {
 //   if (!path) return '';
-//   return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
+//   return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
 // };
 
 
@@ -59,7 +59,7 @@
 //         return;
 //       }
 
-//       const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+//       const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
 //         method: 'GET',
 //         headers: {
 //           Authorization: `Bearer ${userToken}`,
@@ -106,7 +106,7 @@
 //           return;
 //         }
 
-//         const response = await fetch('http://192.168.1.17:5000/api/creator/getall/feeds', {
+//         const response = await fetch('http://192.168.1.7:5000/api/creator/getall/feeds', {
 //           headers: {
 //             Authorization: `Bearer ${token}`,
 //           },
@@ -122,7 +122,7 @@
 //           .filter((feed: any) => feed.type === 'image')
 //           .map((feed: any) => ({
 //             id: feed._id,
-//             image: { uri: `http://192.168.1.17:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+//             image: { uri: `http://192.168.1.7:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
 //             like: (feed.like ?? 0).toString(),
 //           }));
 
@@ -131,7 +131,7 @@
 //           .filter((feed: any) => feed.type === 'video')
 //           .map((feed: any) => ({
 //             id: feed._id,
-//             image: { uri: `http://192.168.1.17:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
+//             image: { uri: `http://192.168.1.7:5000/${feed.contentUrl.replace(/\\/g, '/')}` },
 //             like: (feed.like ?? 0).toString(),
 //           }));
 
@@ -198,7 +198,7 @@
 //       }
 
 //       // Create a proper profile URL (replace with your deployed domain later)
-//       const profileUrl = `http://192.168.1.17:5000/profile/${userId}`;
+//       const profileUrl = `http://192.168.1.7:5000/profile/${userId}`;
 
 //       const result = await Share.share({
 //         message: `Check out this profile: ${profileUrl}`,
@@ -523,7 +523,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
   };
 
   // Fetch active account type
@@ -551,7 +551,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
       return;
     }
 
-    const res = await fetch('http://192.168.1.17:5000/api/user/following/data', {
+    const res = await fetch('http://192.168.1.7:5000/api/user/following/data', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${userToken}`,
@@ -582,7 +582,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -624,7 +624,7 @@ useEffect(() => {
           return;
         }
 
-        const response = await fetch('http://192.168.1.17:5000/api/creator/getall/feeds', {
+        const response = await fetch('http://192.168.1.7:5000/api/creator/getall/feeds', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -711,7 +711,7 @@ useEffect(() => {
         return;
       }
 
-      const profileUrl = `http://192.168.1.17:5000/profile/${userId}`;
+      const profileUrl = `http://192.168.1.7:5000/profile/${userId}`;
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,
       });
@@ -744,7 +744,7 @@ useEffect(() => {
       }
 
       // Check subscription status
-      const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
+      const res = await fetch('http://192.168.1.7:5000/api/user/user/subscriptions', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

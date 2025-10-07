@@ -90,7 +90,7 @@
 //           text: 'Yes',
 //           onPress: async () => {
 //             try {
-//               const response = await fetch('http://192.168.1.17:5000/api/user/cancel/subscription', {
+//               const response = await fetch('http://192.168.1.7:5000/api/user/cancel/subscription', {
 //                 method: 'PUT',
 //                 headers: {
 //                   'Content-Type': 'application/json',
@@ -352,7 +352,7 @@ const SubscriptionDetails = () => {
   const handlePopupAction = async () => {
     if (isCancelConfirm) {
       try {
-        const response = await fetch('http://192.168.1.17:5000/api/user/cancel/subscription', {
+        const response = await fetch('http://192.168.1.7:5000/api/user/cancel/subscription', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

@@ -76,7 +76,7 @@ const Comments = () => {
             }
 
             const response = await axios.post(
-                `http://192.168.1.17:5000/api/get/comments/for/feed`,
+                `http://192.168.1.7:5000/api/get/comments/for/feed`,
                 { feedId: currentFeedId },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -106,7 +106,7 @@ const Comments = () => {
             }
 
             const response = await axios.post(
-                `http://192.168.1.17:5000/api/get/comments/relpy/for/feed`,
+                `http://192.168.1.7:5000/api/get/comments/relpy/for/feed`,
                 { parentCommentId: commentId },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -139,7 +139,7 @@ const Comments = () => {
             }
 
             const response = await axios.post(
-                'http://192.168.1.17:5000/api/user/feed/comment',
+                'http://192.168.1.7:5000/api/user/feed/comment',
                 { feedId, commentText },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -169,7 +169,7 @@ const Comments = () => {
             console.log('Posting reply:', { feedId, commentText: replyText, parentCommentId: commentId });
 
             await axios.post(
-                'http://192.168.1.17:5000/api/user/feed/reply/comment',
+                'http://192.168.1.7:5000/api/user/feed/reply/comment',
                 { feedId, commentText: replyText, parentCommentId: commentId },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -204,7 +204,7 @@ const Comments = () => {
             const endpoint = accountType?.toLowerCase() === 'Creator' ? '/creator/comment/like' : '/user/comment/like';
             // console.log('Calling endpoint:', endpoint);
             const res = await axios.post(
-                `http://192.168.1.17:5000/api${endpoint}`,
+                `http://192.168.1.7:5000/api${endpoint}`,
                 { commentId },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

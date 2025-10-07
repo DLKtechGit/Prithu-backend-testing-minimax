@@ -44,7 +44,7 @@
 //   // convert a backend path to full URL
 // const buildUrl = (path: string | undefined | null) => {
 //   if (!path || path === 'Unknown') return null;
-//   return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
+//   return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
 // };
 
 
@@ -62,7 +62,7 @@
 
 //       // 🔹 include it in the headers
 //       const res = await fetch(
-//         `http://192.168.1.17:5000/api/get/creator/detail/feed/${feedId}`,
+//         `http://192.168.1.7:5000/api/get/creator/detail/feed/${feedId}`,
 //         {
 //           headers: {
 //             Authorization: `Bearer ${token}`,
@@ -107,7 +107,7 @@
 //       }
 
 //       const response = await fetch(
-//         'http://192.168.1.17:5000/api/creator/get/post',
+//         'http://192.168.1.7:5000/api/creator/get/post',
 //         {
 //           headers: {
 //             Authorization: `Bearer ${token}`,
@@ -400,7 +400,7 @@
 //                   <Image
 //                     style={{ width: "100%", aspectRatio: 1 / 1.9 }}
 //                     source={{
-//                       uri: `http://192.168.1.17:5000/${item.videoThumb}`,
+//                       uri: `http://192.168.1.7:5000/${item.videoThumb}`,
 //                     }}
 //                   />
 //                 </TouchableOpacity>
@@ -466,7 +466,7 @@ const AnotherProfile = () => {
   // Convert a backend path to full URL
   const buildUrl = (path: string | undefined | null) => {
     if (!path || path === "Unknown") return null;
-    return `http://192.168.1.17:5000/${path.replace(/\\/g, "/")}`;
+    return `http://192.168.1.7:5000/${path.replace(/\\/g, "/")}`;
   };
 
   // Fetch active account type
@@ -498,7 +498,7 @@ const AnotherProfile = () => {
         }
 
         const res = await fetch(
-          `http://192.168.1.17:5000/api/get/creator/detail/feed/${feedId}`,
+          `http://192.168.1.7:5000/api/get/creator/detail/feed/${feedId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -558,7 +558,7 @@ const AnotherProfile = () => {
         }
 
         const response = await fetch(
-          "http://192.168.1.17:5000/api/creator/get/post",
+          "http://192.168.1.7:5000/api/creator/get/post",
           {
             method: "POST",
             headers: {
@@ -612,7 +612,7 @@ const AnotherProfile = () => {
       }
 
       const res = await fetch(
-        "http://192.168.1.17:5000/api/user/follow/creator",
+        "http://192.168.1.7:5000/api/user/follow/creator",
         {
           method: "POST",
           headers: {
@@ -662,7 +662,7 @@ const AnotherProfile = () => {
       }
 
       const res = await fetch(
-        "http://192.168.1.17:5000/api/user/unfollow/creator",
+        "http://192.168.1.7:5000/api/user/unfollow/creator",
         {
           method: "POST",
           headers: {

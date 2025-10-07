@@ -53,7 +53,7 @@ const fetchSavedFeeds = async () => {
     }
 
     const res = await axios.get(
-      "http://192.168.1.17:5000/api/user/get/saved/feeds",
+      "http://192.168.1.7:5000/api/user/get/saved/feeds",
       {
         headers: {
           Authorization: `Bearer ${token}`,

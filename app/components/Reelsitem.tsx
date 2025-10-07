@@ -62,7 +62,7 @@
 //           Alert.alert('Error', 'User not authenticated');
 //           return;
 //         }
-//         const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+//         const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
 //           method: 'GET',
 //           headers: {
 //             Authorization: `Bearer ${userToken}`,
@@ -135,8 +135,8 @@
 //       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
 //       const endpoint =
 //         activeAccountType === 'Personal'
-//           ? 'http://192.168.1.17:5000/api/user/feed/like'
-//           : 'http://192.168.1.17:5000/api/creator/feed/like';
+//           ? 'http://192.168.1.7:5000/api/user/feed/like'
+//           : 'http://192.168.1.7:5000/api/creator/feed/like';
 //       const res = await fetch(endpoint, {
 //         method: 'POST',
 //         headers: {
@@ -182,8 +182,8 @@
 //       setIsSaved(newSaveState);
 //       const endpoint =
 //         activeAccountType === 'Personal'
-//           ? 'http://192.168.1.17:5000/api/user/feed/save'
-//           : 'http://192.168.1.17:5000/api/creator/feed/save';
+//           ? 'http://192.168.1.7:5000/api/user/feed/save'
+//           : 'http://192.168.1.7:5000/api/creator/feed/save';
 //       const res = await fetch(endpoint, {
 //         method: 'POST',
 //         headers: {
@@ -448,6 +448,7 @@ const Reelsitem = ({
     displayName: '',
     phoneNumber: '',
   });
+  const [hasViewed, setHasViewed] = useState(false);
 
   // Fetch account type
   useEffect(() => {
@@ -471,7 +472,7 @@ const Reelsitem = ({
           Alert.alert('Error', 'User not authenticated');
           return;
         }
-        const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+        const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,
@@ -483,9 +484,7 @@ const Reelsitem = ({
             displayName: data.profile.displayName || '',
             phoneNumber: data.profile.phoneNumber || '',
           });
-        } else {
-          console.log('Error fetching profile:', data.message);
-        }
+        } 
       } catch (err) {
         console.error('Fetch profile error:', err);
       }
@@ -518,6 +517,39 @@ const Reelsitem = ({
     };
   }, []);
 
+   // Handle video end to record view
+  const handleVideoEnd = async () => {
+    if (hasViewed) {
+      console.log('Video view already recorded for feedId:', id);
+      return;
+    }
+    try {
+      const userToken = await AsyncStorage.getItem('userToken');
+      console.log("user", userToken);
+      if (!userToken) {
+        return;
+      }
+      const endpoint = 'http://192.168.1.7:5000/api/user/watching/vidoes';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({ feedId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.log('Error recording video view:', data.message);
+      } else {
+        console.log('Video view recorded:', data.message);
+        setHasViewed(true); // Mark as viewed only on successful API call
+      }
+    } catch (error) {
+      console.error('Error recording video view:', error);
+    }
+  };
+
   // Tap handler for play/pause
   const handleTap = async () => {
     if (video.current) {
@@ -544,8 +576,8 @@ const Reelsitem = ({
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
       const endpoint =
         activeAccountType === 'Personal'
-          ? 'http://192.168.1.17:5000/api/user/feed/like'
-          : 'http://192.168.1.17:5000/api/creator/feed/like';
+          ? 'http://192.168.1.7:5000/api/user/feed/like'
+          : 'http://192.168.1.7:5000/api/creator/feed/like';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -591,8 +623,8 @@ const Reelsitem = ({
       setIsSaved(newSaveState);
       const endpoint =
         activeAccountType === 'Personal'
-          ? 'http://192.168.1.17:5000/api/user/feed/save'
-          : 'http://192.168.1.17:5000/api/creator/feed/save';
+          ? 'http://192.168.1.7:5000/api/user/feed/save'
+          : 'http://192.168.1.7:5000/api/creator/feed/save';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -602,7 +634,6 @@ const Reelsitem = ({
         body: JSON.stringify({ feedId: id }),
       });
       const data = await res.json();
-      console.log(data)
       if (!res.ok) {
         setIsSaved(!newSaveState);
         Alert.alert('Error', data.message || 'Failed to save reel');
@@ -647,6 +678,11 @@ const Reelsitem = ({
           style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
           resizeMode="cover"
           isLooping
+          onPlaybackStatusUpdate={(status) => {
+            if (status.didJustFinish) {
+              handleVideoEnd();
+            }
+          }}
         />
         {!isPlaying && (
           <Image

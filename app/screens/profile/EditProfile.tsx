@@ -45,7 +45,7 @@ const EditProfile = () => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.17:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
   };
 
   const formatDate = (date) => {
@@ -77,7 +77,7 @@ const EditProfile = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -202,7 +202,7 @@ const EditProfile = () => {
       // Debug: Log FormData entries
       console.log("FormData entries:", [...formData.entries()]);
 
-      const res = await fetch('http://192.168.1.17:5000/api/user/profile/detail/update', {
+      const res = await fetch('http://192.168.1.7:5000/api/user/profile/detail/update', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -239,7 +239,7 @@ const EditProfile = () => {
         try {
             console.log('Checking username:', name);
             const res = await fetch(
-                `http://192.168.1.17:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
+                `http://192.168.1.7:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
                 { method: 'GET' }
             );
 

@@ -1,571 +1,307 @@
-// //old one 
+import React, {
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useEffect,
+  useMemo,
+  memo,
+  RefObject
+} from "react";
+import { View, Dimensions, ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import PostCard from "../../components/PostCard";
+import { connectSocket } from "../../../webSocket/webScoket";
+import { startHeartbeat } from "../../../webSocket/heartBeat";
+import axios from "axios";
 
-// import React, { useRef, useState, forwardRef, useImperativeHandle, useEffect, useMemo, memo } from 'react';
-// import { View, Dimensions, ActivityIndicator, Text } from 'react-native';
-// import axios from 'axios';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import PostCard from '../../components/PostCard';
-// import {connectSocket} from '../../../webSocket/webScoket';
-// import {startHeartbeat} from "../../../webSocket/heartBeat";
-//  import api from "../../../apiInterpretor/apiInterceptor"
+// --------------------------- Types ----------------------------
 
-// const { height: windowHeight } = Dimensions.get('window');
+interface Post {
+  _id: string;
+  creatorUsername: string;
+  creatorAvatar: string | null;
+  timeAgo: string;
+  contentUrl: string;
+  caption: string;
+  tags: string[];
+  background: string;
+  commentsCount: number;
+  likesCount: number;
+  type: string;
+  accountId: string;
+  isLiked: boolean;
+  isSaved: boolean;
+}
 
-// const MemoPostCard = memo(PostCard, (prevProps, nextProps) => {
-//     return (
-//         prevProps.visibleBoxes === nextProps.visibleBoxes &&
-//         prevProps.postimage[0].image === nextProps.postimage[0].image &&
-//         prevProps.caption === nextProps.caption
-//     );
-// });
+interface PostListProps {
+  categoryId?: string | null;
+  scrollRef?: RefObject<any>;
+  sheetRef?: RefObject<any>;
+  optionSheet?: RefObject<any>;
+}
 
-// // Fisher-Yates shuffle algorithm for efficient array shuffling
-// const shuffleArray = (array) => {
-//     const shuffledArray = [...array];
-//     for (let i = shuffledArray.length - 1; i > 0; i--) {
-//         const j = Math.floor(Math.random() * (i + 1));
-//         [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
-//     }
-//     return shuffledArray;
-// };
+export interface PostListHandle {
+  refreshPosts: () => Promise<void>;
+  scrollToTop: () => void;
+  handleScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  handlePull: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+}
 
-// const PostList = forwardRef(({ scrollRef, ...props }: any, ref: any) => {
-//     const [visibleBoxes, setVisibleBoxes] = useState<any>([]);
-//     const [posts, setPosts] = useState<any[]>([]);
-//     const [loading, setLoading] = useState(true);
-//     const [refreshingTop, setRefreshingTop] = useState(false);
+// --------------------------- Helpers ----------------------------
 
-//     const boxRefs = useRef<any>({});
+const { height: windowHeight } = Dimensions.get("window");
 
-//     const fetchPosts = async () => {
-//         try {
-//             const token = await AsyncStorage.getItem('userToken');
-//             if (!token) {
-//                 console.warn('No user token found in AsyncStorage');
-//                 return;
-//             }
+const MemoPostCard = memo(PostCard, (prev, next) =>
+  prev.visibleBoxes === next.visibleBoxes &&
+  prev.postimage?.[0]?.image === next.postimage?.[0]?.image &&
+  prev.caption === next.caption
+);
 
-//             const url = props.categoryId
-//                 ? `/api/all/catagories/${props.categoryId}`
-//                 : `/api/get/all/feeds/user`;
-
-//             console.log('Fetching posts from:', url);
-
-//             const res = await api.get(url, {
-//                 headers: { Authorization: `Bearer ${token}` },
-//             });
-
-//             console.log('API Response:', JSON.stringify(res.data, null, 2));
-
-//             const feeds = props.categoryId ? res.data.category.feeds : res.data.feeds;
-//             if (!feeds) {
-//                 console.warn('No feeds found in API response');
-//                 setPosts([]);
-//                 return;
-//             }
-
-//             const mappedFeeds = feeds
-//                 .map((item: any) => ({
-//                     _id: item.feedId || item._id,
-//                     creatorUsername: item.userName,
-//                     creatorAvatar: item.profileAvatar !== 'Unknown' ? item.profileAvatar : null,
-//                     timeAgo: item.timeAgo,
-//                     contentUrl: item.contentUrl?.startsWith('http')
-//                         ? item.contentUrl
-//                         : `http://192.168.1.17:5000/${item.contentUrl.replace(/\\/g, '/')}`,
-//                     caption: item.caption || '',
-//                     tags: item.tags || [],
-//                     background: item.background || '#fff',
-//                     comments: item.comments || [],
-//                      commentsCount: item.commentsCount || 0, // Add this line
-//                     likesCount: item.likesCount || 0,
-//                     type: item.type,
-//                     accountId:item.createdByAccount,
-//                     isLiked: true,
-//                     isSaved: true,
-//                 }))
-//                 .filter((item: any) => item.type === 'image');
-
-//             setPosts(mappedFeeds);
-//             console.log('Mapped Feeds:', mappedFeeds);
-//         } catch (error) {
-//             console.error('Error fetching posts:', error.response?.data || error.message);
-//             setPosts([]);
-//         }
-//     };
-
-//     useEffect(() => {
-//         fetchPosts();
-//     }, [props.categoryId]);
-
-//     useEffect(() => {
-//     const initSession = async () => {
-//       const token = await AsyncStorage.getItem("userToken");
-//       const sessionId = await AsyncStorage.getItem("sessionId");
-//       if (token && sessionId) {
-//         await connectSocket();
-//         startHeartbeat();
-//       }
-//     };
- 
-//     initSession();
-//   }, []);
-
-//     const handleScroll = (event: any) => {
-//         const scrollY = event.nativeEvent.contentOffset.y;
-//         const visibleBoxIds = posts
-//             .map((box) => {
-//                 const boxRef = boxRefs.current[box._id];
-//                 if (!boxRef) return null;
-//                 const boxY = boxRef.y;
-//                 const boxHeight = boxRef.height;
-//                 if (boxY < scrollY + windowHeight / 1.5 && boxY + boxHeight > scrollY) {
-//                     return box._id;
-//                 }
-//                 return null;
-//             })
-//             .filter((id) => id !== null);
-//         setVisibleBoxes(visibleBoxIds);
-//     };
-
-//     const handlePull = (event: any) => {
-//         const offsetY = event.nativeEvent.contentOffset.y;
-//         if (offsetY < -50 && !refreshingTop) setRefreshingTop(true);
-//         if (offsetY >= 0 && refreshingTop) setRefreshingTop(false);
-//     };
-
-//     const handleHidePost = (postId: string) => {
-//         setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
-//     };
-
-//     useImperativeHandle(ref, () => ({
-//         refreshPosts: async () => {
-//             setRefreshingTop(true);
-//             setPosts([]);
-//             await new Promise((resolve) => requestAnimationFrame(resolve));
-            
-//             // Shuffle the posts when refreshing
-//             const shuffledPosts = shuffleArray([...posts]);
-//             setPosts(shuffledPosts);
-            
-//             setRefreshingTop(false);
-//         },
-//         scrollToTop: () => {
-//             if (scrollRef?.current) {
-//                 scrollRef.current.scrollTo({ y: 0, animated: true });
-//             }
-//         },
-//         handleScroll,
-//         handlePull,
-//     }));
-
-//     useEffect(() => {
-//         const loadInitial = async () => {
-//             setLoading(true);
-//             await fetchPosts();
-//             setLoading(false);
-//         };
-//         loadInitial();
-//     }, []);
-
-//     const handleBoxLayout = (id: any) => (event: any) => {
-//         const pageY = event.nativeEvent.layout.y;
-//         const height = event.nativeEvent.layout.height;
-//         boxRefs.current[id] = { y: pageY, height };
-//     };
-
-//     const memoVisibleBoxes = useMemo(() => visibleBoxes, [visibleBoxes]);
-
-//     const handleNotInterested = (postId: string) => {
-//         setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
-//     };
-
-//     if (loading || refreshingTop) {
-//         return (
-//             <View
-//                 style={{
-//                     height: windowHeight,
-//                     justifyContent: 'center',
-//                     alignItems: 'center',
-//                 }}
-//             >
-//                 <ActivityIndicator size="large" color="#000" />
-//             </View>
-//         );
-//     }
-
-//     if (posts.length === 0) {
-//         return (
-//             <View
-//                 style={{
-//                     height: windowHeight,
-//                     justifyContent: 'center',
-//                     alignItems: 'center',
-//                 }}
-//             >
-//                 <ActivityIndicator size="large" color="#000" />
-//             </View>
-//         );
-//     }
-
-//     return (
-//         <View>
-//             {refreshingTop && (
-//                 <View
-//                     style={{
-//                         paddingVertical: 20,
-//                         justifyContent: 'center',
-//                         alignItems: 'center',
-//                     }}
-//                 >
-//                     <ActivityIndicator size="small" color="#000" />
-//                 </View>
-//             )}
-
-//             {posts.map((post: any) => (
-//                 <View
-//                     key={post._id}
-//                     onLayout={handleBoxLayout(post._id)}
-//                     style={{ height: windowHeight, width: '100%' }}
-//                 >
-//                     <MemoPostCard
-//                         id={post._id}
-//                         name={post.creatorUsername || 'Ashik'}
-//                         profileimage={post.creatorAvatar || null}
-//                         date={post.timeAgo}
-//                         postimage={[{ image: post.contentUrl }]}
-//                         like={post.likesCount || 0}
-//                         commentsCount={post.commentsCount || 0} 
-//                         posttitle={post.caption}
-//                         posttag={post.tags?.join(' ')}
-//                         sheetRef={props.sheetRef}
-//                         optionSheet={props.optionSheet}
-//                         hasStory={false}
-//                         reelsvideo={null}
-//                         caption={post.caption}
-//                         background={post.background || '#fff'}
-//                         visibleBoxes={memoVisibleBoxes}
-//                         onNotInterested={handleNotInterested}
-//                         onHidePost={handleHidePost}
-//                         accountId={post.accountId}
-                        
-//                     />
-//                 </View>
-//             ))}
-//         </View>
-//     );
-// });
-
-// export default PostList;
-
-
-import React, { useRef, useState, forwardRef, useImperativeHandle, useEffect, useMemo, memo } from 'react';
-import { View, Dimensions, ActivityIndicator, Text } from 'react-native';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import PostCard from '../../components/PostCard';
-import {connectSocket} from '../../../webSocket/webScoket';
-import {startHeartbeat} from "../../../webSocket/heartBeat";
-import api from "../../../apiInterpretor/apiInterceptor"
-
-const { height: windowHeight } = Dimensions.get('window');
-
-const MemoPostCard = memo(PostCard, (prevProps, nextProps) => {
-    return (
-        prevProps.visibleBoxes === nextProps.visibleBoxes &&
-        prevProps.postimage[0].image === nextProps.postimage[0].image &&
-        prevProps.caption === nextProps.caption
-    );
-});
-
-// Fisher-Yates shuffle algorithm for efficient array shuffling
-const shuffleArray = (array) => {
-    const shuffledArray = [...array];
-    for (let i = shuffledArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledArray[i], shuffledArray[j]] = [shuffledArray[j], shuffledArray[i]];
-    }
-    return shuffledArray;
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const copy = [...array];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 };
 
-const PostList = forwardRef(({ scrollRef, ...props }: any, ref: any) => {
-    const [visibleBoxes, setVisibleBoxes] = useState<any>([]);
-    const [posts, setPosts] = useState<any[]>([]);
+// --------------------------- Component ----------------------------
+
+const PostList = forwardRef<PostListHandle, PostListProps>(
+  ({ scrollRef, categoryId, sheetRef, optionSheet }, ref) => {
+    const [visibleBoxes, setVisibleBoxes] = useState<string[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshingTop, setRefreshingTop] = useState(false);
 
-    const boxRefs = useRef<any>({});
-     const viewedPosts = useRef<Set<string>>(new Set()); // Track viewed posts locally
+    const boxRefs = useRef<Record<string, { y: number; height: number }>>({});
+    const viewedPosts = useRef<Set<string>>(new Set());
 
-  const fetchPosts = async (categoryId = null) => {
-    try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-            console.warn('No user token found in AsyncStorage');
-            return;
-        }
+    // --------------------------- Fetch Posts ----------------------------
 
-        const url = categoryId
-            ? `/api/all/catagories/${categoryId}`
-            : `/api/get/all/feeds/user`;
+const fetchPosts = async (catId: string | null = null) => {
+  try {
+    setLoading(true);
 
-        console.log('Fetching posts from:', url);
-
-        const res = await api.get(url, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // Add this console log to debug isLiked values
-        console.log('Feeds from API:', res.data.feeds?.map(f => ({ feedId: f.feedId, isLiked: f.isLiked })));
-
-        // Check if feeds exist and are an array
-        let feeds = [];
-        if (categoryId) {
-            if (res.data?.category?.feeds && Array.isArray(res.data.category.feeds)) {
-                feeds = res.data.category.feeds;
-            } else {
-                console.warn('No valid feeds found in category API response');
-                setPosts([]);
-                return;
-            }
-        } else {
-            if (res.data?.feeds && Array.isArray(res.data.feeds)) {
-                feeds = res.data.feeds;
-            } else {
-                console.warn('No valid feeds found in feeds API response');
-                setPosts([]);
-                return;
-            }
-        }
-
-        const mappedFeeds = feeds
-            .map((item: any) => ({
-                _id: item.feedId || item._id,
-                creatorUsername: item.userName,
-                creatorAvatar: item.profileAvatar !== 'Unknown' ? item.profileAvatar : null,
-                timeAgo: item.timeAgo,
-                contentUrl: item.contentUrl?.startsWith('http')
-                    ? item.contentUrl
-                    : `http://192.168.1.17:5000/${item.contentUrl.replace(/\\/g, '/')}`,
-                caption: item.caption || '',
-                tags: item.tags || [],
-                background: item.background || '#fff',
-                comments: item.comments || [],
-                commentsCount: item.commentsCount || 0,
-                likesCount: item.likesCount || 0,
-                type: item.type,
-                accountId: item.createdByAccount,
-                isLiked: item.isLiked || false, // Use API-provided value
-                isSaved: item.isSaved || false, // Use API-provided value
-            }))
-            .filter((item: any) => item.type === 'image');
-
-        setPosts(mappedFeeds);
-
-    } catch (error) {
-        console.error('Error fetching posts:', error.response?.data || error.message);
-        setPosts([]);
+    // Get user token
+    const token = await AsyncStorage.getItem("userToken");
+    if (!token) {
+      console.warn("No user token found");
+      setPosts([]);
+      return;
     }
+
+    // Determine endpoint
+    const endpoint = catId
+      ? `http://192.168.1.7:5000/api/all/catagories/${catId}`
+      : `http://192.168.1.7:5000/api/get/all/feeds/user`;
+
+    console.log("Fetching posts from:", endpoint);
+
+    // Axios GET with token
+    const res = await axios.get(endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("Response:", res.data);
+
+    // Extract feeds
+    const feeds = catId ? res.data?.category?.feeds ?? [] : res.data?.feeds ?? [];
+
+    if (!Array.isArray(feeds)) {
+      console.warn("No feeds found");
+      setPosts([]);
+      return;
+    }
+
+    // Map feeds to Post[]
+    const mapped: Post[] = feeds
+      .map((item: any) => ({
+        _id: item.feedId || item._id,
+        creatorUsername: item.userName,
+        creatorAvatar: item.profileAvatar !== "Unknown" ? item.profileAvatar : null,
+        timeAgo: item.timeAgo,
+        contentUrl: item.contentUrl?.startsWith("http")
+          ? item.contentUrl
+          : `http://192.168.1.7:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
+        caption: item.caption || "",
+        tags: item.tags || [],
+        background: item.background || "#fff",
+        commentsCount: item.commentsCount || 0,
+        likesCount: item.likesCount || 0,
+        type: item.type,
+        accountId: item.createdByAccount,
+        isLiked: !!item.isLiked,
+        isSaved: !!item.isSaved,
+      }))
+      .filter((item) => item.type === "image");
+
+    setPosts(mapped);
+  } catch (err: any) {
+    console.error("Error fetching posts:", err.response?.data || err.message);
+    setPosts([]);
+  } finally {
+    setLoading(false);
+  }
 };
-    useEffect(() => {
-        fetchPosts(props.categoryId);
-    }, [props.categoryId]);
 
-    
-    // Function to record view count for a post
+
+
+
+    // --------------------------- View Count ----------------------------
+
     const recordViewCount = async (feedId: string) => {
-        try {
-            // Skip if post has already been viewed
-            if (viewedPosts.current.has(feedId)) {
-                return;
-            }
+      try {
+        if (viewedPosts.current.has(feedId)) return;
 
-            const token = await AsyncStorage.getItem('userToken');
-            if (!token) {
-                console.warn('No user token found in AsyncStorage');
-                return;
-            }
-            console.log("view",token)
-        
+        const token = await AsyncStorage.getItem("userToken");
+        if (!token) return;
 
-            await api.post(
-                'http://192.168.1.17:5000/api/user/image/view/count',
-                { feedId},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            // Mark post as viewed locally
-            viewedPosts.current.add(feedId);
-        } catch (error) {
-            console.error('Error recording view count:', error.response?.data || error.message);
-        }
+        await axios.post(
+          "http://192.168.1.7:5000/api/user/image/view/count",
+          { feedId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        viewedPosts.current.add(feedId);
+      } catch (err: any) {
+        console.error("Error recording view:", err.response?.data || err.message);
+      }
     };
 
-       useEffect(() => {
-        // Call recordViewCount for each visible post
-        visibleBoxes.forEach((postId: string) => {
-            recordViewCount(postId);
-        });
+    // --------------------------- Scroll Handlers ----------------------------
+
+    const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const scrollY = e.nativeEvent.contentOffset.y;
+      const visible = posts
+        .map((p) => {
+          const ref = boxRefs.current[p._id];
+          if (!ref) return null;
+          const { y, height } = ref;
+          return y < scrollY + windowHeight / 1.5 && y + height > scrollY
+            ? p._id
+            : null;
+        })
+        .filter((id): id is string => !!id);
+      setVisibleBoxes(visible);
+    };
+
+    const handlePull = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const y = e.nativeEvent.contentOffset.y;
+      if (y < -50 && !refreshingTop) setRefreshingTop(true);
+      if (y >= 0 && refreshingTop) setRefreshingTop(false);
+    };
+
+    const handleBoxLayout = (id: string) => (event: any) => {
+      const { y, height } = event.nativeEvent.layout;
+      boxRefs.current[id] = { y, height };
+    };
+
+    // --------------------------- Lifecycle ----------------------------
+
+    useEffect(() => {
+      fetchPosts(categoryId ?? null);
+    }, [categoryId]);
+
+    useEffect(() => {
+      const initSocket = async () => {
+        const token = await AsyncStorage.getItem("userToken");
+        const sessionId = await AsyncStorage.getItem("sessionId");
+        if (token && sessionId) {
+          await connectSocket();
+          startHeartbeat();
+        }
+      };
+      initSocket();
+    }, []);
+
+    useEffect(() => {
+      visibleBoxes.forEach(recordViewCount);
     }, [visibleBoxes]);
 
-    useEffect(() => {
-        const initSession = async () => {
-            const token = await AsyncStorage.getItem("userToken");
-            const sessionId = await AsyncStorage.getItem("sessionId");
-            if (token && sessionId) {
-                await connectSocket();
-                startHeartbeat();
-            }
-        };
- 
-        initSession();
-    }, []);
-
-    const handleScroll = (event: any) => {
-        const scrollY = event.nativeEvent.contentOffset.y;
-        const visibleBoxIds = posts
-            .map((box) => {
-                const boxRef = boxRefs.current[box._id];
-                if (!boxRef) return null;
-                const boxY = boxRef.y;
-                const boxHeight = boxRef.height;
-                if (boxY < scrollY + windowHeight / 1.5 && boxY + boxHeight > scrollY) {
-                    return box._id;
-                }
-                return null;
-            })
-            .filter((id) => id !== null);
-        setVisibleBoxes(visibleBoxIds);
-    };
-
-    const handlePull = (event: any) => {
-        const offsetY = event.nativeEvent.contentOffset.y;
-        if (offsetY < -50 && !refreshingTop) setRefreshingTop(true);
-        if (offsetY >= 0 && refreshingTop) setRefreshingTop(false);
-    };
-
-    const handleHidePost = (postId: string) => {
-        setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
-    };
+    // --------------------------- Imperative Handle ----------------------------
 
     useImperativeHandle(ref, () => ({
-        refreshPosts: async () => {
-            setRefreshingTop(true);
-            setPosts([]);
-            await new Promise((resolve) => requestAnimationFrame(resolve));
-            
-            // Fetch all posts without category filter and shuffle them
-            await fetchPosts(); // Call fetchPosts without categoryId to get all posts
-            setPosts((prevPosts) => shuffleArray([...prevPosts]));
-            
-            setRefreshingTop(false);
-        },
-        scrollToTop: () => {
-            if (scrollRef?.current) {
-                scrollRef.current.scrollTo({ y: 0, animated: true });
-            }
-        },
-        handleScroll,
-        handlePull,
+      refreshPosts: async () => {
+        setRefreshingTop(true);
+        setPosts([]);
+        await fetchPosts(null);
+        setPosts((prev) => shuffleArray(prev));
+        setRefreshingTop(false);
+      },
+      scrollToTop: () => {
+        scrollRef?.current?.scrollTo({ y: 0, animated: true });
+      },
+      handleScroll,
+      handlePull,
     }));
 
-    useEffect(() => {
-        const loadInitial = async () => {
-            setLoading(true);
-            await fetchPosts(props.categoryId);
-            setLoading(false);
-        };
-        loadInitial();
-    }, []);
-
-    const handleBoxLayout = (id: any) => (event: any) => {
-        const pageY = event.nativeEvent.layout.y;
-        const height = event.nativeEvent.layout.height;
-        boxRefs.current[id] = { y: pageY, height };
-    };
+    // --------------------------- UI ----------------------------
 
     const memoVisibleBoxes = useMemo(() => visibleBoxes, [visibleBoxes]);
 
-    const handleNotInterested = (postId: string) => {
-        setPosts((prevPosts) => prevPosts.filter((p) => p._id !== postId));
-    };
-
     if (loading || refreshingTop) {
-        return (
-            <View
-                style={{
-                    height: windowHeight,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-            >
-                <ActivityIndicator size="large" color="#000" />
-            </View>
-        );
+      return (
+        <View style={{ height: windowHeight, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#000" />
+        </View>
+      );
     }
 
     if (posts.length === 0) {
-        return (
-            <View
-                style={{
-                    height: windowHeight,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-            >
-                <ActivityIndicator size="large" color="#000" />
-            </View>
-        );
+      return (
+        <View style={{ height: windowHeight, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="large" color="#000" />
+        </View>
+      );
     }
 
     return (
-        <View>
-            {refreshingTop && (
-                <View
-                    style={{
-                        paddingVertical: 20,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
-                >
-                    <ActivityIndicator size="small" color="#000" />
-                </View>
-            )}
+      <View>
+        {refreshingTop && (
+          <View style={{ paddingVertical: 20, justifyContent: "center", alignItems: "center" }}>
+            <ActivityIndicator size="small" color="#000" />
+          </View>
+        )}
 
-            {posts.map((post: any) => (
-                <View
-                    key={post._id}
-                    onLayout={handleBoxLayout(post._id)}
-                    style={{ height: windowHeight, width: '100%' }}
-                >
-                    <MemoPostCard
-                        id={post._id}
-                        name={post.creatorUsername || 'Ashik'}
-                        profileimage={post.creatorAvatar || null}
-                        date={post.timeAgo}
-                        postimage={[{ image: post.contentUrl }]}
-                        like={post.likesCount || 0}
-                        commentsCount={post.commentsCount || 0} 
-                        posttitle={post.caption}
-                        posttag={post.tags?.join(' ')}
-                        sheetRef={props.sheetRef}
-                        optionSheet={props.optionSheet}
-                        hasStory={false}
-                        reelsvideo={null}
-                        caption={post.caption}
-                        background={post.background || '#fff'}
-                        visibleBoxes={memoVisibleBoxes}
-                        onNotInterested={handleNotInterested}
-                        onHidePost={handleHidePost}
-                        accountId={post.accountId}
-                        isLiked={post.isLiked} // Pass isLiked
-                        isSaved={post.isSaved} // Pass isSaved
-                        
-                    />
-                </View>
-            ))}
-        </View>
+        {posts.map((post) => (
+          <View
+            key={post._id}
+            onLayout={handleBoxLayout(post._id)}
+            style={{ height: windowHeight, width: "100%" }}
+          >
+            <MemoPostCard
+              id={post._id}
+              name={post.creatorUsername}
+              profileimage={post.creatorAvatar}
+              date={post.timeAgo}
+              postimage={[{ image: post.contentUrl }]}
+              like={post.likesCount}
+              commentsCount={post.commentsCount}
+              posttitle={post.caption}
+              posttag={post.tags.join(" ")}
+              sheetRef={sheetRef}
+              optionSheet={optionSheet}
+              hasStory={false}
+              reelsvideo={null}
+              caption={post.caption}
+              background={post.background}
+              visibleBoxes={memoVisibleBoxes}
+              onNotInterested={() => setPosts((prev) => prev.filter((p) => p._id !== post._id))}
+              onHidePost={() => setPosts((prev) => prev.filter((p) => p._id !== post._id))}
+              accountId={post.accountId}
+              isLiked={post.isLiked}
+              isSaved={post.isSaved}
+            />
+          </View>
+        ))}
+      </View>
     );
-});
+  }
+);
 
 export default PostList;

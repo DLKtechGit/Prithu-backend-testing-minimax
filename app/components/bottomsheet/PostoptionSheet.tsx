@@ -78,7 +78,7 @@
 //                 return;
 //             }
 
-//             const res = await fetch('http://192.168.1.17:5000/api/user/not/intrested', {
+//             const res = await fetch('http://192.168.1.7:5000/api/user/not/intrested', {
 //                 method: 'POST',
 //                 headers: {
 //                     'Content-Type': 'application/json',
@@ -132,7 +132,7 @@
 //                 return;
 //             }
 
-//             const res = await fetch('http://192.168.1.17:5000/api/user/hide/feed', {
+//             const res = await fetch('http://192.168.1.7:5000/api/user/hide/feed', {
 //                 method: 'POST',
 //                 headers: {
 //                     'Content-Type': 'application/json',
@@ -172,7 +172,7 @@
 //                 headers.Authorization = `Bearer ${userToken}`;
 //             }
 
-//             const res = await fetch('http://192.168.1.17:5000/api/report-types', {
+//             const res = await fetch('http://192.168.1.7:5000/api/report-types', {
 //                 method: 'GET',
 //                 headers,
 //             });
@@ -206,7 +206,7 @@
 //                 return;
 //             }
 
-//             const res = await fetch(`http://192.168.1.17:5000/api/report-questions/start?typeId=${typeId}`, {
+//             const res = await fetch(`http://192.168.1.7:5000/api/report-questions/start?typeId=${typeId}`, {
 //                 method: 'GET',
 //                 headers: {
 //                     'Content-Type': 'application/json',
@@ -222,7 +222,7 @@
 //             } else if (data.message === 'No start question found for this type') {
 //                 console.log('No start question found, submitting report directly');
 //                 // Directly call the report-post API
-//                 const reportRes = await fetch('http://192.168.1.17:5000/api/report-post', {
+//                 const reportRes = await fetch('http://192.168.1.7:5000/api/report-post', {
 //                     method: 'POST',
 //                     headers: {
 //                         'Content-Type': 'application/json',
@@ -269,7 +269,7 @@
 //             // Ensure reportId is available (e.g., from state or context)
 //             // const reportId = /* get reportId from your state or context */;
 
-//             const res = await fetch('http://192.168.1.17:5000/api/report-questions/next', {
+//             const res = await fetch('http://192.168.1.7:5000/api/report-questions/next', {
 //                 method: 'POST',
 //                 headers: {
 //                     'Content-Type': 'application/json',
@@ -336,7 +336,7 @@
 //                 return;
 //             }
 
-//             const res = await fetch('http://192.168.1.17:5000/api/report-post', {
+//             const res = await fetch('http://192.168.1.7:5000/api/report-post', {
 //                 method: 'POST',
 //                 headers: {
 //                     'Content-Type': 'application/json',
@@ -625,7 +625,7 @@ const PostoptionSheet = (props: any, ref: any) => {
                 return;
             }
 
-            const res = await fetch('http://192.168.1.17:5000/api/user/not/intrested', {
+            const res = await fetch('http://192.168.1.7:5000/api/user/not/intrested', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -690,7 +690,7 @@ const PostoptionSheet = (props: any, ref: any) => {
                 return;
             }
 
-            const res = await fetch('http://192.168.1.17:5000/api/user/hide/feed', {
+            const res = await fetch('http://192.168.1.7:5000/api/user/hide/feed', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -731,7 +731,7 @@ const PostoptionSheet = (props: any, ref: any) => {
                 headers.Authorization = `Bearer ${userToken}`;
             }
 
-            const res = await fetch('http://192.168.1.17:5000/api/report-types', {
+            const res = await fetch('http://192.168.1.7:5000/api/report-types', {
                 method: 'GET',
                 headers,
             });
@@ -779,7 +779,7 @@ const PostoptionSheet = (props: any, ref: any) => {
             return;
         }
 
-        const res = await fetch(`http://192.168.1.17:5000/api/report-questions/start?typeId=${typeId}`, {
+        const res = await fetch(`http://192.168.1.7:5000/api/report-questions/start?typeId=${typeId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -794,7 +794,7 @@ const PostoptionSheet = (props: any, ref: any) => {
             setViewMode('question');
         } else if (data.message === 'No start question found for this type') {
             console.log('No start question found, submitting report directly');
-            const reportRes = await fetch('http://192.168.1.17:5000/api/report-post', {
+            const reportRes = await fetch('http://192.168.1.7:5000/api/report-post', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -849,7 +849,7 @@ const handleOptionSelection = async (option: any) => {
             return;
         }
 
-        const res = await fetch('http://192.168.1.17:5000/api/report-questions/next', {
+        const res = await fetch('http://192.168.1.7:5000/api/report-questions/next', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -933,7 +933,7 @@ const handleSubmitReport = async () => {
             return;
         }
 
-        const res = await fetch('http://192.168.1.17:5000/api/report-post', {
+        const res = await fetch('http://192.168.1.7:5000/api/report-post', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

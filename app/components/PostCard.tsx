@@ -134,7 +134,7 @@ const handleDownload = async () => {
     }
 
     // Keep your original subscription check
-    const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
+    const res = await fetch('http://192.168.1.7:5000/api/user/user/subscriptions', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ const handleDownload = async () => {
 
     if (res.ok && data.plan && data.plan.isActive) {
       // Additional check for trial plan status
-      const trialCheckRes = await fetch('http://192.168.1.17:5000/api/user/check/active/subcription', {
+      const trialCheckRes = await fetch('http://192.168.1.7:5000/api/user/check/active/subcription', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -214,7 +214,7 @@ const handleDownload = async () => {
         Alert.alert('Error', 'User not authenticated');
         return;
       }
-      const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -263,8 +263,8 @@ const handleDownload = async () => {
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
       const endpoint =
         accountType === 'Personal'
-          ? 'http://192.168.1.17:5000/api/user/feed/like'
-          : 'http://192.168.1.17:5000/api/creator/feed/like';
+          ? 'http://192.168.1.7:5000/api/user/feed/like'
+          : 'http://192.168.1.7:5000/api/creator/feed/like';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -610,8 +610,8 @@ const handleDownload = async () => {
                   }
                   const endpoint =
                     accountType === 'Personal'
-                      ? 'http://192.168.1.17:5000/api/user/feed/save'
-                      : 'http://192.168.1.17:5000/api/creator/feed/save';
+                      ? 'http://192.168.1.7:5000/api/user/feed/save'
+                      : 'http://192.168.1.7:5000/api/creator/feed/save';
                   const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
@@ -761,7 +761,7 @@ export default PostCard;
 //         Alert.alert('Error', 'User not authenticated');
 //         return;
 //       }
-//       const res = await fetch('http://192.168.1.17:5000/api/get/profile/detail', {
+//       const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
 //         method: 'GET',
 //         headers: {
 //           Authorization: `Bearer ${userToken}`,
@@ -804,8 +804,8 @@ export default PostCard;
 //       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
 //       const endpoint =
 //         accountType === 'Personal'
-//           ? 'http://192.168.1.17:5000/api/user/feed/like'
-//           : 'http://192.168.1.17:5000/api/creator/feed/like';
+//           ? 'http://192.168.1.7:5000/api/user/feed/like'
+//           : 'http://192.168.1.7:5000/api/creator/feed/like';
 //       const res = await fetch(endpoint, {
 //         method: 'POST',
 //         headers: {
@@ -1080,7 +1080,7 @@ export default PostCard;
 //                     Alert.alert('Error', 'User not authenticated');
 //                     return;
 //                   }
-//                   const res = await fetch('http://192.168.1.17:5000/api/user/user/subscriptions', {
+//                   const res = await fetch('http://192.168.1.7:5000/api/user/user/subscriptions', {
 //                     method: 'GET',
 //                     headers: {
 //                       'Content-Type': 'application/json',
@@ -1126,8 +1126,8 @@ export default PostCard;
 //                   }
 //                   const endpoint =
 //                     accountType === 'Personal'
-//                       ? 'http://192.168.1.17:5000/api/user/feed/save'
-//                       : 'http://192.168.1.17:5000/api/creator/feed/save';
+//                       ? 'http://192.168.1.7:5000/api/user/feed/save'
+//                       : 'http://192.168.1.7:5000/api/creator/feed/save';
 //                   const res = await fetch(endpoint, {
 //                     method: 'POST',
 //                     headers: {
