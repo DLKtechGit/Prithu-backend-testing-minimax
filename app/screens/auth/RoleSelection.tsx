@@ -44,6 +44,7 @@ const RoleSelectionScreen: React.FC = () => {
           if (response.status === 201) {
             // store new token if returned
             if (response.data.token) {
+              
               await AsyncStorage.setItem("userToken", response.data.token);
             }
             navigation.navigate("DrawerNavigation", { screen: "Home" });

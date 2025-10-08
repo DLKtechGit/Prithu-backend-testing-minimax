@@ -85,6 +85,8 @@ export const FONTS = {
 }
  
 export const IMAGES = {
+    thumbsUp:require('../assets/images/icons/thumbs-up.png'),
+    thumbsDown:require('../assets/images/icons/thumbs-down.png'),
     post:require('../assets/images/icons/post.png'),
     badge:require('../assets/images/icons/badge.png'),
     pricing:require('../assets/images/icons/pricing.png'),

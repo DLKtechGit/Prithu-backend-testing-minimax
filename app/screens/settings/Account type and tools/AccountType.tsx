@@ -58,7 +58,7 @@ const AccountType: React.FC<Props> = ({ navigation }) => {
 
       const userToken = await AsyncStorage.getItem('userToken');
       if (!userToken) throw new Error('No user token found');
-
+        console.log(userToken)
       const response = await axios.post<AccountStatusResponse>(
         `${API_BASE_URL}/status`,
         {},

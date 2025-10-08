@@ -48,6 +48,7 @@ const PostCard = ({
   const navigation = useNavigation<any>();
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(initialIsLiked || false); // Initialize with prop
+   const [isDisliked, setIsDisliked] = useState(initialIsLiked || false);
   const [isSaved, setIsSaved] = useState(initialIsSaved || false); // Initialize with prop
   const [likeCount, setLikeCount] = useState(like || 0);
  const [commentCount, setCommentCount] = useState(commentsCount || 0); // Changed from comment to commentsCount
@@ -67,9 +68,80 @@ const PostCard = ({
   const video = React.useRef(null);
   const commentSheetRef = useRef(null);
   const viewShotRef = useRef(null); // Ref for ViewShot
+   const [showPopup, setShowPopup] = useState(false); // State for popup visibility
+  const [popupMessage, setPopupMessage] = useState(''); // Popup title
+  const [popupSubtitle, setPopupSubtitle] = useState(''); // Popup subtitle
+   const [navigateOnClose, setNavigateOnClose] = useState(false);
   
 
-// Request media library permissions
+// Custom Popup Component
+  const Popup = () => (
+    <View style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    }}>
+      <View style={{
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+        width: '90%',
+        elevation: 10,
+      }}>
+        <Image
+          style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            marginBottom: 15,
+          }}
+          source={IMAGES.bugrepellent}
+        />
+        <Text style={{
+          fontSize: 20,
+          fontWeight: 'bold',
+          color: '#333',
+          textAlign: 'center',
+        }}>{popupMessage}</Text>
+        <Text style={{
+          fontSize: 14,
+          color: '#666',
+          textAlign: 'center',
+          marginVertical: 10,
+        }}>{popupSubtitle}</Text>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#28A745',
+            paddingVertical: 10,
+            paddingHorizontal: 20,
+            borderRadius: 8,
+            marginTop: 15,
+          }}
+          onPress={() => {
+            setShowPopup(false);
+            if (navigateOnClose) {
+              navigation.navigate('Subcribe', {});
+            }
+          }}
+        >
+          <Text style={{
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 'bold',
+            textAlign: 'center',
+          }}>Let's Go</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+
 // Request media library permissions
 const requestPermissions = async () => {
   try {
@@ -161,17 +233,23 @@ const handleDownload = async () => {
         const hasPermission = await requestPermissions();
         if (!hasPermission) return;
 
-        // Capture the screenshot
+       // Capture the screenshot
         if (viewShotRef.current) {
           const uri = await viewShotRef.current.capture();
           // Save to gallery
           const asset = await MediaLibrary.createAssetAsync(uri);
           await MediaLibrary.createAlbumAsync('Downloads', asset, false);
-          Alert.alert('Success', 'image saved to gallery');
+            setPopupMessage('Success');
+            setPopupSubtitle('Image saved to gallery');
+            setShowPopup(true);
+            setNavigateOnClose(false);
         } else {
-          Alert.alert('Error', 'Failed to capture PostCard');
+           setPopupMessage('Error');
+            setPopupSubtitle('Failed to capture PostCard');
+            setShowPopup(true);
+            setNavigateOnClose(false);
         }
-      } else {
+      }  else {
         // Trial has ended - show alert
         Alert.alert(
           'Subscription Required',
@@ -181,11 +259,23 @@ const handleDownload = async () => {
             { text: 'Subscribe', onPress: () => navigation.navigate('Subcribe', {}) }
           ]
         );
+        //  {
+        //   setPopupMessage('Subscription Required');
+        //   setPopupSubtitle('Your trial plan has ended. If you want to download the post, you have to subscribe.');
+        //   setShowPopup(true);
+        //   setNavigateOnClose(true);
+        // }
       }
     } else {
       // Navigate to subscription page if not subscribed (keeping your original behavior)
       navigation.navigate('Subcribe', {});
     }
+    //  {
+    //     setPopupMessage('Subscription Required');
+    //     setPopupSubtitle('Please subscribe to download the post.');
+    //     setShowPopup(true);
+    //     setNavigateOnClose(true);
+    //   }
   } 
   catch (error) {
     // console.error('Download error:', error);
@@ -206,6 +296,71 @@ const handleDownload = async () => {
     };
     fetchAccountType();
   }, []);
+
+
+// UI for thumbs up and thumbs down
+  const renderLikeDislikeSection = () => {
+    return (
+      <View style={[GlobalStyleSheet.flexaling, { gap: 10, paddingVertical: 5 }]}>
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#F0F0F0',
+            borderRadius: 20,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+          }}
+          // onPress={handleLike}
+        >
+          <Image
+            style={{ width: 22, height: 23, tintColor: isLiked ? COLORS.red : colors.title }}
+            source={IMAGES.thumbsUp}
+          />
+          <Text style={{ marginLeft: 5, color: colors.title, fontSize: 16 }}>0</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#F0F0F0',
+            borderRadius: 20,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+          }}
+          onPress={handleDislike}
+        >
+          <Image
+            style={{ width: 22, height: 23, tintColor: isDisliked ? COLORS.red : colors.title }}
+            source={IMAGES.thumbsDown}
+          />
+          <Text style={{ marginLeft: 5, color: colors.title, fontSize: 16 }}>0</Text> 
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // ... (keep all existing functions like handleDownload, fetchProfile, etc.)
+
+  const handleDislike = async () => {
+    // Add logic for dislike functionality similar to handleLike if needed
+    try {
+      const userToken = await AsyncStorage.getItem('userToken');
+      const accountType = await AsyncStorage.getItem('activeAccountType');
+      if (!userToken) {
+        Alert.alert('Error', 'User not authenticated or account type missing');
+        return;
+      }
+      // Implement dislike API call here if required
+      console.log('Dislike action triggered for post:', id);
+    } catch (error) {
+      console.error('Dislike error:', error);
+      Alert.alert('Error', 'Something went wrong while disliking post');
+    }
+  };
+
+
 
   const fetchProfile = async () => {
     try {
@@ -522,15 +677,17 @@ const handleDownload = async () => {
       </ViewShot>
 
 
-      <View style={{ paddingHorizontal: 20, paddingBottom: 20, paddingRight: 5 }}>
+   <View style={{ paddingHorizontal: 20, paddingBottom: 20, paddingRight: 5 }}>
+    
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <View style={[GlobalStyleSheet.flexaling, { gap: 22 }]}>
-            <View style={GlobalStyleSheet.flexaling}>
+           {/* <View style={GlobalStyleSheet.flexaling}>
               <LikeBtn onPress={handleLike} color={isLiked ? COLORS.red : colors.title} sizes={'sm'} liked={isLiked} />
               <TouchableOpacity>
                 <Text style={[GlobalStyleSheet.postlike, { color: colors.title }]}>{likeCount}</Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
+            {renderLikeDislikeSection()}
             <TouchableOpacity
               onPress={async () => {
                 try {
@@ -647,6 +804,7 @@ const handleDownload = async () => {
           </View>
         </View>
       </View>
+       {showPopup && <Popup />}
     </View>
   );
 };

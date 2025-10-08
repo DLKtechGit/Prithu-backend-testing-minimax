@@ -87,6 +87,7 @@ const fetchPosts = async (catId: string | null = null) => {
 
     // Get user token
     const token = await AsyncStorage.getItem("userToken");
+    console.log("token",token)
     if (!token) {
       console.warn("No user token found");
       setPosts([]);
