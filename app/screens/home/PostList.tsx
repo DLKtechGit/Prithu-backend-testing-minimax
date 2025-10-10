@@ -1,3 +1,4 @@
+
 import React, {
   useRef,
   useState,
@@ -8,7 +9,15 @@ import React, {
   memo,
   RefObject
 } from "react";
-import { View, Dimensions, ActivityIndicator, NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import {
+  View,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  Animated,
+  Text,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PostCard from "../../components/PostCard";
 import { connectSocket } from "../../../webSocket/webScoket";
@@ -32,6 +41,8 @@ interface Post {
   accountId: string;
   isLiked: boolean;
   isSaved: boolean;
+   isDisliked?: boolean; // Add isDisliked to the Post interface
+  dislikeCount?: number; // Add dislikeCount (optional, if backend supports it)
 }
 
 interface PostListProps {
@@ -66,6 +77,102 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   }
   return copy;
 };
+// --------------------------- Skeleton Loader Component ----------------------------
+
+const SkeletonPostCard = () => {
+  const shimmer = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmer, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [shimmer]);
+
+  const shimmerOpacity = shimmer.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.8, 0.3],
+  });
+
+  return (
+    <View style={styles.skeletonCard}>
+      {/* Header: Avatar, Username, Timestamp */}
+      <View style={styles.skeletonHeader}>
+        <Animated.View
+          style={[
+            styles.skeletonAvatar,
+            { opacity: shimmerOpacity }
+          ]}
+        />
+        <View style={styles.skeletonTextContainer}>
+          <Animated.View
+            style={[
+              styles.skeletonText,
+              { width: "60%", opacity: shimmerOpacity }
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonText,
+              { width: "40%", marginTop: 5, opacity: shimmerOpacity }
+            ]}
+          />
+        </View>
+        <Animated.View
+          style={[
+            styles.skeletonMoreIcon,
+            { opacity: shimmerOpacity }
+          ]}
+        />
+      </View>
+      {/* Main Image */}
+      <Animated.View
+        style={[
+          styles.skeletonImage,
+          { opacity: shimmerOpacity }
+        ]}
+      />
+      {/* Footer: Actions and Caption */}
+      <View style={styles.skeletonFooter}>
+        <View style={styles.skeletonActions}>
+          <Animated.View
+            style={[
+              styles.skeletonActionButton,
+              { opacity: shimmerOpacity }
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonActionButton,
+              { marginLeft: 15, opacity: shimmerOpacity }
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonActionButton,
+              { marginLeft: 15, opacity: shimmerOpacity }
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.skeletonActionButton,
+              { marginLeft: 15, opacity: shimmerOpacity }
+            ]}
+          />
+        </View>
+        <Animated.View
+          style={[
+            styles.skeletonText,
+            { width: "80%", marginTop: 10, opacity: shimmerOpacity }
+          ]}
+        />
+      </View>
+    </View>
+  );
+};
 
 // --------------------------- Component ----------------------------
 
@@ -81,77 +188,71 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     // --------------------------- Fetch Posts ----------------------------
 
-const fetchPosts = async (catId: string | null = null) => {
-  try {
-    setLoading(true);
+    const fetchPosts = async (catId: string | null = null) => {
+      try {
+        setLoading(true);
 
-    // Get user token
-    const token = await AsyncStorage.getItem("userToken");
-    console.log("token",token)
-    if (!token) {
-      console.warn("No user token found");
-      setPosts([]);
-      return;
-    }
+        const token = await AsyncStorage.getItem("userToken");
+        if (!token) {
+          console.warn("No user token found");
+          setPosts([]);
+          return;
+        }
 
-    // Determine endpoint
-    const endpoint = catId
-      ? `http://192.168.1.7:5000/api/all/catagories/${catId}`
-      : `http://192.168.1.7:5000/api/get/all/feeds/user`;
+        const endpoint = catId
+          ? `http://192.168.1.7:5000/api/all/catagories/${catId}`
+          : `http://192.168.1.7:5000/api/get/all/feeds/user`;
 
-    console.log("Fetching posts from:", endpoint);
+        console.log("Fetching posts from:", endpoint);
 
-    // Axios GET with token
-    const res = await axios.get(endpoint, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+        const res = await axios.get(endpoint, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+       
+        
 
-    console.log("Response:", res.data);
+        const feeds = catId ? res.data?.category?.feeds ?? [] : res.data?.feeds ?? [];
+         console.log("data",res.data)
+        if (!Array.isArray(feeds)) {
+          console.warn("No feeds found");
+          setPosts([]);
+          return;
+        }
 
-    // Extract feeds
-    const feeds = catId ? res.data?.category?.feeds ?? [] : res.data?.feeds ?? [];
+        const mapped: Post[] = feeds
+          .map((item: any) => ({
+            _id: item.feedId || item._id,
+            creatorUsername: item.userName,
+            creatorAvatar: item.profileAvatar !== "Unknown" ? item.profileAvatar : null,
+            timeAgo: item.timeAgo,
+            contentUrl: item.contentUrl?.startsWith("http")
+              ? item.contentUrl
+              : `http://192.168.1.7:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
+            caption: item.caption || "",
+            tags: item.tags || [],
+            background: item.background || "#fff",
+            commentsCount: item.commentsCount || 0,
+            likesCount: item.likesCount || 0,
+            type: item.type,
+            accountId: item.createdByAccount,
+            isLiked: !!item.isLiked,
+            isSaved: !!item.isSaved,
+            isDisliked: !!item.isDisliked || false, // Adjust based on backend response
+            dislikeCount: item.dislikeCount || 0, // Add if backend supports it; otherwise, start at 0
+          }))
+          .filter((item) => item.type === "image");
 
-    if (!Array.isArray(feeds)) {
-      console.warn("No feeds found");
-      setPosts([]);
-      return;
-    }
-
-    // Map feeds to Post[]
-    const mapped: Post[] = feeds
-      .map((item: any) => ({
-        _id: item.feedId || item._id,
-        creatorUsername: item.userName,
-        creatorAvatar: item.profileAvatar !== "Unknown" ? item.profileAvatar : null,
-        timeAgo: item.timeAgo,
-        contentUrl: item.contentUrl?.startsWith("http")
-          ? item.contentUrl
-          : `http://192.168.1.7:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
-        caption: item.caption || "",
-        tags: item.tags || [],
-        background: item.background || "#fff",
-        commentsCount: item.commentsCount || 0,
-        likesCount: item.likesCount || 0,
-        type: item.type,
-        accountId: item.createdByAccount,
-        isLiked: !!item.isLiked,
-        isSaved: !!item.isSaved,
-      }))
-      .filter((item) => item.type === "image");
-
-    setPosts(mapped);
-  } catch (err: any) {
-    console.error("Error fetching posts:", err.response?.data || err.message);
-    setPosts([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+        setPosts(mapped);
+      } catch (err: any) {
+        console.error("Error fetching posts:", err.response?.data || err.message);
+        setPosts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
 
     // --------------------------- View Count ----------------------------
@@ -202,6 +303,22 @@ const fetchPosts = async (catId: string | null = null) => {
       boxRefs.current[id] = { y, height };
     };
 
+
+
+    
+    // --------------------------- Dislike Update Handler ----------------------------
+
+    const handleDislikeUpdate = (postId: string, newIsDisliked: boolean, newDislikeCount: number) => {
+      setPosts((prevPosts) =>
+        prevPosts.map((p) =>
+          p._id === postId
+            ? { ...p, isDisliked: newIsDisliked, dislikeCount: newDislikeCount }
+            : p
+        )
+      );
+    };
+
+
     // --------------------------- Lifecycle ----------------------------
 
     useEffect(() => {
@@ -247,8 +364,11 @@ const fetchPosts = async (catId: string | null = null) => {
 
     if (loading || refreshingTop) {
       return (
-        <View style={{ height: windowHeight, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color="#000" />
+        <View style={styles.skeletonContainer}>
+          {/* Display multiple skeleton cards to mimic a list */}
+          {[...Array(3)].map((_, index) => (
+            <SkeletonPostCard key={index} />
+          ))}
         </View>
       );
     }
@@ -256,19 +376,15 @@ const fetchPosts = async (catId: string | null = null) => {
     if (posts.length === 0) {
       return (
         <View style={{ height: windowHeight, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color="#000" />
+          <Text style={{ fontSize: 16, color: "#666", textAlign: "center" }}>
+            No feeds available
+          </Text>
         </View>
       );
     }
 
     return (
       <View>
-        {refreshingTop && (
-          <View style={{ paddingVertical: 20, justifyContent: "center", alignItems: "center" }}>
-            <ActivityIndicator size="small" color="#000" />
-          </View>
-        )}
-
         {posts.map((post) => (
           <View
             key={post._id}
@@ -297,6 +413,18 @@ const fetchPosts = async (catId: string | null = null) => {
               accountId={post.accountId}
               isLiked={post.isLiked}
               isSaved={post.isSaved}
+              isDisliked={post.isDisliked || false} // Pass initial isDisliked state
+              dislikeCount={post.dislikeCount || 0} // Pass initial dislike count
+              onDislikeUpdate={(newIsDisliked, newDislikeCount) =>
+              handleDislikeUpdate(post._id, newIsDisliked, newDislikeCount)
+              }
+              onLikeUpdate={(newIsLiked, newLikeCount) =>
+                setPosts((prevPosts) =>
+                  prevPosts.map((p) =>
+                    p._id === post._id ? { ...p, isLiked: newIsLiked, likesCount: newLikeCount } : p
+                  )
+                )
+              }
             />
           </View>
         ))}
@@ -304,5 +432,75 @@ const fetchPosts = async (catId: string | null = null) => {
     );
   }
 );
+
+// --------------------------- Styles ----------------------------
+
+const styles = StyleSheet.create({
+  skeletonContainer: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  skeletonCard: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    marginHorizontal: -15,
+    paddingVertical: 5,
+    paddingHorizontal: 15,
+  },
+  skeletonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 5,
+    paddingRight: 5,
+  },
+  skeletonAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#e0e0e0",
+  },
+  skeletonTextContainer: {
+    marginLeft: 10,
+    flex: 1,
+  },
+  skeletonText: {
+    height: 12,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 4,
+    marginBottom: 10,
+  },
+  // skeletonMoreIcon: {
+  //   width: 18,
+  //   height: 18,
+  //   backgroundColor: "#e0e0e0",
+  //   borderRadius: 4,
+  //   margin: 10,
+  // },
+  skeletonImage: {
+    width: "100%",
+    height: Dimensions.get("window").width * 0.96, // Matches PostCard's image height
+    backgroundColor: "#e0e0e0",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  skeletonFooter: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingRight: 5,
+  },
+  skeletonActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  // skeletonActionButton: {
+  //   width: 28,
+  //   height: 28,
+  //   backgroundColor: "#e0e0e0",
+  //   borderRadius: 14,
+  // },
+});
 
 export default PostList;

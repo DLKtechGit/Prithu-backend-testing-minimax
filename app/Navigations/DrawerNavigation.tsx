@@ -18,6 +18,7 @@ const DrawerNavigation = () => {
                 initialRouteName='BottomNavigation'
                 screenOptions={{
                     headerShown: false,
+                    swipeEnabled: false,
                     drawerStyle:{
                         backgroundColor: colors.card,
                         borderTopRightRadius:30,

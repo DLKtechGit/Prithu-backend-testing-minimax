@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -6,16 +6,57 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
-  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // <-- add this
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get("window");
 const ITEM_PER_ROW = 4;
 const SPACING = 6;
 const itemWidth =
   ((width - SPACING * (ITEM_PER_ROW + 1)) / ITEM_PER_ROW) * 0.85;
+
+// --------------------------- Skeleton Loader Component ----------------------------
+
+const SkeletonCategoryItem = () => {
+  const shimmer = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmer, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [shimmer]);
+
+  const shimmerOpacity = shimmer.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.8, 0.3],
+  });
+
+  return (
+    <View style={[styles.gradient, { width: itemWidth }]}>
+      <Animated.View
+        style={[
+          styles.item,
+          { opacity: shimmerOpacity }
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.skeletonText,
+            { opacity: shimmerOpacity }
+          ]}
+        />
+      </Animated.View>
+    </View>
+  );
+};
+
+// --------------------------- Component ----------------------------
 
 const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSelectCategory }) => {
   const [categories, setCategories] = useState<any[]>([]);
@@ -24,14 +65,13 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // get token from AsyncStorage
         const token = await AsyncStorage.getItem("userToken");
 
         const res = await fetch("http://192.168.1.7:5000/api/user/get/content/catagories", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "", // send token here
+            Authorization: token ? `Bearer ${token}` : "",
           },
         });
 
@@ -57,7 +97,16 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
   return (
     <View style={styles.container}>
       {loading ? (
-        <ActivityIndicator size="small" color="green" />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Display multiple skeleton items to mimic category list */}
+          {[...Array(ITEM_PER_ROW)].map((_, index) => (
+            <SkeletonCategoryItem key={index} />
+          ))}
+        </ScrollView>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {categories.map((cat, id) => (
@@ -79,7 +128,7 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
   );
 };
 
-export default Categories;
+// --------------------------- Styles ----------------------------
 
 const styles = StyleSheet.create({
   container: {
@@ -91,7 +140,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   gradient: {
     borderRadius: 12,
@@ -110,9 +159,17 @@ const styles = StyleSheet.create({
     color: "#333",
     fontWeight: "500",
   },
+  skeletonText: {
+    height: 20,
+    width: "150%",
+     backgroundColor: "#e0e0e0",
+    borderRadius: 4,
+  },
   emptyText: {
     fontSize: 14,
     color: "#666",
     fontStyle: "italic",
   },
 });
+
+export default Categories;

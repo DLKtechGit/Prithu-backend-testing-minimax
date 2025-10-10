@@ -85,6 +85,8 @@ export const FONTS = {
 }
  
 export const IMAGES = {
+    
+    dislike:require('../assets/images/icons/dislike.png'),
     thumbsUp:require('../assets/images/icons/thumbs-up.png'),
     thumbsDown:require('../assets/images/icons/thumbs-down.png'),
     post:require('../assets/images/icons/post.png'),

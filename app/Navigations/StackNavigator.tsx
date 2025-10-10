@@ -109,6 +109,7 @@ import RoleScreen from '../screens/auth/RoleSelection';
 import HiddenPosts from '../screens/settings/Feed/HiddenPosts';
 import NotInterestedCategories from '../screens/settings/Feed/NotInterestedCategories';
 import SubscriptionDetails from '../screens/settings/Subscription/SubscriptionDetails';
+import SubscriptionPaymentScreen from '../screens/settings/Subscription/SubscriptionPaymentScreen';
  
 // import BottomSheetComments from '../components/bottomsheet/BottomSheetComments';
 // import { View } from 'react-native-reanimated/lib/typescript/Animated';
@@ -265,7 +266,7 @@ const StackNavigator = () => {
                 <Stack.Screen name='HiddenPosts' component={HiddenPosts} />
                 <Stack.Screen name='NotInterestedCategories' component={NotInterestedCategories}/>
                 <Stack.Screen name='SubscriptionDetails' component={SubscriptionDetails}/>
-           
+                <Stack.Screen name='SubscriptionPaymentScreen' component={SubscriptionPaymentScreen}/>
             </Stack.Navigator>
         </SafeAreaView>
     )

@@ -448,10 +448,6 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
           navigation.navigate('Subcribe');
         }
       } catch (error) {
-        console.log('Error occurred, navigating to Subcribe');
-        setPopupMessage('oops!');
-        setPopupSubtitle('Next time we will visit.');
-        setShowPopup(true);
         navigation.navigate('Subcribe');
       }
     } else {

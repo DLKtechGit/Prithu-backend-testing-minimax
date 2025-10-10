@@ -136,4 +136,5 @@ export type RootStackParamList = {
     HiddenPosts: undefined;
     NotInterestedCategories: undefined;
     SubscriptionDetails: undefined;
+    SubscriptionPaymentScreen: undefined;
 };

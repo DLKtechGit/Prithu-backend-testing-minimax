@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, Platform, TouchableOpacity, View, Dimensions, ActivityIndicator } from 'react-native';
+import { Image, Platform, TouchableOpacity, View, Dimensions, ActivityIndicator,Animated } from 'react-native';
 import { COLORS, SIZES, IMAGES } from '../constants/theme';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +14,46 @@ type Props = {
   descriptors: any,
   postListRef: any;
 };
+
+
+
+
+// --------------------------- Skeleton Loader Component ----------------------------
+
+const SkeletonProfileIcon = () => {
+  const shimmer = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(shimmer, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [shimmer]);
+
+  const shimmerOpacity = shimmer.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 0.8, 0.3],
+  });
+
+  return (
+    <Animated.View
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: 50,
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+        backgroundColor: '#e0e0e0',
+        opacity: shimmerOpacity,
+      }}
+    />
+  );
+};
+
+// --------------------------- Component ----------------------------
 
 const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
   const theme = useTheme();
