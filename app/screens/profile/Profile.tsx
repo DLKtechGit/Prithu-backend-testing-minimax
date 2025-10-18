@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, ImageBackground, TouchableOpacity, Animated, Dimensions, Share, Alert, SafeAreaView,ActivityIndicator } from 'react-native';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
@@ -36,7 +34,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}`;
   };
 
 
@@ -100,7 +98,7 @@ const SkeletonAvatar = () => {
       return;
     }
 
-    const res = await fetch('http://192.168.1.7:5000/api/user/following/data', {
+    const res = await fetch('http://192.168.1.42:5000/api/user/following/data', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${userToken}`,
@@ -130,20 +128,20 @@ const SkeletonAvatar = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.42:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
       });
       const data = await res.json();
-   
+       console.log("data",data)
 
       if (res.ok && data.profile) {
         const profileData = data.profile;
         setProfile({
           displayName: profileData.displayName || '',
-          username: data.userName || '',
+          username: profileData.userName || '',
           bio: profileData.bio || '',
           balance: profileData.balance || '',
           profileAvatar: profileData.profileAvatar,
@@ -172,7 +170,7 @@ useEffect(() => {
           return;
         }
 
-        const response = await fetch('http://192.168.1.7:5000/api/creator/getall/feeds', {
+        const response = await fetch('http://192.168.1.42:5000/api/creator/getall/feeds', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -259,7 +257,7 @@ useEffect(() => {
         return;
       }
 
-      const profileUrl = `http://192.168.1.7:5000/profile/${userId}`;
+      const profileUrl = `http://192.168.1.42:5000/profile/${userId}`;
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,
       });
@@ -292,7 +290,7 @@ useEffect(() => {
       }
 
       // Check subscription status
-      const res = await fetch('http://192.168.1.7:5000/api/user/user/subscriptions', {
+      const res = await fetch('http://192.168.1.42:5000/api/user/user/subscriptions', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -443,7 +441,7 @@ useEffect(() => {
             />
           </View>
         )}
-        {activeAccountType === "Personal" && (
+    
           <View style={{ marginHorizontal: 15, marginTop: 20 }}>
             <Text style={{ ...FONTS.h6, ...FONTS.fontMedium, color: colors.title, fontSize: 18, fontWeight: '600' }}>Account Overview</Text>
             <View style={{ marginTop: 10, backgroundColor: colors.card, borderRadius: 15, padding: 10 }}>
@@ -480,7 +478,7 @@ useEffect(() => {
               </TouchableOpacity>
             </View>
           </View>
-        )}
+       
 
         {activeAccountType === "Creator" && (
           <View style={{ marginHorizontal: 15 }}>

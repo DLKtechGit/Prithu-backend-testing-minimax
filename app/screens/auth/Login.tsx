@@ -10,6 +10,7 @@ import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {connectSocket} from '../../../webSocket/webScoket';
 import {startHeartbeat} from "../../../webSocket/heartBeat";
+import CategoriesScreen from './CategoriesScreen';
  
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
  
@@ -38,7 +39,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
   setLoading(true);
  
   try {
-    const res = await fetch("http://192.168.1.7:5000/api/auth/user/login", {
+    const res = await fetch("http://192.168.1.42:5000/api/auth/user/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier: email, password })
@@ -51,37 +52,35 @@ const Login = ({ navigation }: LoginScreenProps) => {
  
     if (res.ok) {
       // Save token
-      await AsyncStorage.setItem('userToken', data.accessToken);
+    await AsyncStorage.clear();
+    await AsyncStorage.setItem('userToken', data.accessToken);
     await AsyncStorage.setItem("refreshToken", data.refreshToken);
     await AsyncStorage.setItem("sessionId", data.sessionId);
     await AsyncStorage.setItem("deviceId", data.deviceId);
-      const { appLanguage, feedLanguage, gender } = data;
- 
+    const { appLanguage, feedLanguage, category , gender,  } = data;
+      console.log({ appLanguage, feedLanguage, category , gender,  })
+       
       // ✅ Navigation logic:
-      if (appLanguage === true && feedLanguage === true && gender === true) {
-        // All true → Home
-        navigation.navigate('DrawerNavigation', { screen: 'Home' });
-      }
-      else if (appLanguage === true && feedLanguage !== true) {
-        // Only appLanguage true → FeedLanguageScreen
-        navigation.navigate('FeedScreen');
-      }
-      else if (appLanguage === true && feedLanguage === true && gender !== true) {
-        // App+Feed true but gender not true → Gender
-        navigation.navigate('gender');
-      }
-      else if (appLanguage === false && feedLanguage === false && gender === false) {
-        // All false → LanguageScreen
-        navigation.navigate('LanguageScreen');
-      }
-      else {
-        // Default → LanguageScreen
-        navigation.navigate('LanguageScreen');
-      }
- 
-    } else {
-      alert(data.message || "Invalid email or password");
-    }
+// ✅ Sequential onboarding logic
+  if (!appLanguage) {
+    navigation.navigate('LanguageScreen');
+  } 
+  else if (!feedLanguage) {
+    navigation.navigate('FeedScreen');
+  } 
+  else if (!category) {
+    navigation.navigate('CategoriesScreen');
+  } 
+  else if (!gender) {
+    navigation.navigate('gender'); // make sure this matches your stack name
+  } 
+  else {
+    navigation.navigate('DrawerNavigation', { screen: 'Home' });
+  }
+
+} else {
+  alert(data.error || data.message || "Invalid email or password");
+}
   } catch (error) {
     console.error("Login error:", error);
     alert("Something went wrong, try again later");

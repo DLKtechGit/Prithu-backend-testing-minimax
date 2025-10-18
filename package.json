@@ -23,6 +23,7 @@
     "@react-navigation/drawer": "^7.3.9",
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/stack": "^7.2.10",
+    "@vibrant/core": "^4.0.0",
     "axios": "^1.12.2",
     "expo": "~52.0.46",
     "expo-av": "^15.0.2",
@@ -42,6 +43,7 @@
     "lucide-react": "^0.541.0",
     "lucide-react-native": "^0.542.0",
     "native": "^0.3.3",
+    "node-vibrant": "^4.0.3",
     "react": "^18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
@@ -50,6 +52,7 @@
     "react-native-chart-kit": "^6.12.0",
     "react-native-collapsible": "^1.6.2",
     "react-native-gesture-handler": "~2.20.2",
+    "react-native-image-colors": "^2.5.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-material-ripple": "^0.9.1",
@@ -73,7 +76,8 @@
     "react-native-view-shot": "^4.0.3",
     "react-native-web": "~0.19.13",
     "shimmer": "^1.2.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "tinycolor2": "^1.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

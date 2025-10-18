@@ -42,7 +42,7 @@ interface Post {
   isLiked: boolean;
   isSaved: boolean;
    isDisliked?: boolean; // Add isDisliked to the Post interface
-  dislikeCount?: number; // Add dislikeCount (optional, if backend supports it)
+  dislikesCount?: number; // Add dislikeCount (optional, if backend supports it)
 }
 
 interface PostListProps {
@@ -200,8 +200,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         }
 
         const endpoint = catId
-          ? `http://192.168.1.7:5000/api/all/catagories/${catId}`
-          : `http://192.168.1.7:5000/api/get/all/feeds/user`;
+          ? `http://192.168.1.42:5000/api/all/catagories/${catId}`
+          : `http://192.168.1.42:5000/api/get/all/feeds/user`;
 
         console.log("Fetching posts from:", endpoint);
 
@@ -211,11 +211,10 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             "Content-Type": "application/json",
           },
         });
-       
-        
+           
+        // console.log("data",res.data)
 
         const feeds = catId ? res.data?.category?.feeds ?? [] : res.data?.feeds ?? [];
-         console.log("data",res.data)
         if (!Array.isArray(feeds)) {
           console.warn("No feeds found");
           setPosts([]);
@@ -230,7 +229,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             timeAgo: item.timeAgo,
             contentUrl: item.contentUrl?.startsWith("http")
               ? item.contentUrl
-              : `http://192.168.1.7:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
+              : `http://192.168.1.42:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
             caption: item.caption || "",
             tags: item.tags || [],
             background: item.background || "#fff",
@@ -240,8 +239,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             accountId: item.createdByAccount,
             isLiked: !!item.isLiked,
             isSaved: !!item.isSaved,
-            isDisliked: !!item.isDisliked || false, // Adjust based on backend response
-            dislikeCount: item.dislikeCount || 0, // Add if backend supports it; otherwise, start at 0
+            isDisliked: !!item.isDisliked || false, 
+            dislikeCount: item.dislikesCount || 0,
           }))
           .filter((item) => item.type === "image");
 
@@ -265,7 +264,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         if (!token) return;
 
         await axios.post(
-          "http://192.168.1.7:5000/api/user/image/view/count",
+          "http://192.168.1.42:5000/api/user/image/view/count",
           { feedId },
           { headers: { Authorization: `Bearer ${token}` } }
         );

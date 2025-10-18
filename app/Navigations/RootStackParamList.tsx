@@ -137,4 +137,6 @@ export type RootStackParamList = {
     NotInterestedCategories: undefined;
     SubscriptionDetails: undefined;
     SubscriptionPaymentScreen: undefined;
+    OtpMsg: undefined;
+    CategoriesScreen: undefined;
 };

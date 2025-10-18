@@ -172,7 +172,7 @@
 //         }
 
 //         // Check subscription status
-//         const res = await fetch('http://192.168.1.7:5000/api/user/user/subscriptions', {
+//         const res = await fetch('http://192.168.1.42:5000/api/user/user/subscriptions', {
 //           method: 'GET',
 //           headers: {
 //             'Content-Type': 'application/json',
@@ -286,12 +286,12 @@ import { StyleSheet } from 'react-native';
 type SettingsScreenProps = StackScreenProps<RootStackParamList, 'Settings'>;
 
 const SettingData = [
-  {
-    id: "section1",
-    image: IMAGES.user,
-    text: "Account Type",
-    navigate: 'AccountType'
-  },
+  // {
+  //   id: "section1",
+  //   image: IMAGES.user,
+  //   text: "Account Type",
+  //   navigate: 'AccountType'
+  // },
   {
     id: "1",
     image: IMAGES.bell,
@@ -415,7 +415,7 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
         }
 
         // Check subscription status
-        const res = await fetch('http://192.168.1.7:5000/api/user/user/subscriptions', {
+        const res = await fetch('http://192.168.1.42:5000/api/user/user/subscriptions', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -488,6 +488,7 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
           "userId",
           "AppLanguage",
           "FeedLanguage",
+          "hasInterestedCategory",
         ]);
 
         // Navigate to login

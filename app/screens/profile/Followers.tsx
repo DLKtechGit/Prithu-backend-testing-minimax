@@ -108,7 +108,7 @@ const Followers = () => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path || path === 'Unavailable') return IMAGES.profile;
-    return { uri: `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}` };
+    return { uri: `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}` };
   };
 
   // Fetch active account type
@@ -137,10 +137,10 @@ const Followers = () => {
 
         let endpoint = '';
         if (activeAccountType === 'Creator') {
-          endpoint = 'http://192.168.1.7:5000/api/creator/get/followers';
+          endpoint = 'http://192.168.1.42:5000/api/creator/get/followers';
         } else {
           console.log("usercall")
-          endpoint = 'http://192.168.1.7:5000/api/user/following/data';
+          endpoint = 'http://192.168.1.42:5000/api/user/following/data';
         }
 
         const response = await fetch(endpoint, {
@@ -623,7 +623,7 @@ export default Followers;
 
 //   const buildUrl = (path: string | undefined | null) => {
 //     if (!path || path === 'Unavailable') return IMAGES.profile;
-//     return { uri: `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}` };
+//     return { uri: `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}` };
 //   };
 
 //   // Fetch active account type
@@ -650,7 +650,7 @@ export default Followers;
 //           return;
 //         }
 
-//         const response = await fetch('http://192.168.1.7:5000/api/creator/get/followers', {
+//         const response = await fetch('http://192.168.1.42:5000/api/creator/get/followers', {
 //           method: 'GET',
 //           headers: {
 //             Authorization: `Bearer ${token}`,

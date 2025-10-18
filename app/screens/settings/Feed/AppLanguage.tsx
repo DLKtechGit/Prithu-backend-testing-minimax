@@ -1,4 +1,3 @@
-// AppLanguage.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -8,6 +7,8 @@ import {
   FlatList,
   Image,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -28,46 +29,96 @@ const firstLanguages: Language[] = [
   { code: "te", name: "Telugu", flag: "http://flagcdn.com/w40/in.png" },
 ];
 
-// ✅ Full Language List (can extend later)
+// ✅ Full Language List
 const allLanguages: Language[] = [
   ...firstLanguages,
- { code: "kn", name: "Kannada", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "kn", name: "Kannada", flag: "http://flagcdn.com/w40/in.png" },
   { code: "mr", name: "Marathi", flag: "http://flagcdn.com/w40/in.png" },
   { code: "es", name: "Spanish", flag: "http://flagcdn.com/w40/es.png" },
   { code: "de", name: "German", flag: "http://flagcdn.com/w40/de.png" },
   { code: "it", name: "Italian", flag: "http://flagcdn.com/w40/it.png" },
- 
 ];
 
 const AppLanguage: React.FC = () => {
   const navigation = useNavigation();
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [recentLang, setRecentLang] = useState<Language | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // 🔹 Load stored language from AsyncStorage
+  // 🔹 Fetch language from backend first
   useEffect(() => {
-    const loadLanguage = async () => {
-      const savedLang = await AsyncStorage.getItem("AppLanguage");
-      if (savedLang) {
-        const langObj = allLanguages.find((l) => l.code === savedLang);
-        if (langObj) {
-          setRecentLang(langObj);
-          setSelectedLang(langObj.code);
+    const fetchAppLanguage = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken"); // 🔐 assuming user token saved
+        const res = await fetch("http://192.168.1.42:5000/api/user/get/app/language", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (res.ok && data?.data?.appLanguageCode) {
+          const backendCode = data.data.appLanguageCode;
+          const langObj = allLanguages.find((l) => l.code === backendCode);
+          if (langObj) {
+            setRecentLang(langObj);
+            setSelectedLang(langObj.code);
+            await AsyncStorage.setItem("AppLanguage", langObj.code); // 🔸 Keep local sync
+          }
+        } else {
+          // fallback: load from AsyncStorage if backend doesn’t have one
+          const savedLang = await AsyncStorage.getItem("AppLanguage");
+          if (savedLang) {
+            const langObj = allLanguages.find((l) => l.code === savedLang);
+            if (langObj) {
+              setRecentLang(langObj);
+              setSelectedLang(langObj.code);
+            }
+          }
         }
+      } catch (error) {
+        console.log("Error fetching app language:", error);
+        Alert.alert("Error", "Failed to load app language.");
+      } finally {
+        setLoading(false);
       }
     };
-    loadLanguage();
+
+    fetchAppLanguage();
   }, []);
 
   // 🔹 Handle language selection
   const handleSelectLanguage = async (lang: Language) => {
-    setSelectedLang(lang.code);
-    setRecentLang(lang);
-    await AsyncStorage.setItem("AppLanguage", lang.code); // store in asyncstorage
-    console.log("Selected Language:", lang.name);
+    try {
+      setSelectedLang(lang.code);
+      setRecentLang(lang);
+      await AsyncStorage.setItem("AppLanguage", lang.code);
+
+      const token = await AsyncStorage.getItem("userToken");
+      // ✅ Send update to backend
+      await fetch("http://192.168.1.42:5000/api/user/app/language", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          appLanguageCode: lang.code,
+          appNativeCode: lang.name,
+          appLanguage: lang.code,  
+        }),
+      });
+
+      console.log("Selected Language:", lang.name);
+    } catch (err) {
+      console.log("Error saving language:", err);
+      Alert.alert("Error", "Could not update language. Please try again.");
+    }
   };
 
-  // 🔹 Render each language item
+  // 🔹 Render language item
   const renderLanguageItem = ({ item }: { item: Language }) => (
     <TouchableOpacity
       style={styles.languageItem}
@@ -81,6 +132,14 @@ const AppLanguage: React.FC = () => {
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#6C63FF" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -89,7 +148,6 @@ const AppLanguage: React.FC = () => {
         <Text style={styles.headerTitle}>App Language</Text>
       </View>
 
-      {/* First time: show only 5 languages */}
       {!recentLang ? (
         <>
           <Text style={styles.sectionTitle}>Choose Your Language</Text>
@@ -101,13 +159,9 @@ const AppLanguage: React.FC = () => {
         </>
       ) : (
         <>
-          {/* Recent Language */}
-         <Text style={styles.sectionTitle}>Recent Language</Text>
-         <View>
-             {recentLang && renderLanguageItem({ item: recentLang })}
-         </View>
+          <Text style={styles.sectionTitle}>Recent Language</Text>
+          <View>{recentLang && renderLanguageItem({ item: recentLang })}</View>
 
-          {/* All Languages */}
           <Text style={styles.sectionTitle}>All Languages</Text>
           <FlatList
             data={allLanguages}
@@ -145,15 +199,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
   },
- languageItem: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingVertical: 16,   // 🔹 increased vertical padding
-  paddingHorizontal: 10, // 🔹 added horizontal padding
-  borderBottomWidth: 0.5,
-  borderBottomColor: "#eee",
-  borderRadius: 8,       // 🔹 smoother edges
-},
+  languageItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+    borderRadius: 8,
+  },
   flag: {
     width: 28,
     height: 20,
@@ -163,5 +217,10 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 16,
     color: "#222",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

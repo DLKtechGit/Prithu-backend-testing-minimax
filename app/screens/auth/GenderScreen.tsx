@@ -26,7 +26,7 @@ const GenderScreen: React.FC = () => {
       formData.append("gender", gender!);
  
       const res = await fetch(
-        "http://192.168.1.7:5000/api/user/profile/detail/update",
+        "http://192.168.1.42:5000/api/user/profile/detail/update",
         {
           method: "POST",
           headers: {
@@ -39,7 +39,7 @@ const GenderScreen: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         alert("Gender updated successfully!");
-        navigation.navigate("role");
+        navigation.navigate('DrawerNavigation', { screen: 'Home' });
       } else {
         alert(data.message || "Update failed");
       }

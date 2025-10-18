@@ -7,6 +7,7 @@ import {
   TextInput,
   ScrollView,
   Animated,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -42,10 +43,14 @@ const EditProfile = () => {
   const [popupMessage, setPopupMessage] = useState(''); // Message for the popup
   const [popupSubtitle, setPopupSubtitle] = useState(''); // Subtitle for the popup
   const fadeAnim = useState(new Animated.Value(0))[0]; // Animation value for fade and position
+  const [showPhoneNumber, setShowPhoneNumber] = useState(true);
+  const [showBio, setShowBio] = useState(true);
+   const [showName, setShowName] = useState(true);
+
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}`;
   };
 
   const formatDate = (date) => {
@@ -77,7 +82,7 @@ const EditProfile = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.7:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.42:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -95,7 +100,8 @@ const EditProfile = () => {
         setPhoneNumber(profile.phoneNumber || '');
         setMaritalStatus(profile.maritalStatus === true || profile.maritalStatus === 'true');
         setLanguage(profile.language || 'en');
-
+         console.log("profile",profile.visibility)
+       
         if (profile.dateOfBirth) {
           const birthDate = new Date(profile.dateOfBirth);
           setDob(birthDate);
@@ -128,9 +134,79 @@ const EditProfile = () => {
     }
   };
 
+  /* -------------------------- FETCH VISIBILITY -------------------------- */
+  const fetchVisibility = async () => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.log('No token found');
+      return;
+    }
+
+    const res = await fetch('http://192.168.1.42:5000/api/profile/visibility', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const data = await res.json();
+    console.log("Visibility API response:", data);
+
+    if (res.ok && data.success && data.visibility) {
+      setShowBio(data.visibility.bio === true || data.visibility.bio === 'true');
+      setShowPhoneNumber(data.visibility.phoneNumber === true || data.visibility.phoneNumber === 'true');
+      setShowName(data.visibility.displayName === true || data.visibility.displayName === 'true');
+    } else {
+      console.log('Failed to load visibility settings:', data.message);
+    }
+  } catch (e) {
+    console.error('fetchVisibility error:', e);
+  }
+};
+
+
   useEffect(() => {
     fetchProfileDetail();
+    fetchVisibility();
   }, []);
+
+
+  // ✅ Add this helper function to update toggle visibility to backend
+ const handleToggleVisibility = async (fieldName, value) => {
+  try {
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) return console.log('No token found');
+
+    const res = await fetch('http://192.168.1.42:5000/api/profile/toggle-visibility', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        field: fieldName, // "bio" or "phoneNumber"
+        value: value,      // true or false
+      }),
+    });
+
+  const data = await res.json();
+      if (!res.ok) {
+        console.log('Toggle update failed:', data.message);
+        // Revert UI on failure
+        if (fieldName === 'bio') setShowBio(!value);
+        if (fieldName === 'phoneNumber') setShowPhoneNumber(!value);
+        if(fieldName === 'displayName') setShowName(!value);
+      } else {
+        console.log('Visibility updated:', data);
+      }
+    } catch (err) {
+      console.error('Error updating visibility:', err);
+      // Revert UI on error
+      if (fieldName === 'bio') setShowBio(!value);
+      if (fieldName === 'phoneNumber') setShowPhoneNumber(!value);
+      if(fieldName === 'displayName') setShowName(!value);
+    }
+  };
+
 
   const handleImageSelect = async () => {
     try {
@@ -165,7 +241,7 @@ const EditProfile = () => {
       console.log("userId", userId);
       console.log("accountId", accountId);
 
-    if (!token) {
+      if (!token) {
         setPopupMessage('Error!');
         setPopupSubtitle('User not authenticated, please login again');
         setShowPopup(true);
@@ -189,6 +265,13 @@ const EditProfile = () => {
         formData.append('maritalDate', maritalDate.toISOString());
       }
 
+      // Append visibility settings
+      formData.append('visibility', JSON.stringify({
+        bio: showBio,
+        phoneNumber: showPhoneNumber,
+        Name: showName,
+      }));
+
       if (imageUrl) {
         const filename = imageUrl.split('/').pop();
         const fileType = filename?.split('.').pop();
@@ -202,7 +285,7 @@ const EditProfile = () => {
       // Debug: Log FormData entries
       console.log("FormData entries:", [...formData.entries()]);
 
-      const res = await fetch('http://192.168.1.7:5000/api/user/profile/detail/update', {
+      const res = await fetch('http://192.168.1.42:5000/api/user/profile/detail/update', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -210,7 +293,7 @@ const EditProfile = () => {
         body: formData,
       });
 
-    const data = await res.json();
+      const data = await res.json();
       if (res.ok) {
         setPopupMessage('Success');
         setPopupSubtitle('Profile updated successfully!');
@@ -230,33 +313,33 @@ const EditProfile = () => {
     }
   };
 
-   const checkUsernameAvailability = async (name: string) => {
-        if (!name.trim()) {
-            setUsernameError('Please enter a username');
-            return;
-        }
+  const checkUsernameAvailability = async (name: string) => {
+    if (!name.trim()) {
+      setUsernameError('Please enter a username');
+      return;
+    }
 
-        try {
-            console.log('Checking username:', name);
-            const res = await fetch(
-                `http://192.168.1.7:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
-                { method: 'GET' }
-            );
+    try {
+      console.log('Checking username:', name);
+      const res = await fetch(
+        `http://192.168.1.42:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
+        { method: 'GET' }
+      );
 
-            const data = await res.json();
-            console.log('API Response:', data);
+      const data = await res.json();
+      console.log('API Response:', data);
 
-            if (res.ok && data.available) {
-                setUsernameError('');
-            } else {
-                setUsernameError(data.message || 'Username is already taken ');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            setUsernameError('Error checking username');
-        }
-    };
-    useEffect(() => {
+      if (res.ok && data.available) {
+        setUsernameError('');
+      } else {
+        setUsernameError(data.message || 'Username is already taken ');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setUsernameError('Error checking username');
+    }
+  };
+  useEffect(() => {
     if (showPopup) {
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -348,15 +431,31 @@ const EditProfile = () => {
           <View
             style={[
               GlobalStyleSheet.inputBox,
-              { borderColor: colors.border, borderWidth: 1, paddingLeft: 20 },
+              { borderColor: colors.border, 
+                borderWidth: 1,
+                 paddingLeft: 20 ,
+                  flexDirection: 'row', // row layout
+                alignItems: 'center', // vertically center 
+                paddingHorizontal: 15,
+                justifyContent: 'space-between',
+                },
+                
             ]}
           >
             <TextInput
-              style={[GlobalStyleSheet.input, { color: colors.title }]}
+              style={[GlobalStyleSheet.input, { color: colors.title,flex: 1 }]}
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Enter your name"
               placeholderTextColor={colors.placeholder}
+            />
+              <Switch
+              value={showName}
+              onValueChange={(val) => {
+                setShowName(val);
+                handleToggleVisibility('displayName', val); //  sync with backend
+              }}
+              thumbColor={showName ? COLORS.primary : '#ccc'}
             />
           </View>
 
@@ -381,11 +480,11 @@ const EditProfile = () => {
               }}
             />
           </View>
-              {usernameError ? (
-                                          <Text style={{ ...FONTS.fontSm, color: COLORS.danger, marginTop: -10, marginLeft: 10, marginBottom: 15 }}>
-                                              {usernameError}
-                                          </Text>
-                                      ) : null}
+          {usernameError ? (
+            <Text style={{ ...FONTS.fontSm, color: COLORS.danger, marginTop: -10, marginLeft: 10, marginBottom: 15 }}>
+              {usernameError}
+            </Text>
+          ) : null}
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Bio
@@ -393,7 +492,16 @@ const EditProfile = () => {
           <View
             style={[
               GlobalStyleSheet.inputBox,
-              { borderColor: colors.border, borderWidth: 1, paddingLeft: 20, height: 'auto' },
+              {
+                borderColor: colors.border,
+                borderWidth: 1,
+                paddingLeft: 20,
+                height: 'auto',
+                flexDirection: 'row', // row layout
+                alignItems: 'center', // vertically center 
+                paddingHorizontal: 15,
+                justifyContent: 'space-between',
+              },
             ]}
           >
             <TextInput
@@ -401,13 +509,29 @@ const EditProfile = () => {
               numberOfLines={5}
               style={[
                 GlobalStyleSheet.input,
-                { color: colors.title, height: 'auto', paddingTop: 10, paddingRight: 10 },
+                {
+                  color: colors.title, height: 'auto',
+                  paddingTop: 10,
+                  paddingRight: 10,
+                  flex: 1,
+
+                },
               ]}
               value={bio}
               onChangeText={setBio}
               placeholder="Enter your bio"
               placeholderTextColor={colors.placeholder}
             />
+            <Switch
+              value={showBio}
+              onValueChange={(val) => {
+                setShowBio(val);
+                handleToggleVisibility('bio', val); //  sync with backend
+              }}
+              thumbColor={showBio ? COLORS.primary : '#ccc'}
+            />
+
+
           </View>
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
@@ -416,17 +540,39 @@ const EditProfile = () => {
           <View
             style={[
               GlobalStyleSheet.inputBox,
-              { borderColor: colors.border, borderWidth: 1, paddingLeft: 20 },
+              {
+                borderColor: colors.border,
+                borderWidth: 1,
+                paddingLeft: 20,
+                flexDirection: 'row', // row layout
+                alignItems: 'center', // vertically center 
+                paddingHorizontal: 15,
+                justifyContent: 'space-between',
+
+              },
             ]}
           >
+            <View>
+
+            </View>
             <TextInput
-              style={[GlobalStyleSheet.input, { color: colors.title }]}
+              style={[GlobalStyleSheet.input, { color: colors.title, flex: 1 }]}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               placeholder="Enter phone number"
               placeholderTextColor={colors.placeholder}
+
             />
+            <Switch
+              value={showPhoneNumber}
+              onValueChange={(val) => {
+                setShowPhoneNumber(val);
+                handleToggleVisibility('phoneNumber', val); //  sync with backend
+              }}
+              thumbColor={showPhoneNumber ? COLORS.primary : '#ccc'}
+            />
+
           </View>
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>

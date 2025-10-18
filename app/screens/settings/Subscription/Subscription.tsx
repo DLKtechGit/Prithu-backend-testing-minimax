@@ -44,7 +44,7 @@
 //   useEffect(() => {
 //     const fetchPlans = async () => {
 //       try {
-//         const response = await axios.get("http://192.168.1.7:5000/api/user/getall/subscriptions");
+//         const response = await axios.get("http://192.168.1.42:5000/api/user/getall/subscriptions");
 //         console.log("Fetch plans response:", response.data.plans);
 //         const plans = response.data.plans.map((plan) => ({
 //           id: plan._id, // Use MongoDB _id
@@ -111,7 +111,7 @@
 //       }
 
 //       const response = await axios.post(
-//         "http://192.168.1.7:5000/api/user/activate/trial/plan",
+//         "http://192.168.1.42:5000/api/user/activate/trial/plan",
 //         {}, // Empty body, assuming userId is from token
 //         {
 //           headers: {
@@ -254,7 +254,7 @@
 
 //             console.log("Sending planId:", planId); // Debug planId
 //             const response = await axios.post(
-//               "http://192.168.1.7:5000/api/user/plan/subscription",
+//               "http://192.168.1.42:5000/api/user/plan/subscription",
 //               {
 //                 planId, // Use the resolved planId
 //                 result: "success",
@@ -568,7 +568,7 @@ const SubscriptionScreen = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await axios.get("http://192.168.1.7:5000/api/user/getall/subscriptions");
+        const response = await axios.get("http://192.168.1.42:5000/api/user/getall/subscriptions");
         console.log("Fetch plans response:", response.data.plans);
         const plans = response.data.plans.map((plan) => ({
           id: plan._id, // Use MongoDB _id
@@ -642,7 +642,7 @@ const SubscriptionScreen = () => {
       }
 
       const response = await axios.post(
-        "http://192.168.1.7:5000/api/user/activate/trial/plan",
+        "http://192.168.1.42:5000/api/user/activate/trial/plan",
         {}, // Empty body, assuming userId is from token
         {
           headers: {

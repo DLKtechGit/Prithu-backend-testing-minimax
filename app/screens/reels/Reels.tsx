@@ -30,7 +30,7 @@ const Reels = () => {
   
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return null;
-    return `http://192.168.1.7:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}`;
   };
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const Reels = () => {
           return;
         }
 
-        const res = await axios.get('http://192.168.1.7:5000/api/get/all/feeds/user', {
+        const res = await axios.get('http://192.168.1.42:5000/api/get/all/feeds/user', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -87,7 +87,7 @@ const Reels = () => {
 
   //     console.log("Recording view for feedId:", feedId, "watchedSeconds:", watchedSeconds, "userId:", userId);
   //     const response = await axios.post(
-  //       'http://192.168.1.7:5000/api/user/watching/videos', // Corrected endpoint URL
+  //       'http://192.168.1.42:5000/api/user/watching/videos', // Corrected endpoint URL
   //       { feedId, userId, watchedSeconds },
   //       { headers: { Authorization: `Bearer ${token}` } }
   //     );

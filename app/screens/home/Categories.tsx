@@ -61,22 +61,24 @@ const SkeletonCategoryItem = () => {
 const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSelectCategory }) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
+   const [selectedCategory, setSelectedCategory] = useState<string | null>("all");
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const token = await AsyncStorage.getItem("userToken");
+        console.log("token:",token);
+        
 
-        const res = await fetch("http://192.168.1.7:5000/api/user/get/content/catagories", {
+        const res = await fetch("http://192.168.1.42:5000/api/user/get/content/catagories", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",
           },
         });
-
+      
         const data = await res.json();
-        console.log(data);
+        console.log("cat",data);
 
         if (Array.isArray(data.categories)) {
           const safeCategories = data.categories.map((cat: any, index: number) => ({
@@ -94,6 +96,13 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
     fetchCategories();
   }, []);
 
+    // --------------------------- Handle Category Selection ----------------------------
+  const handleSelect = (id: string | null) => {
+     // Only visually select
+    setSelectedCategory(id);
+    onSelectCategory(id);
+  };
+
   return (
     <View style={styles.container}>
       {loading ? (
@@ -108,20 +117,93 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
           ))}
         </ScrollView>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {categories.map((cat, id) => (
-            <LinearGradient
-              key={cat._id || id}
-              colors={["yellow", "green"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.gradient, { width: itemWidth }]}
-            >
-              <TouchableOpacity style={styles.item} onPress={() => onSelectCategory(cat._id)}>
-                <Text style={styles.text}>{cat.name}</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          ))}
+        <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}>
+{/* ✅ 'All' Button - Always at the Start */}
+<LinearGradient
+  colors={["#FFD700", "#32CD32"]}
+  start={{ x: 0, y: 0 }}
+  end={{ x: 1, y: 1 }}
+  style={[
+    styles.gradient,
+    {
+      width: itemWidth,
+    },
+  ]}
+>
+  <TouchableOpacity
+    style={[
+      styles.item,
+      selectedCategory === "all"
+        ? { backgroundColor: "transparent" } // full gradient when selected
+        : { backgroundColor: "#fff" }, // white inside with gradient border
+    ]}
+    activeOpacity={1}
+  onPress={() => {
+  setSelectedCategory("all");
+  onSelectCategory(null); // tell PostList to fetch all posts
+}}
+
+  >
+    <Text
+      style={[
+        styles.text,
+        {
+          color: selectedCategory === "all" ? "#fff" : "#333",
+          fontWeight: selectedCategory === "all" ? "600" : "500",
+        },
+      ]}
+    >
+      All
+    </Text>
+  </TouchableOpacity>
+</LinearGradient>
+
+{/* ✅ Other Categories */}
+{categories.map((cat, id) => {
+  const isSelected = selectedCategory === cat._id;
+  return (
+    <LinearGradient
+      key={cat._id || id}
+      colors={["#FFD700", "#32CD32"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[
+        styles.gradient,
+        {
+          width: itemWidth,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={[
+          styles.item,
+          isSelected
+            ? { backgroundColor: "transparent" } // full gradient when selected
+            : { backgroundColor: "#fff" }, // white with border when not selected
+        ]}
+        onPress={() => handleSelect(cat._id)}
+      >
+        <Text
+          style={[
+            styles.text,
+            {
+              color: isSelected ? "#fff" : "#333",
+              fontWeight: isSelected ? "600" : "500",
+            },
+          ]}
+        >
+          {cat.name}
+        </Text>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+})}
+
+
+
         </ScrollView>
       )}
     </View>
@@ -134,13 +216,14 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
     paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    // alignItems: "center",
+    // justifyContent: "center",
   },
   scrollContent: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 4,
+    justifyContent: "flex-start", 
   },
   gradient: {
     borderRadius: 12,
@@ -161,7 +244,7 @@ const styles = StyleSheet.create({
   },
   skeletonText: {
     height: 20,
-    width: "150%",
+    width: "100%",
      backgroundColor: "#e0e0e0",
     borderRadius: 4,
   },

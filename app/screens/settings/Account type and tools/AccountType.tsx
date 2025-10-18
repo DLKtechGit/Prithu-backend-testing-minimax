@@ -14,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const API_BASE_URL = 'http://192.168.1.7:5000/api/account';
+const API_BASE_URL = 'http://192.168.1.42:5000/api/account';
 
 // 🔹 Type definitions
 interface AccountStatusResponse {

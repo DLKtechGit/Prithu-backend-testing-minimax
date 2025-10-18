@@ -1,4 +1,4 @@
-// AppLanguage.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -8,6 +8,8 @@ import {
   FlatList,
   Image,
   SafeAreaView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -31,40 +33,93 @@ const firstLanguages: Language[] = [
 // ✅ Full Language List (can extend later)
 const allLanguages: Language[] = [
   ...firstLanguages,
- { code: "kn", name: "Kannada", flag: "http://flagcdn.com/w40/in.png" },
+  { code: "kn", name: "Kannada", flag: "http://flagcdn.com/w40/in.png" },
   { code: "mr", name: "Marathi", flag: "http://flagcdn.com/w40/in.png" },
   { code: "es", name: "Spanish", flag: "http://flagcdn.com/w40/es.png" },
   { code: "de", name: "German", flag: "http://flagcdn.com/w40/de.png" },
   { code: "it", name: "Italian", flag: "http://flagcdn.com/w40/it.png" },
- 
 ];
 
 const FeedLanguage: React.FC = () => {
   const navigation = useNavigation();
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [recentLang, setRecentLang] = useState<Language | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // 🔹 Load stored language from AsyncStorage
+  // 🔹 Fetch feed language from backend or AsyncStorage
   useEffect(() => {
-    const loadLanguage = async () => {
-      const savedLang = await AsyncStorage.getItem("feedLanguage");
-      if (savedLang) {
-        const langObj = allLanguages.find((l) => l.code === savedLang);
-        if (langObj) {
-          setRecentLang(langObj);
-          setSelectedLang(langObj.code);
+    const loadFeedLanguage = async () => {
+      try {
+        const token = await AsyncStorage.getItem("userToken");
+        const res = await fetch("http://192.168.1.42:5000/api/user/get/feed/language", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data?.data?.feedLanguageCode) {
+          const backendCode = data.data.feedLanguageCode;
+          const langObj = allLanguages.find((l) => l.code === backendCode);
+          if (langObj) {
+            setRecentLang(langObj);
+            setSelectedLang(langObj.code);
+            await AsyncStorage.setItem("feedLanguage", langObj.code); // sync local
+          }
+        } else {
+          // fallback from AsyncStorage
+          const savedLang = await AsyncStorage.getItem("feedLanguage");
+          if (savedLang) {
+            const langObj = allLanguages.find((l) => l.code === savedLang);
+            if (langObj) {
+              setRecentLang(langObj);
+              setSelectedLang(langObj.code);
+            }
+          }
         }
+      } catch (err) {
+        console.log("Error fetching feed language:", err);
+        Alert.alert("Error", "Failed to load feed language.");
+      } finally {
+        setLoading(false);
       }
     };
-    loadLanguage();
+
+    loadFeedLanguage();
   }, []);
 
   // 🔹 Handle language selection
   const handleSelectLanguage = async (lang: Language) => {
-    setSelectedLang(lang.code);
-    setRecentLang(lang);
-    await AsyncStorage.setItem("feedLanguage", lang.code); // store in asyncstorage
-    console.log("Selected Language:", lang.name);
+    try {
+      setSelectedLang(lang.code);
+      setRecentLang(lang);
+      await AsyncStorage.setItem("feedLanguage", lang.code);
+
+      const token = await AsyncStorage.getItem("userToken");
+
+      // ✅ Update backend
+      await fetch("http://192.168.1.42:5000/api/user/feed/language", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          feedLanguageCode: lang.code,
+          feedNativeCode: lang.name,
+          feedLanguage: lang.code,
+
+        }),
+      });
+
+      console.log("Feed Language Selected:", lang.name);
+    } catch (err) {
+      console.log("Error saving feed language:", err);
+      Alert.alert("Error", "Could not update feed language. Please try again.");
+    }
   };
 
   // 🔹 Render each language item
@@ -76,10 +131,23 @@ const FeedLanguage: React.FC = () => {
       <Image source={{ uri: item.flag }} style={styles.flag} />
       <Text style={styles.languageText}>{item.name}</Text>
       {selectedLang === item.code ? (
-        <Icon name="check-circle" size={22} color="#6C63FF" style={{ marginLeft: "auto" }} />
+        <Icon
+          name="check-circle"
+          size={22}
+          color="#6C63FF"
+          style={{ marginLeft: "auto" }}
+        />
       ) : null}
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#6C63FF" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -89,7 +157,6 @@ const FeedLanguage: React.FC = () => {
         <Text style={styles.headerTitle}>Feed Language</Text>
       </View>
 
-      {/* First time: show only 5 languages */}
       {!recentLang ? (
         <>
           <Text style={styles.sectionTitle}>Choose Your Language</Text>
@@ -101,13 +168,9 @@ const FeedLanguage: React.FC = () => {
         </>
       ) : (
         <>
-          {/* Recent Language */}
-         <Text style={styles.sectionTitle}>Recent Language</Text>
-         <View>
-             {recentLang && renderLanguageItem({ item: recentLang })}
-         </View>
+          <Text style={styles.sectionTitle}>Recent Language</Text>
+          <View>{recentLang && renderLanguageItem({ item: recentLang })}</View>
 
-          {/* All Languages */}
           <Text style={styles.sectionTitle}>All Languages</Text>
           <FlatList
             data={allLanguages}
@@ -145,15 +208,15 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
   },
- languageItem: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingVertical: 16,   // 🔹 increased vertical padding
-  paddingHorizontal: 10, // 🔹 added horizontal padding
-  borderBottomWidth: 0.5,
-  borderBottomColor: "#eee",
-  borderRadius: 8,       // 🔹 smoother edges
-},
+  languageItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+    borderRadius: 8,
+  },
   flag: {
     width: 28,
     height: 20,
@@ -163,5 +226,10 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 16,
     color: "#222",
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -16,7 +16,7 @@
 // import PostoptionSheet from '../../components/bottomsheet/PostoptionSheet';
 // import Header from '../../layout/Header'; // Assuming Header is a custom component
 
-// const API_BASE = 'http://192.168.1.7:5000/api';
+// const API_BASE = 'http://192.168.1.42:5000/api';
 
 // const ProfilePost = () => {
 //     const sheetRef = useRef<any>();
@@ -519,7 +519,7 @@ import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
-const API_BASE = 'http://192.168.1.7:5000/api';
+const API_BASE = 'http://192.168.1.42:5000/api';
 
 const ProfilePost = () => {
     const sheetRef = useRef<any>();

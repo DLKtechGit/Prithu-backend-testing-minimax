@@ -58,7 +58,7 @@ const FeedScreen: React.FC = () => {
             const token = await AsyncStorage.getItem("userToken");
  
             // Send to backend
-            const response = await fetch("http://192.168.1.7:5000/api/user/feed/language", {
+            const response = await fetch("http://192.168.1.42:5000/api/user/feed/language", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -71,7 +71,7 @@ const FeedScreen: React.FC = () => {
             console.log("Feed language saved:", data);
  
             // Navigate after success
-            navigation.navigate('gender');
+            navigation.navigate('CategoriesScreen');
         } catch (error) {
             console.error("Error saving feed language:", error);
         }

@@ -16,7 +16,7 @@ export const startHeartbeat = () => {
 
     try {
       await axios.post(
-        "http://192.168.1.7:5000/api/heartbeat",
+        "http://192.168.1.42:5000/api/heartbeat",
         { sessionId },
         {
           headers: {

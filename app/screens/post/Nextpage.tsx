@@ -43,7 +43,7 @@
 // useEffect(() => {
 //   const fetchCategories = async () => {
 //     try {
-//       const res = await axios.get('http://192.168.1.7:5000/api/creator/get/feed/category');
+//       const res = await axios.get('http://192.168.1.42:5000/api/creator/get/feed/category');
 //       console.log("ddd", res.data);
 
 //       if (Array.isArray(res.data.categories)) {
@@ -100,8 +100,8 @@
 
 // const token = await AsyncStorage.getItem('userToken');
 // const res = await axios.post(
-//   // 'http://192.168.1.7:5000/api/creator/feed/upload',
-//   'http://192.168.1.7:5000/api/creator/feed/upload', 
+//   // 'http://192.168.1.42:5000/api/creator/feed/upload',
+//   'http://192.168.1.42:5000/api/creator/feed/upload', 
 //   formData,
 //   {
 //     headers: {
@@ -288,7 +288,7 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://192.168.1.7:5000/api/creator/get/feed/category');
+        const res = await axios.get('http://192.168.1.42:5000/api/creator/get/feed/category');
         console.log("ddd", res.data);
 
         if (Array.isArray(res.data.categories)) {
@@ -350,7 +350,7 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
 
       const token = await AsyncStorage.getItem('userToken');
       const res = await axios.post(
-        'http://192.168.1.7:5000/api/creator/feed/upload',
+        'http://192.168.1.42:5000/api/creator/feed/upload',
         formData,
         {
           headers: {

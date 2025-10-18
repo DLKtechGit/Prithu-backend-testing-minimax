@@ -69,7 +69,7 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
                 return;
             }
 
-            const response = await fetch('http://192.168.1.7:5000/api/auth/user/reset-password', {
+            const response = await fetch('http://192.168.1.42:5000/api/auth/user/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
