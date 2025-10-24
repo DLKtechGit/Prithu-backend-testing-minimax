@@ -69,7 +69,7 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
         console.log("token:",token);
         
 
-        const res = await fetch("http://192.168.1.42:5000/api/user/get/content/catagories", {
+        const res = await fetch("http://192.168.1.10:5000/api/user/get/content/catagories", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",

@@ -12,7 +12,7 @@ export const connectSocket = async () => {
   console.log("Token:", token);
   if (!token) return;
 
-  socket = io("http://192.168.1.42:5000", {
+  socket = io("http://192.168.1.10:5000", {
     auth: { token },
   });
 
@@ -33,7 +33,7 @@ export const connectSocket = async () => {
   });
 
   socket.on("connect_error", (err) => {
-    console.error("Socket connect error:", err.message);
+    // console.error("Socket connect error:", err.message);
   });
 };
 

@@ -54,7 +54,7 @@ const CommentSheet = (props: any, ref: any) => {
       const token = await AsyncStorage.getItem('userToken');
 
       const response = await axios.post(
-        `http://192.168.1.42:5000/api/get/comments/for/feed`,
+        `http://192.168.1.10:5000/api/get/comments/for/feed`,
         { feedId: currentFeedId },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -108,7 +108,7 @@ const CommentSheet = (props: any, ref: any) => {
       }
 
       const response = await axios.post(
-        'http://192.168.1.42:5000/api/user/feed/comment',
+        'http://192.168.1.10:5000/api/user/feed/comment',
         { feedId, commentText },
         { headers: { Authorization: `Bearer ${token}` } }
       );

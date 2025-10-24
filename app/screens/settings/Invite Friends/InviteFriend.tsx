@@ -29,7 +29,7 @@ const InviteFriends = () => {
         console.log("working")
 
         // Make API request with token
-        const response = await axios.get("http://192.168.1.42:5000/api/user/referal/code", {
+        const response = await axios.get("http://192.168.1.10:5000/api/user/referal/code", {
           headers: {
             Authorization: `Bearer ${userToken}`,
           },

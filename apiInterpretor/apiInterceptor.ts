@@ -1,7 +1,7 @@
 // import axios, { InternalAxiosRequestConfig } from "axios";
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// const api = axios.create({ baseURL: "http://192.168.1.42:5000" });
+// const api = axios.create({ baseURL: "http://192.168.1.10:5000" });
 
 // // Request Interceptor
 // api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
@@ -26,7 +26,7 @@
 //         if (!refreshToken) throw new Error("No refresh token");
 
 //         const res = await axios.post<{ accessToken: string }>(
-//           "http://192.168.1.42:5000/api/refresh-token",
+//           "http://192.168.1.10:5000/api/refresh-token",
 //           { refreshToken }
 //         );
 

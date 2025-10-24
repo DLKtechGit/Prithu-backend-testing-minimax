@@ -139,4 +139,5 @@ export type RootStackParamList = {
     SubscriptionPaymentScreen: undefined;
     OtpMsg: undefined;
     CategoriesScreen: undefined;
+    UserPostFeed: undefined;
 };

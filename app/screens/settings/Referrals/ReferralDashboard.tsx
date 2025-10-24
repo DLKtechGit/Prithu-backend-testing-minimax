@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from "expo-linear-gradient"; // ✅ correct gradient import
+import { LinearGradient } from "expo-linear-gradient"; 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 interface ReferralData {
   totalRewards: number;
   availableBalance: number;
@@ -31,52 +34,75 @@ const ReferralDashboard: React.FC = () => {
   const navigation = useNavigation();
   const [selectedTab, setSelectedTab] = useState('All');
   const [selectedTier, setSelectedTier] = useState<number | null>(1);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [earningsData, setEarningsData] = useState(null);
 
-  const referralData: ReferralData = {
-    totalRewards: 15000,
-    availableBalance: 14000,
-    redeemedBalance: 1000,
-    friendsSignedUp: 2,
-    friendsInvested: 0,
+
+    const fetchEarnings = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        console.warn("No token found");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch("http://192.168.1.10:5000/api/get/userearnigs/referrals", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+             
+      const data = await res.json();
+      if (res.ok) {
+        setEarningsData(data);
+      } else {
+        console.warn("Error fetching earnings:", data.message);
+        setEarningsData(null);
+      }
+    } catch (err) {
+      console.error("Fetch earnings error:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const tiers: TierInfo[] = [
-    {
-      tier: 1,
-      description: 'for first 2 referrals',
-      userReward: 400,
-      friendReward: 400,
-      isActive: true,
-      isCompleted: false,
-    },
-    {
-      tier: 2,
-      description: 'for next 3 referrals',
-      userReward: 600,
-      friendReward: 600,
-      isActive: false,
-      isCompleted: false,
-    },
-    {
-      tier: 3,
-      description: 'for next 5 referrals',
-      userReward: 800,
-      friendReward: 800,
-      isActive: false,
-      isCompleted: false,
-    },
-  ];
+    useEffect(() => {
+    fetchEarnings();
+  }, []);
 
-  const referrals: Referral[] = [
-    {
-      id: '1',
-      name: 'Jagdev Soni',
-      status: 'Signed Up',
-      initials: 'JS',
-    },
-  ];
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchEarnings();
+  };
 
-  const tabs = ['All', 'Signed Up', 'Invested'];
+ 
+
+
+  // Remove your static `referralData`, `referrals` etc. and replace with:
+
+const referralData = {
+  totalRewards: earningsData?.totalEarnings || 0,
+  availableBalance: earningsData?.balance || 0,
+  redeemedBalance: earningsData?.totalWithdrawn || 0,
+  friendsSignedUp: earningsData?.earnings?.length || 0, // number of referrals
+  friendsInvested: earningsData?.earnings?.filter(e => e.tier === 1).length || 0, // adjust logic if needed
+};
+
+const referrals = earningsData?.earnings?.map((e) => ({
+  id: e.earningId,
+  name: e.fromUserName || "Unknown",
+  avatar: e.fromUserAvatar || null,
+  status: e.level ? `Level ${e.level}` : "Signed Up",
+})) || [];
+
+
+  const tabs = ['All', ''];
 
   return (
     <View style={styles.container}>
@@ -107,7 +133,7 @@ const ReferralDashboard: React.FC = () => {
                 </Text>
               </View>
               <View style={styles.balanceItem}>
-                <Text style={styles.balanceLabel}>Redeemed balance</Text>
+                <Text style={styles.balanceLabel}>Withdrawn balance</Text>
                 <Text style={styles.balanceAmount}>
                   ₹{referralData.redeemedBalance.toLocaleString()}
                 </Text>
@@ -129,13 +155,13 @@ const ReferralDashboard: React.FC = () => {
           {/* Friends Stats */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Total friends who signed up</Text>
+              <Text style={styles.statLabel}>Total Invite</Text>
               <Text style={styles.statNumber}>
                 {referralData.friendsSignedUp.toString().padStart(2, '0')}
               </Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Total friends who invested</Text>
+              <Text style={styles.statLabel}>Total Referrals</Text>
               <Text style={styles.statNumber}>
                 {referralData.friendsInvested.toString().padStart(2, '0')}
               </Text>
@@ -144,104 +170,15 @@ const ReferralDashboard: React.FC = () => {
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.nudgeButton}>
+            {/* <TouchableOpacity style={styles.nudgeButton}>
               <Text style={styles.nudgeButtonText}>Nudge All</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity style={styles.referButton}>
               <Text style={styles.referButtonText}>Refer more friends</Text>
             </TouchableOpacity>
           </View>
 
           {/* Tier System */}
-          <LinearGradient
-            colors={['yellow', 'green']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.tierContainer}
-          >
-            {/* You're here indicator */}
-            <View style={styles.youreHereContainer}>
-              <View style={styles.youreHereBadge}>
-                <Text style={styles.youreHereText}>★ You're here</Text>
-              </View>
-            </View>
-
-            {/* Tier progression */}
-            <View style={styles.tierProgression}>
-              {tiers.map((tier) => (
-                <TouchableOpacity
-                  key={tier.tier}
-                  style={styles.tierItem}
-                  onPress={() => setSelectedTier(selectedTier === tier.tier ? null : tier.tier)}
-                >
-                  <View
-                    style={[
-                      styles.tierCircle,
-                      tier.isActive && styles.tierCircleActive,
-                      tier.isCompleted && styles.tierCircleCompleted,
-                    ]}
-                  >
-                    {tier.tier === 1 ? (
-                      <Text
-                        style={[
-                          styles.tierCircleText,
-                          tier.isActive && styles.tierCircleTextActive,
-                          tier.isCompleted && styles.tierCircleTextCompleted,
-                        ]}
-                      >
-                        {tier.isCompleted ? '✓' : tier.tier}
-                      </Text>
-                    ) : (
-                      <Ionicons
-                        name="lock-closed"
-                        size={16}
-                        color={tier.isActive ? '#92400e' : tier.isCompleted ? '#ffffff' : '#ffffff'}
-                      />
-                    )}
-                  </View>
-                  <Text style={styles.tierLabel}>Tier {tier.tier}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Progress line */}
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBackground} />
-              <View style={styles.progressFill} />
-            </View>
-
-            {/* Tier message */}
-            <View style={styles.tierMessage}>
-              <Text style={styles.tierMessageText}>
-                Refer your 1 more friend to earn 2X Reward Amount
-              </Text>
-            </View>
-
-            {/* Tier Details */}
-            {selectedTier && (
-              <View style={styles.tierDetails}>
-                <View style={styles.tierDetailsHeader}>
-                  <Text style={styles.tierDetailsTitle}>Tier {selectedTier}</Text>
-                  <Text style={styles.tierDetailsDescription}>
-                    {tiers.find((t) => t.tier === selectedTier)?.description}
-                  </Text>
-                </View>
-                <View style={styles.tierRewards}>
-                  <View style={styles.rewardItem}>
-                    <Text style={styles.rewardText}>
-                      You get ₹{tiers.find((t) => t.tier === selectedTier)?.userReward}
-                    </Text>
-                  </View>
-                  <Text style={styles.plusText}>+</Text>
-                  <View style={styles.rewardItem}>
-                    <Text style={styles.rewardText}>
-                      Friends get ₹{tiers.find((t) => t.tier === selectedTier)?.friendReward}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-          </LinearGradient>
 
           {/* My Referrals */}
           <View style={styles.referralsSection}>
@@ -255,6 +192,7 @@ const ReferralDashboard: React.FC = () => {
                   onPress={() => setSelectedTab(tab)}
                   style={[styles.tab, selectedTab === tab && styles.tabActive]}
                 >
+                  
                   <Text
                     style={[styles.tabText, selectedTab === tab && styles.tabTextActive]}
                   >
@@ -265,37 +203,55 @@ const ReferralDashboard: React.FC = () => {
             </View>
 
             {/* Referrals List */}
-            <View style={styles.referralsList}>
-              {referrals.map((referral) => (
-                <View key={referral.id} style={styles.referralCard}>
-                  <View style={styles.referralInfo}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{referral.initials}</Text>
-                    </View>
-                    <Text style={styles.referralName}>{referral.name}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      referral.status === 'Signed Up'
-                        ? styles.statusBadgeSignedUp
-                        : styles.statusBadgeInvested,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusText,
-                        referral.status === 'Signed Up'
-                          ? styles.statusTextSignedUp
-                          : styles.statusTextInvested,
-                      ]}
-                    >
-                      {referral.status}
-                    </Text>
-                  </View>
-                </View>
-              ))}
+        <View style={styles.referralsList}>
+  {referrals.length > 0 ? (
+    referrals.map((referral) => (
+      <View key={referral.id} style={styles.referralCard}>
+        <View style={styles.referralInfo}>
+          {referral.avatar ? (
+            <Image
+              source={{ uri: referral.avatar }}
+              style={{ width: 40, height: 40, borderRadius: 20 }}
+            />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {referral.name ? referral.name.charAt(0) : "?"}
+              </Text>
             </View>
+          )}
+          <Text style={styles.referralName}>{referral.name}</Text>
+        </View>
+        <View
+          style={[
+            styles.statusBadge,
+            {
+              backgroundColor:
+                referral.status === "Signed Up" ? "#dbeafe" : "#dcfce7",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              {
+                color:
+                  referral.status === "Signed Up" ? "#1d4ed8" : "#15803d",
+              },
+            ]}
+          >
+            {referral.status}
+          </Text>
+        </View>
+      </View>
+    ))
+  ) : (
+    <Text style={{ textAlign: "center", color: "#6b7280", marginTop: 10 }}>
+      No referrals found
+    </Text>
+  )}
+</View>
+
           </View>
         </View>
       </ScrollView>
@@ -562,7 +518,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   referralsSection: {
-    marginTop: 24,
+    marginTop: -10,
   },
   referralsTitle: {
     fontSize: 18,
@@ -645,22 +601,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 12,
   },
-  statusBadgeSignedUp: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  statusBadgeInvested: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-  },
+
   statusText: {
     fontSize: 12,
     fontWeight: '500',
   },
-  statusTextSignedUp: {
-    color: '#3b82f6',
-  },
-  statusTextInvested: {
-    color: '#10b981',
-  },
+
 });
 
 export default ReferralDashboard;

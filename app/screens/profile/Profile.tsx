@@ -27,6 +27,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
   const [postCount, setPostCount] = useState<number>(0);
   const [followersCount, setFollowersCount] = useState<number>(0); // New state for followers count
   const [followingCount, setfollowingCount] = useState<number>(0);
+  const [feedCount, setfeedCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
@@ -34,7 +35,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}`;
+    return `https://prithubackend.onrender.com/${path.replace(/\\/g, '/')}`;
   };
 
 
@@ -87,37 +88,42 @@ const SkeletonAvatar = () => {
     fetchAccountType();
   }, []);
 
-   // Fetch following count for Personal
-   useEffect(() => {
-   if (activeAccountType === 'Personal') {
-  const fetchFollowingCount = async () => {
-  try {
-    const userToken = await AsyncStorage.getItem('userToken');
-    if (!userToken) {
-      Alert.alert('Error', 'User not authenticated');
-      return;
-    }
 
-    const res = await fetch('http://192.168.1.42:5000/api/user/following/data', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${userToken}`,
-      },
-    });
-    const data = await res.json();
+// Fetch followers and following count
+useEffect(() => {
+  const fetchFollowData = async () => {
+    try {
+      const userToken = await AsyncStorage.getItem('userToken');
+      if (!userToken) {
+        Alert.alert('Error', 'User not authenticated');
+        return;
+      }
 
-    if (res.ok && data.data) {
-      setfollowingCount(data.data.followersCount  || 0);
-    } else {
-      console.log('Error fetching following count:', data.message);
+      const res = await fetch('http://192.168.1.10:5000/api/user/following/data', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+
+      const data = await res.json();
+      console.log("count",data)
+      if (res.ok && data.data) {
+        setFollowersCount(data.data.followersCount || 0);
+        setfollowingCount(data.data.followingCount || 0);
+        setfeedCount(data.data.feedCount || 0)
+
+      } else {
+        console.log('Error fetching follow data:', data.message);
+      }
+    } catch (err) {
+      console.error('Fetch follow data error:', err);
     }
-  } catch (err) {
-    console.error('Fetch following count error:', err);
-  }
-};
-   fetchFollowingCount();
-    }
-  }, [activeAccountType]);
+  };
+
+  fetchFollowData();
+}, [activeAccountType]);
+
 
 
   const fetchProfile = async () => {
@@ -128,7 +134,7 @@ const SkeletonAvatar = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.42:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
@@ -158,60 +164,60 @@ const SkeletonAvatar = () => {
     fetchProfile();
   }, []);
 
-useEffect(() => {
-    const fetchFeeds = async () => {
-      try {
-        setLoading(true);
-        const token = await AsyncStorage.getItem('userToken');
-        const notInterested = JSON.parse(await AsyncStorage.getItem('notInterested') || '[]');
-        if (!token) {
-          Alert.alert('Error', 'User not authenticated');
-          setLoading(false);
-          return;
-        }
+// useEffect(() => {
+//     const fetchFeeds = async () => {
+//       try {
+//         setLoading(true);
+//         const token = await AsyncStorage.getItem('userToken');
+//         const notInterested = JSON.parse(await AsyncStorage.getItem('notInterested') || '[]');
+//         if (!token) {
+//           Alert.alert('Error', 'User not authenticated');
+//           setLoading(false);
+//           return;
+//         }
 
-        const response = await fetch('http://192.168.1.42:5000/api/creator/getall/feeds', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+//         const response = await fetch('http://192.168.1.10:5000/api/creator/getall/feeds', {
+//           headers: {
+//             Authorization: `Bearer ${token}`,
+//           },
+//         });
 
-        const data = await response.json();
-        const feeds = (data.feeds || []).filter((feed: any) => !notInterested.includes(feed._id));
-        console.log("Fetched feeds:", feeds.map((feed: any) => ({ id: feed._id, type: feed.type })));
-        setFollowersCount(data.followerCount || 0);
+//         const data = await response.json();
+//         const feeds = (data.feeds || []).filter((feed: any) => !notInterested.includes(feed._id));
+//         console.log("Fetched feeds:", feeds.map((feed: any) => ({ id: feed._id, type: feed.type })));
+//         setFollowersCount(data.followersCount || 0);
 
-        const imagePosts = feeds
-          .filter((feed: any) => feed.type === 'image')
-          .map((feed: any) => ({
-            id: feed._id,
-            image: { uri: feed.contentUrl },
-            like: (feed.like ?? 0).toString(),
-          }));
+//         const imagePosts = feeds
+//           .filter((feed: any) => feed.type === 'image')
+//           .map((feed: any) => ({
+//             id: feed._id,
+//             image: { uri: feed.contentUrl },
+//             like: (feed.like ?? 0).toString(),
+//           }));
 
-        const videoReels = feeds
-          .filter((feed: any) => feed.type === 'video')
-          .map((feed: any) => ({
-            id: feed._id,
-            image: { uri: feed.contentUrl.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg') },
-            videoUrl: feed.contentUrl,
-            like: (feed.like ?? 0).toString(),
-          }));
+//         const videoReels = feeds
+//           .filter((feed: any) => feed.type === 'video')
+//           .map((feed: any) => ({
+//             id: feed._id,
+//             image: { uri: feed.contentUrl.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg') },
+//             videoUrl: feed.contentUrl,
+//             like: (feed.like ?? 0).toString(),
+//           }));
 
-        setPosts(imagePosts);
-        setReels(videoReels);
-        setPostCount(imagePosts.length);
-      } catch (err: any) {
-        console.error('Fetch posts error:', err);
-        setError(err.message || 'Failed to fetch posts');
-        Alert.alert('Error', err.message || 'Failed to fetch posts');
-      } finally {
-        setLoading(false);
-      }
-    };
+//         setPosts(imagePosts);
+//         setReels(videoReels);
+//         setPostCount(imagePosts.length);
+//       } catch (err: any) {
+//         console.error('Fetch posts error:', err);
+//         setError(err.message || 'Failed to fetch posts');
+//         Alert.alert('Error', err.message || 'Failed to fetch posts');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
 
-    fetchFeeds();
-  }, []);
+//     fetchFeeds();
+//   }, []);
   
   const handleNotInterested = async (postId: string) => {
     console.log('Profile handleNotInterested called with postId:', postId);
@@ -257,7 +263,7 @@ useEffect(() => {
         return;
       }
 
-      const profileUrl = `http://192.168.1.42:5000/profile/${userId}`;
+      const profileUrl = `http://192.168.1.10:5000/api/profile/${userId}`;
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,
       });
@@ -290,7 +296,7 @@ useEffect(() => {
       }
 
       // Check subscription status
-      const res = await fetch('http://192.168.1.42:5000/api/user/user/subscriptions', {
+      const res = await fetch('http://192.168.1.10:5000/api/user/user/subscriptions', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -392,15 +398,16 @@ useEffect(() => {
               <Text style={{ ...FONTS.h6, ...FONTS.fontMedium, color: COLORS.white }}>{profile.displayName}</Text>
               <Text style={{ ...FONTS.font, ...FONTS.fontRegular, color: COLORS.white, opacity: .6, marginTop: 5 }}>{profile.username}</Text>
             </View>
-             <View style={{ backgroundColor: 'rgba(255, 255, 255, .1)', height: 70, width: 200, borderRadius: 12, marginTop: 20, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+             <View style={{ backgroundColor: 'rgba(255, 255, 255, .1)', height: 70, width: 280, borderRadius: 12, marginTop: 20, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
              
-              {activeAccountType === 'Creator' ? (
+              
                 <>
-                  <View style={{ alignItems: 'center', width: '50%' }}>
-                    <Text style={GlobalStyleSheet.textfont2}>{postCount}</Text>
+                 <View style={{ alignItems: 'center', width: '30%' }}>
+                    <Text style={GlobalStyleSheet.textfont2}>{feedCount}</Text>
                     <Text style={GlobalStyleSheet.titlefont}>Post</Text>
-                  </View>
-                  <View style={{ width: '50%' }}>
+                  </View> 
+               
+                  <View style={{ width: '30%' }}>
                     <TouchableOpacity style={{ alignItems: 'center' }}
                       onPress={() => navigation.navigate('Followers')}
                     >
@@ -412,9 +419,9 @@ useEffect(() => {
                     style={{ width: 2, height: 50, position: 'absolute', right: 100 }}
                   ></LinearGradient>
                 </>
-              ) : (
+              
                 <>
-                  <View style={{ alignItems: 'center', width: '50%' }}>
+                  <View style={{ alignItems: 'center', width: '30%' }}>
                     <TouchableOpacity style={{ alignItems: 'center' }}
                       onPress={() => navigation.navigate('Followers')}
                     >
@@ -423,7 +430,7 @@ useEffect(() => {
                     </TouchableOpacity>
                   </View>
                 </>
-              )}
+              
 
             </View>
           </View>
@@ -474,6 +481,15 @@ useEffect(() => {
                   <Image style={{ width: 20, height: 20, tintColor: '#FBBF24' }} source={IMAGES.lock} />
                 </View>
                 <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Invite Friends</Text>
+                <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
+              </TouchableOpacity>
+
+
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }} onPress={() => navigation.navigate('UserPostFeed')}>
+                <View style={{ width: 30, height: 30, backgroundColor: '#e8fec7ff', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                  <Image style={{ width: 20, height: 20, tintColor: '#80d455ff' }} source={IMAGES.sticker} />
+                </View>
+                <Text style={{ ...FONTS.font, color: colors.title, marginLeft: 12, flex: 1 }}>Our posts</Text>
                 <Image style={{ width: 20, height: 20, tintColor: '#6B7280' }} source={IMAGES.rigtharrow} />
               </TouchableOpacity>
             </View>

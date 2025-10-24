@@ -50,7 +50,7 @@ const AppLanguage: React.FC = () => {
     const fetchAppLanguage = async () => {
       try {
         const token = await AsyncStorage.getItem("userToken"); // 🔐 assuming user token saved
-        const res = await fetch("http://192.168.1.42:5000/api/user/get/app/language", {
+        const res = await fetch("http://192.168.1.10:5000/api/user/get/app/language", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -98,7 +98,7 @@ const AppLanguage: React.FC = () => {
 
       const token = await AsyncStorage.getItem("userToken");
       // ✅ Send update to backend
-      await fetch("http://192.168.1.42:5000/api/user/app/language", {
+      await fetch("http://192.168.1.10:5000/api/user/app/language", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

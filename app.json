@@ -20,17 +20,17 @@
         "foregroundImage": "./assets/p.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.deepeshgour.meetflow"
+      "package": "com.deepeshgour.meetflow",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "6d99d8f2-794d-4466-9a10-db5ce4838d52"
-      }
-    },
-    "owner": "dlkreact",
+    "owner": "rimababu",
     "plugins": [
       "react-native-video",
       [
@@ -41,6 +41,11 @@
           "isAccessMediaLocationEnabled": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a7661f0e-a27a-4065-bb87-96e0aae2d18b"
+      }
+    }
   }
 }

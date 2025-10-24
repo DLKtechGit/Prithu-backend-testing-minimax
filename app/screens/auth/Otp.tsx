@@ -27,7 +27,7 @@ const Otp = ({ navigation }: OtpScreenProps) => {
     });
 
     const handleVerifyOtp = async () => {
-        if (!otp || otp.length < 4) {
+        if (!otp || otp.length < 6) {
             setPopupMessage('Error!');
             setPopupSubtitle('Please enter the full OTP');
             setShowPopup(true);
@@ -35,7 +35,7 @@ const Otp = ({ navigation }: OtpScreenProps) => {
         }
 
         try {
-            const response = await fetch("http://192.168.1.42:5000/api/auth/exist/user/verify-otp", {
+            const response = await fetch("http://192.168.1.10:5000/api/auth/exist/user/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ otp }),
@@ -163,7 +163,7 @@ const Otp = ({ navigation }: OtpScreenProps) => {
                                 <OTPTextInput
                                     tintColor={colors.background}
                                     handleTextChange={(text: string) => setOtp(text)}
-                                    inputCount={4}
+                                    inputCount={6}
                                     textInputStyle={{
                                         borderBottomWidth: 0,
                                         height: 48,

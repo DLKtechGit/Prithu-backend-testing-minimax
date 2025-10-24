@@ -83,7 +83,7 @@ const SubscriptionPaymentScreen: React.FC = () => {
 
       const token = await AsyncStorage.getItem('userToken');
     
-      const res = await fetch('http://192.168.1.42:5000/api/user/plan/subscription', {
+      const res = await fetch('http://192.168.1.10:5000/api/user/plan/subscription', {
 
         method: 'POST',
 
@@ -137,7 +137,7 @@ const SubscriptionPaymentScreen: React.FC = () => {
 
       const user = userData ? JSON.parse(userData) : { _id: '' };
  
-      const res = await fetch('http://192.168.1.42:5000/api/user/plan/subscription', {
+      const res = await fetch('http://192.168.1.10:5000/api/user/plan/subscription', {
 
         method: 'POST',
 

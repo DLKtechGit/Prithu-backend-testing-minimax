@@ -206,9 +206,9 @@
 
 
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect ,useCallback} from 'react';
 import { View, Text, SafeAreaView, Image, TouchableOpacity, FlatList, Alert } from 'react-native';
-import { useTheme } from '@react-navigation/native';
+import { useTheme,useFocusEffect } from '@react-navigation/native';
 import Header from '../../layout/Header';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -255,29 +255,46 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
     }
   };
 
-  // Load device gallery
-  useEffect(() => {
-    (async () => {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status === 'granted') {
-        const media = await MediaLibrary.getAssetsAsync({
-          mediaType: ['photo', 'video'],
-          first: 50,
-          sortBy: [[MediaLibrary.SortBy.creationTime, false]],
-        });
+   // ✅ Load device gallery after navigation finishes
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-        const assets = media.assets.map((a) => ({
-          uri: a.uri,
-          type: a.mediaType === MediaLibrary.MediaType.video ? 'video' : 'image',
-        }));
-        setGallery(assets);
+      const loadGallery = async () => {
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          const media = await MediaLibrary.getAssetsAsync({
+            mediaType: ['photo', 'video'],
+            first: 50,
+            sortBy: [[MediaLibrary.SortBy.creationTime, false]],
+          });
 
-        if (assets.length === 0) {
-          await pickMedia();
+          if (!isActive) return;
+
+          const assets = media.assets.map((a) => ({
+            uri: a.uri,
+            type: a.mediaType === MediaLibrary.MediaType.video ? 'video' : 'image',
+          }));
+
+          setGallery(assets);
+
+          // Auto-open picker only if gallery is empty, after small delay
+          if (assets.length === 0) {
+            setTimeout(async () => {
+              if (isActive) await pickMedia();
+            }, 400); // 400ms delay avoids transition glitch
+          }
         }
-      }
-    })();
-  }, []);
+      };
+
+      loadGallery();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
 
   const openCamera = async () => {
   const result = await ImagePicker.launchCameraAsync({

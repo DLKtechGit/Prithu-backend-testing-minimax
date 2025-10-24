@@ -52,7 +52,7 @@ const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
 
       // CORRECTED API ENDPOINT
       const res = await axios.get(
-        'http://192.168.1.42:5000/api/get/user/hide/post', // Updated endpoint
+        'http://192.168.1.10:5000/api/get/user/hide/post', // Updated endpoint
         {
           headers: {
             Authorization: `Bearer ${token}`,

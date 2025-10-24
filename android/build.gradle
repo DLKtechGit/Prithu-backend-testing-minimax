@@ -39,7 +39,3 @@ allprojects {
         maven { url 'https://www.jitpack.io' }
     }
 }
-
-
-android/build.gradle
- 

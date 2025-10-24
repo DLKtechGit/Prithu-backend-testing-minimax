@@ -22,6 +22,7 @@ const PostCard = ({
   id,
   name,
   profileimage,
+  framedAvatar,
   date,
   postimage,
   like,
@@ -38,12 +39,15 @@ const PostCard = ({
   setSelectedPostId,
   onNotInterested,
   onHidePost,
-  accountId,
+  profileUserId,
+  roleRef,
   isLiked: initialIsLiked,
   isSaved: initialIsSaved,
   isDisliked: initialIsDisliked = false, // Default to false if not provided
   dislikeCount: initialDislikeCount = 0, // Default to 0 if not provided
   onDislikeUpdate, // Callback to update PostList
+  themeColor,
+  textColor,
 }: any) => {
   const navigation = useNavigation<any>();
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
@@ -54,7 +58,7 @@ const PostCard = ({
   const [likeCount, setLikeCount] = useState(like || 0);
   const [commentCount, setCommentCount] = useState(commentsCount || 0);
   const [isPhoneVisible, setIsPhoneVisible] = useState(false);
-    const [isNameVisible, setisNameVisible] = useState(false);
+  const [isNameVisible, setisNameVisible] = useState(false);
   const [profile, setProfile] = useState<any>({
     displayName: '',
     username: '',
@@ -75,18 +79,18 @@ const PostCard = ({
   const [popupMessage, setPopupMessage] = useState('');
   const [popupSubtitle, setPopupSubtitle] = useState('');
   const [navigateOnClose, setNavigateOnClose] = useState(false);
- const [imageHeight, setImageHeight] = useState(SIZES.width * 1.4); // default
-
-useEffect(() => {
-  if (postimage?.length > 0) {
-    Image.getSize(postimage[0].image, (width, height) => {
-      const aspectRatio = height / width;
-              const newHeight = Math.min(SIZES.width * aspectRatio, SIZES.width * 1.4);
+  const [imageHeight, setImageHeight] = useState(SIZES.width * 1.4); // default
+ 
+  useEffect(() => {
+    if (postimage?.length > 0) {
+      Image.getSize(postimage[0].image, (width, height) => {
+        const aspectRatio = height / width;
+        const newHeight = Math.min(SIZES.width * aspectRatio, SIZES.width * 1.4);
         setImageHeight(newHeight);
 
-    }, (error) => console.log(error));
-  }
-}, [postimage]);
+      }, (error) => console.log(error));
+    }
+  }, [postimage]);
 
 
   // Skeleton Loader Components
@@ -267,7 +271,7 @@ useEffect(() => {
         Alert.alert('Error', 'User not authenticated');
         return;
       }
-      const res = await fetch('http://192.168.1.42:5000/api/user/user/subscriptions', {
+      const res = await fetch('http://192.168.1.10:5000/api/user/user/subscriptions', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -276,7 +280,7 @@ useEffect(() => {
       });
       const data = await res.json();
       if (res.ok && data.plan && data.plan.isActive) {
-        const trialCheckRes = await fetch('http://192.168.1.42:5000/api/user/check/active/subcription', {
+        const trialCheckRes = await fetch('http://192.168.1.10:5000/api/user/check/active/subcription', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -315,8 +319,8 @@ useEffect(() => {
         navigation.navigate('Subcribe', {});
       }
     } catch (error) {
-      console.error('Download error:', error);
-      Alert.alert('Error', 'Something went wrong while downloading the PostCard');
+      // console.error('Download error:', error);
+      // Alert.alert('Error', 'Something went wrong while downloading the PostCard');
     }
   };
 
@@ -358,7 +362,7 @@ useEffect(() => {
             style={{ width: 24, height: 23, tintColor: isDisliked ? COLORS.red : colors.title }}
             source={IMAGES.dislike}
           />
-          <Text style={{ marginLeft: 6, color: colors.title, fontSize: 14 }}>{dislikeCount}</Text> 
+          <Text style={{ marginLeft: 6, color: colors.title, fontSize: 14 }}>{dislikeCount}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -377,7 +381,7 @@ useEffect(() => {
       setIsDisliked(newDislikeState); // Optimistic update
       setDislikeCount(newDislikeCount); // Optimistic update
 
-      const res = await fetch('http://192.168.1.42:5000/api/user/feed/dislike', {
+      const res = await fetch('http://192.168.1.10:5000/api/user/feed/dislike', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -387,7 +391,7 @@ useEffect(() => {
       });
 
       const data = await res.json();
-      console.log("data",res.data)
+      console.log("data", res.data)
       if (!res.ok) {
         setIsDisliked(!newDislikeState); // Revert on failure
         setDislikeCount(isDisliked ? dislikeCount : dislikeCount - 1); // Revert count
@@ -414,7 +418,7 @@ useEffect(() => {
         Alert.alert('Error', 'User not authenticated');
         return;
       }
-      const res = await fetch('http://192.168.1.42:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
         method: 'GET',
         headers: { Authorization: `Bearer ${userToken}` },
       });
@@ -432,29 +436,29 @@ useEffect(() => {
           modifyAvatar: modifyAvatar,
           phoneNumber: profileData.phoneNumber || '',
         });
-         // Fetch visibility settings after profile
-      const visRes = await fetch('http://192.168.1.42:5000/api/profile/visibility', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
+        // Fetch visibility settings after profile
+        const visRes = await fetch('http://192.168.1.10:5000/api/profile/visibility', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${userToken}`,
+          },
+        });
 
-      const visData = await visRes.json();
-      if (visRes.ok && visData.success) {
-        setIsPhoneVisible(visData.visibility?.phoneNumber ?? false);
-        setisNameVisible(visData.visibility?.displayName ?? false);
+        const visData = await visRes.json();
+        if (visRes.ok && visData.success) {
+          setIsPhoneVisible(visData.visibility?.phoneNumber ?? false);
+          setisNameVisible(visData.visibility?.displayName ?? false);
+        } else {
+          console.log('Failed to get visibility settings', visData.message);
+        }
       } else {
-        console.log('Failed to get visibility settings', visData.message);
+        console.log('Error fetching profile:', data.message);
       }
-    } else {
-      console.log('Error fetching profile:', data.message);
+    } catch (err) {
+      console.error('Fetch profile error:', err);
     }
-  } catch (err) {
-    console.error('Fetch profile error:', err);
-  }
-};
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -480,8 +484,8 @@ useEffect(() => {
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
       const endpoint =
         accountType === 'Personal'
-          ? 'http://192.168.1.42:5000/api/user/feed/like'
-          : 'http://192.168.1.42:5000/api/creator/feed/like';
+          ? 'http://192.168.1.10:5000/api/user/feed/like'
+          : 'http://192.168.1.10:5000/api/creator/feed/like';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -538,14 +542,15 @@ useEffect(() => {
             <TouchableOpacity
               onPress={() => {
                 hasStory == false
-                  ? navigation.navigate('AnotherProfile', { feedId: id, accountId: accountId })
+                  ? navigation.navigate('AnotherProfile', { feedId: id, profileUserId: profileUserId, roleRef:roleRef  })
                   : navigation.navigate('status', {
-                      name: name,
-                      image: profileimage,
-                      statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
-                    });
+                    name: name,
+                    image: profileimage,
+                    statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
+                  });
               }}
             >
+              
               {hasStory == true ? (
                 <View style={{ justifyContent: 'center', alignItems: 'center' }}>
                   {isImageLoading ? (
@@ -681,7 +686,7 @@ useEffect(() => {
                     <SkeletonImage />
                   ) : (
                     <Image
-                      style={{ width: '100%', height:'100%'  }}
+                      style={{ width: '100%', height: '100%' }}
                       source={{ uri: data.image }}
                       resizeMode="cover"
                       onLoadStart={() => setIsImageLoading(true)}
@@ -698,7 +703,7 @@ useEffect(() => {
                       borderRadius: 50,
                       opacity: isImageLoading ? 0.5 : 1,
                     }}
-                    source={{ uri: profile.modifyAvatar || profile.profileAvatar }}
+                    source={{ uri: framedAvatar }}
 
                     onLoadStart={() => setIsImageLoading(true)}
                     onLoadEnd={() => setIsImageLoading(false)}
@@ -709,24 +714,25 @@ useEffect(() => {
                       bottom: 0,
                       left: 0,
                       width: '100%',
-                      backgroundColor: '#d2a904ff',
+                      backgroundColor: themeColor,
                       paddingVertical: 5,
                       paddingHorizontal: 20,
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       alignItems: 'center',
+                      
                     }}
                   >
-                              {isNameVisible && (
-  <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-    {profile.displayName}
-  </Text>
-)}
-                 {isPhoneVisible && (
-  <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-    {profile.phoneNumber}
-  </Text>
-)}
+                    {isNameVisible && (
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                        {profile.displayName}
+                      </Text>
+                    )}
+                    {isPhoneVisible && (
+                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                        {profile.phoneNumber}
+                      </Text>
+                    )}
 
                   </View>
                 </View>
@@ -812,8 +818,8 @@ useEffect(() => {
                   }
                   const endpoint =
                     accountType === 'Personal'
-                      ? 'http://192.168.1.42:5000/api/user/feed/save'
-                      : 'http://192.168.1.42:5000/api/creator/feed/save';
+                      ? 'http://192.168.1.10:5000/api/user/feed/save'
+                      : 'http://192.168.1.10:5000/api/creator/feed/save';
                   const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {

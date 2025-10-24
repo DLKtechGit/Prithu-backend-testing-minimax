@@ -38,11 +38,14 @@ interface Post {
   commentsCount: number;
   likesCount: number;
   type: string;
-  accountId: string;
+  profileUserId: string;
+  roleRef:string;
   isLiked: boolean;
   isSaved: boolean;
-   isDisliked?: boolean; // Add isDisliked to the Post interface
+  isDisliked?: boolean; // Add isDisliked to the Post interface
   dislikesCount?: number; // Add dislikeCount (optional, if backend supports it)
+  primary:string;
+  accent:string;
 }
 
 interface PostListProps {
@@ -200,8 +203,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         }
 
         const endpoint = catId
-          ? `http://192.168.1.42:5000/api/all/catagories/${catId}`
-          : `http://192.168.1.42:5000/api/get/all/feeds/user`;
+          ? `http://192.168.1.10:5000/api/user/get/feed/with/cat/${catId}`
+          : `http://192.168.1.10:5000/api/get/all/feeds/user`;
 
         console.log("Fetching posts from:", endpoint);
 
@@ -212,9 +215,9 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           },
         });
            
-        // console.log("data",res.data)
+        // console.log("data:",res.data.feeds)
 
-        const feeds = catId ? res.data?.category?.feeds ?? [] : res.data?.feeds ?? [];
+        const feeds = res.data?.feeds ?? [];
         if (!Array.isArray(feeds)) {
           console.warn("No feeds found");
           setPosts([]);
@@ -229,21 +232,25 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             timeAgo: item.timeAgo,
             contentUrl: item.contentUrl?.startsWith("http")
               ? item.contentUrl
-              : `http://192.168.1.42:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
+              : `http://192.168.1.10:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
             caption: item.caption || "",
             tags: item.tags || [],
             background: item.background || "#fff",
             commentsCount: item.commentsCount || 0,
             likesCount: item.likesCount || 0,
             type: item.type,
-            accountId: item.createdByAccount,
+            profileUserId: item.createdByAccount,
+            roleRef:item.roleRef,
             isLiked: !!item.isLiked,
             isSaved: !!item.isSaved,
             isDisliked: !!item.isDisliked || false, 
             dislikeCount: item.dislikesCount || 0,
+            framedAvatar: item.framedAvatar || null,
+            themeColor: item.themeColor?.primary || "#fff", 
+            textColor: item.themeColor?.accent || "#fff", 
           }))
           .filter((item) => item.type === "image");
-
+  
         setPosts(mapped);
       } catch (err: any) {
         console.error("Error fetching posts:", err.response?.data || err.message);
@@ -264,7 +271,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         if (!token) return;
 
         await axios.post(
-          "http://192.168.1.42:5000/api/user/image/view/count",
+          "http://192.168.1.10:5000/api/user/image/view/count",
           { feedId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -392,6 +399,9 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           >
             <MemoPostCard
               id={post._id}
+              themeColor={post.themeColor}
+              textColor={post.textColor}
+              framedAvatar={post.framedAvatar}
               name={post.creatorUsername}
               profileimage={post.creatorAvatar}
               date={post.timeAgo}
@@ -409,7 +419,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
               visibleBoxes={memoVisibleBoxes}
               onNotInterested={() => setPosts((prev) => prev.filter((p) => p._id !== post._id))}
               onHidePost={() => setPosts((prev) => prev.filter((p) => p._id !== post._id))}
-              accountId={post.accountId}
+              profileUserId={post.profileUserId}
+              roleRef={post.roleRef}
               isLiked={post.isLiked}
               isSaved={post.isSaved}
               isDisliked={post.isDisliked || false} // Pass initial isDisliked state
@@ -479,7 +490,7 @@ const styles = StyleSheet.create({
   // },
   skeletonImage: {
     width: "100%",
-    height: Dimensions.get("window").width * 0.96, // Matches PostCard's image height
+    height: Dimensions.get("window").width * 0.99, // Matches PostCard's image height
     backgroundColor: "#e0e0e0",
     borderRadius: 8,
     marginBottom: 10,

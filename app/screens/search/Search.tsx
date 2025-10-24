@@ -20,7 +20,7 @@ import ProfilePostData from '../profile/ProfilePostData';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE = 'http://192.168.1.42:5000/api';
+const API_BASE = 'http://192.168.1.10:5000/api';
 
 const Search = ({ navigation }: any) => {
   const theme = useTheme();
@@ -37,7 +37,7 @@ const Search = ({ navigation }: any) => {
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return null;
     // Replace backslashes and prepend base
-    return `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.10:5000/${path.replace(/\\/g, '/')}`;
   };
 
   // Shuffle array using Fisher-Yates algorithm

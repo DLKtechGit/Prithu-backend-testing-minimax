@@ -44,7 +44,7 @@
 //   useEffect(() => {
 //     const fetchPlans = async () => {
 //       try {
-//         const response = await axios.get("http://192.168.1.42:5000/api/user/getall/subscriptions");
+//         const response = await axios.get("http://192.168.1.10:5000/api/user/getall/subscriptions");
 //         console.log("Fetch plans response:", response.data.plans);
 //         const plans = response.data.plans.map((plan) => ({
 //           id: plan._id, // Use MongoDB _id
@@ -111,7 +111,7 @@
 //       }
 
 //       const response = await axios.post(
-//         "http://192.168.1.42:5000/api/user/activate/trial/plan",
+//         "http://192.168.1.10:5000/api/user/activate/trial/plan",
 //         {}, // Empty body, assuming userId is from token
 //         {
 //           headers: {
@@ -254,7 +254,7 @@
 
 //             console.log("Sending planId:", planId); // Debug planId
 //             const response = await axios.post(
-//               "http://192.168.1.42:5000/api/user/plan/subscription",
+//               "http://192.168.1.10:5000/api/user/plan/subscription",
 //               {
 //                 planId, // Use the resolved planId
 //                 result: "success",
@@ -568,7 +568,7 @@ const SubscriptionScreen = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await axios.get("http://192.168.1.42:5000/api/user/getall/subscriptions");
+        const response = await axios.get("http://192.168.1.10:5000/api/user/getall/subscriptions");
         console.log("Fetch plans response:", response.data.plans);
         const plans = response.data.plans.map((plan) => ({
           id: plan._id, // Use MongoDB _id
@@ -642,7 +642,7 @@ const SubscriptionScreen = () => {
       }
 
       const response = await axios.post(
-        "http://192.168.1.42:5000/api/user/activate/trial/plan",
+        "http://192.168.1.10:5000/api/user/activate/trial/plan",
         {}, // Empty body, assuming userId is from token
         {
           headers: {
@@ -747,50 +747,86 @@ const SubscriptionScreen = () => {
       {/* Button */}
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={async () => {
-          setIsLoading(true);
-          try {
-            let planId = id;
+       onPress={async () => {
+  setIsLoading(true);
+  try {
+    const token = await AsyncStorage.getItem("userToken");
+    if (!token) {
+      setPopupMessage("Error!");
+      setPopupSubtitle("You must be logged in to activate a subscription.");
+      setShowPopup(true);
+      setIsLoading(false);
+      return;
+    }
 
-            // If no id is provided, find the plan matching the displayed price
-            if (!planId && fetchedPlans.length > 0) {
-              const matchingPlan = fetchedPlans.find(
-                (plan) => plan.price === planDetails.price
-              );
-              if (matchingPlan) {
-                planId = matchingPlan.id;
-                console.log("Matched plan by price:", matchingPlan);
-              }
-            }
+    let planId = id;
+    if (!planId && fetchedPlans.length > 0) {
+      const matchingPlan = fetchedPlans.find(
+        (plan) => plan.price === planDetails.price
+      );
+      if (matchingPlan) {
+        planId = matchingPlan.id;
+      }
+    }
+   
+    if (!planId) {
+      setPopupMessage("Error!");
+      setPopupSubtitle("No valid plan found. Please try again.");
+      setShowPopup(true);
+      setIsLoading(false);
+      return;
+    }
+    console.log(planId)
+    // ✅ Call subscription activation API
+    const response = await axios.post(
+      "http://192.168.1.10:5000/api/user/plan/subscription",
+      {
+        planId,
+        price: planDetails.price,
+        duration: planDetails.duration,
+        planType: planDetails.planType,
+        result: "success",
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+   
+    console.log("Subscription activation response:", response.data);
 
-            if (!planId) {
-              console.warn("No plan ID provided or matched by price");
-              setPopupMessage('Error!');
-              setPopupSubtitle('No plan selected. Please go back and select a plan.');
-              setShowPopup(true);
-              setIsLoading(false);
-              return;
-            }
+ 
+    // ✅ Handle backend response (no 'success' field)
+    if (response.status === 200 && response.data.subscription) {
+      setPopupMessage("Success!");
+      setPopupSubtitle(response.data.message || "Subscription activated successfully!");
+      setShowPopup(true);
 
-            console.log("Navigating with planId:", planId);
-            console.log("planDetails:", planDetails);
+      // Optionally navigate home after a short delay
+      setTimeout(() => {
+        navigation.navigate("DrawerNavigation", { screen: "Home" });
+      }, 3000);
+    } else {
+      setPopupMessage("Error!");
+      setPopupSubtitle(response.data.message || "Subscription activation failed.");
+      setShowPopup(true);
+    }
+  } catch (error) {
+ 
+    console.error("Subscription activation error:", error);
+    setPopupMessage("Error!");
+    setPopupSubtitle(
+      error.response?.data?.message ||
+        "Failed to activate subscription. Please try again."
+    );
+    setShowPopup(true);
+  } finally {
+    setIsLoading(false);
+  }
+}}
 
-            // Navigate to SubscriptionPaymentScreen and pass planId
-            navigation.navigate("SubscriptionPaymentScreen", {
-              id: planId,
-              price: planDetails.price,
-              duration: planDetails.duration,
-              planType: planDetails.planType, // Pass planType
-            });
-          } catch (error) {
-            console.error("Navigation error:", error);
-            setPopupMessage('Error!');
-            setPopupSubtitle("Failed to navigate. Please try again.");
-            setShowPopup(true);
-          } finally {
-            setIsLoading(false);
-          }
-        }}
         disabled={isLoading}
       >
         <LinearGradient

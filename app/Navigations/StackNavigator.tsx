@@ -112,6 +112,7 @@ import SubscriptionDetails from '../screens/settings/Subscription/SubscriptionDe
 import SubscriptionPaymentScreen from '../screens/settings/Subscription/SubscriptionPaymentScreen';
 import OtpMsg from '../Emails/OtpMsg';
 import CategoriesScreen from '../screens/auth/CategoriesScreen';
+import UserPostFeed from '../screens/settings/posts/UserPostFeed';
  
 // import BottomSheetComments from '../components/bottomsheet/BottomSheetComments';
 // import { View } from 'react-native-reanimated/lib/typescript/Animated';
@@ -271,6 +272,7 @@ const StackNavigator = () => {
                 <Stack.Screen name='SubscriptionPaymentScreen' component={SubscriptionPaymentScreen}/>
                 <Stack.Screen name='OtpMsg' component={OtpMsg}/>
                 <Stack.Screen name='CategoriesScreen' component={CategoriesScreen}/>
+                <Stack.Screen name='UserPostFeed' component={UserPostFeed}/>
             </Stack.Navigator>
         </SafeAreaView>
     )

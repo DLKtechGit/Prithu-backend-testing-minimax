@@ -39,7 +39,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
   setLoading(true);
  
   try {
-    const res = await fetch("http://192.168.1.42:5000/api/auth/user/login", {
+    const res = await fetch("http://192.168.1.10:5000/api/auth/user/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier: email, password })
@@ -57,6 +57,7 @@ const Login = ({ navigation }: LoginScreenProps) => {
     await AsyncStorage.setItem("refreshToken", data.refreshToken);
     await AsyncStorage.setItem("sessionId", data.sessionId);
     await AsyncStorage.setItem("deviceId", data.deviceId);
+    await AsyncStorage.setItem("userId", data.userId);
     const { appLanguage, feedLanguage, category , gender,  } = data;
       console.log({ appLanguage, feedLanguage, category , gender,  })
        

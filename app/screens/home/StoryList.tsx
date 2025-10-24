@@ -4,18 +4,34 @@ import { IMAGES } from '../../constants/theme';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
+import { useNavigation } from '@react-navigation/native'
 
 // Sample StoryItem component (replace with your actual StoryItem if different)
 const StoryItem = ({ title, image, storyItem, id }: { title: string; image: any; storyItem: any[]; id: string }) => {
   const theme = useTheme();
+  const navigation = useNavigation();
   const { colors }: { colors: any } = theme;
   const [isProfileImageLoading, setIsProfileImageLoading] = useState(id === '1'); // Only enable loading for "Add story"
 
+
+ const handlePress = () => {
+    if (id === '1') {
+      navigation.navigate('AddStory');
+    } else {
+     
+      // You can open viewer later if needed
+    }
+  };
+
     return (
-    <TouchableOpacity style={{ marginRight: 10, alignItems: 'center' }}>
+    <TouchableOpacity
+      style={{ marginRight: 10, alignItems: 'center' }}
+      onPress={handlePress}
+      // activeOpacity={0.8}
+    >
       <View style={{ justifyContent: 'center', alignItems: 'center' }}>
         {/* Gradient border only for non-"Add story" items */}
-        {id !== '1' ? (
+      
           <LinearGradient
             colors={["#FFD700", "#32CD32"]}
             start={{ x: 0, y: 0 }}
@@ -38,37 +54,6 @@ const StoryItem = ({ title, image, storyItem, id }: { title: string; image: any;
               source={image}
             />
           </LinearGradient>
-        ) : (
-          // "Add Story" item (with loading indicator)
-          <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-            {isProfileImageLoading && (
-              <ActivityIndicator
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: [{ translateX: -10 }, { translateY: -10 }],
-                }}
-                size="small"
-                color={colors.primary}
-              />
-            )}
-            <Image
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: 30,
-                borderWidth: 2,
-                borderColor: colors.primary,
-                opacity: isProfileImageLoading ? 0.1 : 1,
-              }}
-              source={image}
-              onLoadStart={() => setIsProfileImageLoading(true)}
-              onLoadEnd={() => setIsProfileImageLoading(false)}
-              onError={() => setIsProfileImageLoading(false)}
-            />
-          </View>
-        )}
       </View>
 
       <View style={{ marginTop: 5 }}>
@@ -97,7 +82,7 @@ const StoryList = () => {
           return;
         }
 
-        const res = await fetch('http://192.168.1.42:5000/api/get/profile/detail', {
+        const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,
@@ -147,16 +132,14 @@ const StoryList = () => {
 
   // Story Data
   const StoryData = [
-    ...(activeAccountType === 'Creator'
-      ? [
+  
           {
             id: '1',
             title: 'Add story',
             image: profileUrl, // dynamic profile avatar
             storyItem: [],
           },
-        ]
-      : []),
+
     {
       id: '2',
       title: 'Alex Techie',

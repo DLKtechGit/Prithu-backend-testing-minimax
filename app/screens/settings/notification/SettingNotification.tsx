@@ -183,7 +183,7 @@ const FeedCategoryFloating = ({ navigation }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("http://192.168.1.42:5000/api/get/feed/category");
+        const response = await fetch("http://192.168.1.10:5000/api/get/feed/category");
         const data = await response.json();
         if (data.categories && data.categories.length > 0) {
           setCategories(data.categories);
@@ -369,7 +369,7 @@ const FeedCategoryFloating = ({ navigation }) => {
     const userData = await AsyncStorage.getItem("userToken");
 
     // 👇 Send all selected categories in a single request
-    const response = await fetch("http://192.168.1.42:5000/api/user/intrested/category/begin", {
+    const response = await fetch("http://192.168.1.10:5000/api/user/intrested/category/begin", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

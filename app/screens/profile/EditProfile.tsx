@@ -50,7 +50,7 @@ const EditProfile = () => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
-    return `http://192.168.1.42:5000/${path.replace(/\\/g, '/')}`;
+    return `http://192.168.1.10:5000/${path.replace(/\\/g, '/')}`;
   };
 
   const formatDate = (date) => {
@@ -82,7 +82,7 @@ const EditProfile = () => {
         return;
       }
 
-      const res = await fetch('http://192.168.1.42:5000/api/get/profile/detail', {
+      const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -100,7 +100,7 @@ const EditProfile = () => {
         setPhoneNumber(profile.phoneNumber || '');
         setMaritalStatus(profile.maritalStatus === true || profile.maritalStatus === 'true');
         setLanguage(profile.language || 'en');
-         console.log("profile",profile.visibility)
+      
        
         if (profile.dateOfBirth) {
           const birthDate = new Date(profile.dateOfBirth);
@@ -143,7 +143,7 @@ const EditProfile = () => {
       return;
     }
 
-    const res = await fetch('http://192.168.1.42:5000/api/profile/visibility', {
+    const res = await fetch('http://192.168.1.10:5000/api/profile/visibility', {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -176,7 +176,7 @@ const EditProfile = () => {
     const token = await AsyncStorage.getItem('userToken');
     if (!token) return console.log('No token found');
 
-    const res = await fetch('http://192.168.1.42:5000/api/profile/toggle-visibility', {
+    const res = await fetch('http://192.168.1.10:5000/api/profile/toggle-visibility', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -285,7 +285,7 @@ const EditProfile = () => {
       // Debug: Log FormData entries
       console.log("FormData entries:", [...formData.entries()]);
 
-      const res = await fetch('http://192.168.1.42:5000/api/user/profile/detail/update', {
+      const res = await fetch('http://192.168.1.10:5000/api/user/profile/detail/update', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -322,7 +322,7 @@ const EditProfile = () => {
     try {
       console.log('Checking username:', name);
       const res = await fetch(
-        `http://192.168.1.42:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
+        `http://192.168.1.10:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
         { method: 'GET' }
       );
 

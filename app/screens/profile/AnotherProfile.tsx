@@ -27,37 +27,55 @@ const AnotherProfile = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
 
+  const [userId, setUserId] = useState(null);
+ const [currentUserId, setCurrentUserId] = useState(null);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [reels, setReels] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [postCount, setPostCount] = useState<number>(0);
   const [isFollowing, setIsFollowing] = useState(false); // Track follow status
-  const [followersCount, setFollowersCount] = useState<number>(0); // New state for followers count
+  const [followLoading, setFollowLoading] = useState(false);
+  const [creatorFollowerCount, setcreatorFollowerCount] = useState<number>(0); // New state for followers count
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
   const [isImageLoading, setIsImageLoading] = useState(true); // New state for image loading
+  const [followingCount, setfollowingCount] = useState<number>(0); // New state for followers count
+  const[FollowersCount,setFollowersCount] =useState<number>(0);
+
 
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { feedId, accountId } = route.params || {};
+  const { feedId,profileUserId,roleRef } = route.params || {};
 
-  console.log("feedId", feedId);
-  console.log("accountId", accountId);
+ 
+
 
   // Convert a backend path to full URL
   const buildUrl = (path: string | undefined | null) => {
     if (!path || path === "Unknown") return null;
-    return `http://192.168.1.42:5000/${path.replace(/\\/g, "/")}`;
+    return `http://192.168.1.10:5000/${path.replace(/\\/g, "/")}`;
   };
+
+//currentUserId
+useEffect(() => {
+  const getUser = async () => {
+    const stored = await AsyncStorage.getItem("userId");
+    if (stored) {
+      // stored is already a string ID
+      setCurrentUserId(stored);
+    }
+  };
+  getUser();
+}, []);
+
 
   // Fetch active account type
   useEffect(() => {
     const fetchAccountType = async () => {
       try {
         const storedType = await AsyncStorage.getItem("activeAccountType");
-        console.log(storedType);
         if (storedType) setActiveAccountType(storedType);
       } catch (err) {
         console.log("Error fetching account type:", err);
@@ -67,214 +85,121 @@ const AnotherProfile = () => {
   }, []);
 
   // Fetch backend profile
-  useEffect(() => {
-    const fetchCreatorProfile = async () => {
-      if (!feedId) {
-        console.log("No feedId provided");
+ useEffect(() => {
+  const fetchCreatorProfile = async () => {
+    if (!profileUserId || !roleRef) {
+      console.log("Missing profileUserId or roleRef");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        console.warn("No token found, user not logged in");
+        setLoading(false);
         return;
       }
-      try {
-        const token = await AsyncStorage.getItem("userToken");
-        if (!token) {
-          console.warn("No token found, user might not be logged in");
-          return;
+
+      const res = await fetch(
+        `http://192.168.1.10:5000/api/get/user/detail/at/feed/icon?profileUserId=${profileUserId}&roleRef=${roleRef}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
 
-        const res = await fetch(
-          `http://192.168.1.42:5000/api/get/creator/detail/feed/${feedId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+      const result = await res.json();
+      console.log("API response for creator profile:", result);
 
-        const result = await res.json();
-        console.log("API response for creator profile:", result);
-
-        if (res.ok) {
-          const fixedProfile = {
-            ...result.data.profile,
-            profileAvatar: result.data.profile.profileAvatar,
-            accountId: result.data.accountId, // Use accountId from API response
-          };
-          setProfile(fixedProfile);
-          setFollowersCount(result.data.followersCount || 0); // Set followers count from response
-
-          // ✅ First check backend response (if it has isFollowing)
-          if (result.data.isFollowing !== undefined) {
-            setIsFollowing(result.data.isFollowing);
-            await AsyncStorage.setItem(
-              `follow_status_${fixedProfile.accountId}`,
-              JSON.stringify(result.data.isFollowing)
-            );
-          } else {
-            // ✅ Fallback: check AsyncStorage
-            const savedStatus = await AsyncStorage.getItem(
-              `follow_status_${fixedProfile.accountId}`
-            );
-            if (savedStatus !== null) {
-              setIsFollowing(JSON.parse(savedStatus));
-            } else {
-              setIsFollowing(false); // default
-            }
-          }
-        }
-      } catch (err) {
-        console.log("Error fetching creator profile:", err);
+      if (res.ok && result.success && result.profile) {
+        setProfile(result.profile);
+        setIsFollowing(result.profile.isFollowing);
+        setfollowingCount(result.profile.followingCount);
+        setcreatorFollowerCount(result.profile.creatorFollowerCount);
+      } else {
+        console.warn("Failed to fetch profile:", result.message);
       }
-    };
+    } catch (err) {
+      console.log("Error fetching creator profile:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchCreatorProfile();
-  }, [feedId]);
+  fetchCreatorProfile();
+}, [profileUserId, roleRef]);
+
+
+
 
   // Fetch posts
-  useEffect(() => {
-    const fetchFeeds = async () => {
-      try {
-        setLoading(true);
-        const token = await AsyncStorage.getItem("userToken");
-        if (!token) {
-          Alert.alert("Error", "User not authenticated");
-          setLoading(false);
-          return;
-        }
+ useEffect(() => {
+  const fetchFeeds = async () => {
+    try {
+      setLoading(true);
 
-        const response = await fetch(
-          "http://192.168.1.42:5000/api/creator/get/post",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json", // ✅ tell backend it's JSON
-              Authorization: `Bearer ${token}`, // ✅ your auth token
-            },
-            body: JSON.stringify({ accountId: accountId }), // ✅ send feedId in body
-          }
-        );
+      const token = await AsyncStorage.getItem("userToken");
+      if (!token) {
+        Alert.alert("Error", "User not authenticated");
+        setLoading(false);
+        return;
+      }
 
-        const data = await response.json();
-        console.log("API response for posts:", data);
-        const feeds = data.feeds || [];
+      // 🔹 Replace this with the actual user ID you want to fetch (e.g., from route params)
+      const profileUserId = route?.params?.profileUserId; // or however you pass it
+      if (!profileUserId) {
+        console.warn("No profileUserId provided");
+      }
 
-        const imagePosts = feeds.filter((feed) => !feed.contentUrl.endsWith('.mp4')).map((feed) => ({
+      const response = await fetch("http://192.168.1.10:5000/api/user/get/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          profileUserId: profileUserId, // ✅ send it in the request body
+        }),
+      });
+
+      const data = await response.json();
+      console.log("API response for posts:", data);
+
+      const feeds = data.feeds || [];
+
+      const imagePosts = feeds
+        .filter((feed) => !feed.contentUrl.endsWith(".mp4"))
+        .map((feed) => ({
           id: feed.feedId,
           imageUrl: feed.contentUrl,
         }));
 
-        const videoReels = feeds.filter((feed) => feed.contentUrl.endsWith('.mp4')).map((feed) => ({
+      const videoReels = feeds
+        .filter((feed) => feed.contentUrl.endsWith(".mp4"))
+        .map((feed) => ({
           _id: feed.feedId,
-          videoThumb: feed.contentUrl.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg'),
+          videoThumb: feed.contentUrl
+            .replace("/video/upload/", "/video/upload/so_0/")
+            .replace(".mp4", ".jpg"),
         }));
 
-        setPosts(imagePosts);
-        setReels(videoReels);
-        setPostCount(imagePosts.length);
-      } catch (err) {
-        console.error("Error fetching posts:", err);
-        Alert.alert("Error", "Something went wrong while loading posts");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFeeds();
-  }, []);
-
-  // Handle follow
-  const handleFollow = async () => {
-    if (!profile.accountId) {
-      Alert.alert("Error", "Creator account ID not available");
-      return;
-    }
-
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        Alert.alert("Error", "User not authenticated");
-        return;
-      }
-
-      const res = await fetch(
-        "http://192.168.1.42:5000/api/user/follow/creator",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ accountId: profile.accountId }),
-        }
-      );
-
-      const result = await res.json();
-      console.log("Follow API response:", result);
-
-      if (res.ok) {
-        setIsFollowing(true);
-        setFollowersCount((prev) => prev + 1); // Increment followers count
-        await AsyncStorage.setItem(
-          `follow_status_${profile.accountId}`,
-          JSON.stringify(true)
-        );
-        Alert.alert("Success", "Followed successfully");
-      } else if (result.message === "You already followed this Creator") {
-        setIsFollowing(true); // Ensure button shows "Unfollow" if already following
-        Alert.alert("Info", "You are already following this creator");
-      } else {
-        Alert.alert("Error", result.message || "Failed to follow creator");
-      }
+      setPosts(imagePosts);
+      setReels(videoReels);
+      setPostCount(imagePosts.length);
     } catch (err) {
-      console.error("Error following creator:", err);
-      Alert.alert("Error", "Something went wrong while following creator");
+      console.error("Error fetching posts:", err);
+      Alert.alert("Error", "Something went wrong while loading posts");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle unfollow
-  const handleUnfollow = async () => {
-    if (!profile.accountId) {
-      Alert.alert("Error", "Creator account ID not available");
-      return;
-    }
+  fetchFeeds();
+}, []);
 
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      console.log(token);
-      if (!token) {
-        Alert.alert("Error", "User not authenticated");
-        return;
-      }
-
-      const res = await fetch(
-        "http://192.168.1.42:5000/api/user/unfollow/creator",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ accountId: profile.accountId }),
-        }
-      );
-
-      const result = await res.json();
-      console.log("Unfollow API response:", result);
-
-      if (res.ok) {
-        setIsFollowing(false);
-        setFollowersCount((prev) => Math.max(0, prev - 1)); // Decrement followers count, ensure non-negative
-        await AsyncStorage.setItem(
-          `follow_status_${profile.accountId}`,
-          JSON.stringify(false)
-        );
-        Alert.alert("Success", "Unfollowed successfully");
-      } else {
-        Alert.alert("Error", result.message || "Failed to unfollow creator");
-      }
-    } catch (err) {
-      console.error("Error unfollowing creator:", err);
-      Alert.alert("Error", "Something went wrong while unfollowing creator");
-    }
-  };
 
   const slideIndicator = scrollX.interpolate({
     inputRange: [0, SIZES.width],
@@ -405,39 +330,169 @@ const AnotherProfile = () => {
               <View style={{ backgroundColor: 'rgba(255, 255, 255, .1)', height: 70, width: 200, borderRadius: 12, marginTop: 20, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
              <View style={{ width: '50%' }}>
                 <TouchableOpacity style={{ alignItems: 'center' }}>
-                  <Text style={GlobalStyleSheet.textfont2}>{followersCount}</Text>
-                   <Text style={GlobalStyleSheet.titlefont}>Followers</Text>
-                     
-                 </TouchableOpacity>
+                  <Text style={GlobalStyleSheet.textfont2}>{creatorFollowerCount}</Text>
+                   <Text style={GlobalStyleSheet.titlefont}>Followers</Text>  
+                  </TouchableOpacity>
+              </View>
+
+                 <View style={{ width: '50%' }}>
+                <TouchableOpacity style={{ alignItems: 'center' }}>
+                  <Text style={GlobalStyleSheet.textfont2}>{followingCount}</Text>
+                   <Text style={GlobalStyleSheet.titlefont}>Following</Text>  
+                  </TouchableOpacity>
               </View>
               </View>       
 
             </View>
           </View>
         </ImageBackground>
+  
+ {currentUserId !== profileUserId && roleRef !== "Admin" && (
+   <View
+    style={{
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginTop: 20,
+  }}
+>
+  {!isFollowing ? (
+    // FOLLOW BUTTON
+    <Followbtn
+      title={followLoading ? "Please wait..." : "Follow"}
+      onPress={async () => {
+        try {
+          // Optimistic update for instant UI feedback
+          setIsFollowing(true);
+          setFollowersCount((prev) => prev + 1);
+          setFollowLoading(true);
 
-        {/* 🔹 Buttons */}
-        {activeAccountType === "Personal" && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              marginTop: 20,
-            }}
-          >
-            {isFollowing ? (
-              <Sharebtn title="Unfollow" onPress={handleUnfollow} />
-            ) : (
-              <Followbtn title="Follow" onPress={handleFollow} />
-            )}
-            <Sharebtn
-              onPress={() => navigation.navigate("SingleChat")}
-              title="Message"
-            />
-          </View>
-        )}
+          const token = await AsyncStorage.getItem("userToken");
+          if (!token) {
+            Alert.alert("Error", "User not authenticated");
+            setIsFollowing(false);
+            setFollowersCount((prev) => Math.max(0, prev - 1));
+            return;
+          }
+
+          const res = await fetch("http://192.168.1.10:5000/api/user/follow/creator", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ userId: profileUserId }),
+          });
+
+          const result = await res.json();
+          console.log("Follow response:", result);
+
+          if (!res.ok) {
+            Alert.alert("Error", result.message || "Failed to follow");
+            // revert UI if backend fails
+            setIsFollowing(false);
+            setFollowersCount((prev) => Math.max(0, prev - 1));
+          }
+        } catch (err) {
+          console.error("Follow error:", err);
+          Alert.alert("Error", "Something went wrong");
+          setIsFollowing(false);
+          setFollowersCount((prev) => Math.max(0, prev - 1));
+        } finally {
+          setFollowLoading(false);
+        }
+      }}
+    />
+  ) : (
+    <>
+    {/* FOLLOWING BUTTON - Just for View */}
+      <TouchableOpacity
+        disabled
+        style={{
+          backgroundColor: "#eee",
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          borderRadius: 10,
+        }}
+      >
+        <Text style={{ color: "black", fontWeight: "500" }}>Following</Text>
+      </TouchableOpacity>
+      {/* UNFOLLOW BUTTON - shows instantly after Follow */}
+      <TouchableOpacity
+        style={{
+          backgroundColor: "#eee",
+          paddingHorizontal: 16,
+          paddingVertical: 10,
+          borderRadius: 10,
+        }}
+        onPress={() => {
+          Alert.alert(
+            "Unfollow",
+            `Unfollow @${profile?.userName}?`,
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Unfollow",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    // Optimistic UI update
+                    setIsFollowing(false);
+                    setFollowersCount((prev) => Math.max(0, prev - 1));
+                    setFollowLoading(true);
+
+                    const token = await AsyncStorage.getItem("userToken");
+                    if (!token) {
+                      Alert.alert("Error", "User not authenticated");
+                      setIsFollowing(true);
+                      setFollowersCount((prev) => prev + 1);
+                      return;
+                    }
+
+                    const res = await fetch(
+                      "http://192.168.1.10:5000/api/user/unfollow/creator",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ userId: profileUserId }),
+                      }
+                    );
+
+                    const result = await res.json();
+                    console.log("Unfollow response:", result);
+
+                    if (!res.ok) {
+                      Alert.alert("Error", result.message || "Failed to unfollow");
+                      // revert if backend fails
+                      setIsFollowing(true);
+                      setFollowersCount((prev) => prev + 1);
+                    }
+                  } catch (err) {
+                    console.error("Unfollow error:", err);
+                    Alert.alert("Error", "Something went wrong");
+                    setIsFollowing(true);
+                    setFollowersCount((prev) => prev + 1);
+                  } finally {
+                    setFollowLoading(false);
+                  }
+                },
+              },
+            ],
+            { cancelable: true }
+          );
+        }}
+      >
+        <Text style={{ color: "#000", fontWeight: "500" }}>Unfollow</Text>
+      </TouchableOpacity>
+    </>
+  )}
+</View>
+)}
+
 
         {/* 🔹 Tabs: Posts / Reels */}
         <View style={GlobalStyleSheet.container}>

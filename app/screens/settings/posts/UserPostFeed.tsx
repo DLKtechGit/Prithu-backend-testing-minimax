@@ -1,105 +1,109 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { GlobalStyleSheet } from '../../../constants/styleSheet';
-import { ScrollView } from 'react-native-gesture-handler';
-import { IMAGES, COLORS, FONTS, SIZES } from '../../../constants/theme';
-import Header from '../../../layout/Header';
-import { useTheme } from '@react-navigation/native';
-import { StackScreenProps } from '@react-navigation/stack';
-import { RootStackParamList } from '../../../Navigations/RootStackParamList';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
- 
-type LikeScreenProps = StackScreenProps<RootStackParamList, 'LikeFeed'>;
- 
-const LikeFeed = ({ navigation }: LikeScreenProps) => {
+import React, { useRef, useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  Animated,
+  ActivityIndicator,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { ScrollView } from "react-native-gesture-handler";
+import { GlobalStyleSheet } from "../../../constants/styleSheet";
+import { IMAGES, COLORS, FONTS, SIZES } from "../../../constants/theme";
+import Header from "../../../layout/Header";
+import { useTheme } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+
+const UserPostFeed = ({ navigation }) => {
   const scrollRef = useRef<any>();
-  const [currentIndex, setCurrentIndex] = useState<any>(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [profilePosts, setProfilePosts] = useState<any[]>([]);
   const [reelsPosts, setReelsPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
- 
+  const [loading, setLoading] = useState(true);
+
+  const theme = useTheme();
+  const { colors }: { colors: any } = theme;
+
   const slideIndicator = scrollX.interpolate({
     inputRange: [0, SIZES.width],
     outputRange: [0, (SIZES.width - 30) / 2],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
- 
-  const onPressTouch = (val: any) => {
+
+  const onPressTouch = (val: number) => {
     setCurrentIndex(val);
     scrollRef.current?.scrollTo({
       x: SIZES.width * val,
       animated: true,
     });
   };
- 
-  const theme = useTheme();
-  const { colors }: { colors: any } = theme;
- 
-  // Fetch Liked Feeds
-// Fetch Liked Feeds
-  const fetchLikedFeeds = async () => {
+
+  // ✅ Fetch User’s Own Posts
+  const fetchUserPosts = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
+      const token = await AsyncStorage.getItem("userToken");
+      const userId = await AsyncStorage.getItem("userId"); // make sure you store userId after login
 
-      if (!token) {
-        console.log('❌ No token found in AsyncStorage');
+      if (!token || !userId) {
+        console.log("❌ Missing token or userId");
         setLoading(false);
         return;
       }
-      
 
-      const res = await axios.get(
-        'http://192.168.1.10:5000/api/user/liked/feeds',
+      const res = await axios.post(
+        "http://192.168.1.10:5000/api/user/get/post",
+        {
+          currentUserId: userId, // 👈 sending userId in body
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
 
-      console.log('✅ API Response:', res.data);
+      console.log(" API Response (User Posts):", res.data);
 
-      const allFeeds = res.data.likedFeeds || [];
+      const feeds = res.data.feeds || [];
 
-      // Separate images & videos by type
-      const images = allFeeds.filter((feed: any) => feed.type === 'image');
-      const videos = allFeeds.filter((feed: any) => feed.type === 'video');
+      // Separate into images and videos
+      const images = feeds.filter((f: any) => !f.contentUrl.endsWith(".mp4"));
+      const videos = feeds.filter((f: any) => f.contentUrl.endsWith(".mp4"));
 
-      // Map with correct structure
       setProfilePosts(
         images.map((f: any) => ({
-          image: f.url,
-          likeCount: f.totalLikes || 0,
+          image: f.contentUrl,
+          likeCount: f.likeCount || 0,
         }))
       );
 
       setReelsPosts(
         videos.map((f: any) => ({
-          thumbnail: f.url.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg'), // Generate thumbnail URL
-          videoUrl: f.url, // Store actual video URL for playback
-          views: f.totalLikes || 0, // Using totalLikes as views for consistency
+          thumbnail: f.contentUrl
+            .replace("/video/upload/", "/video/upload/so_0/")
+            .replace(".mp4", ".jpg"),
+          videoUrl: f.contentUrl,
+          views: f.likeCount || 0,
         }))
       );
     } catch (err: any) {
-      console.log(
-        '❌ Error fetching liked feeds:',
-        err.response?.data || err.message
-      );
+      console.log(" Error fetching user posts:", err.response?.data || err.message);
       setProfilePosts([]);
       setReelsPosts([]);
     } finally {
       setLoading(false);
     }
   };
- 
+
   useEffect(() => {
-    fetchLikedFeeds();
+    fetchUserPosts();
   }, []);
- 
+
   return (
     <SafeAreaView
       style={[
@@ -107,14 +111,16 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
         { padding: 0, backgroundColor: colors.card, flex: 1 },
       ]}
     >
-      <Header title="Liked Posts" />
+      {/*  Header */}
+      <Header title="My Posts" />
+
       <View style={{ backgroundColor: colors.card, flex: 1 }}>
         {loading ? (
           <View
             style={{
               flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
             <ActivityIndicator size="large" color={COLORS.primary} />
@@ -122,14 +128,15 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
         ) : (
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={GlobalStyleSheet.container}>
-              <View style={{ flexDirection: 'row', marginTop: 0, marginBottom: 0 }}>
+              {/* Tabs */}
+              <View style={{ flexDirection: "row", marginTop: 0, marginBottom: 0 }}>
                 <TouchableOpacity
                   onPress={() => onPressTouch(0)}
                   style={GlobalStyleSheet.TouchableOpacity2}
                 >
                   <Image
                     style={[
-                      { width: 16, height: 16, tintColor: '#475A77' },
+                      { width: 16, height: 16, tintColor: "#475A77" },
                       currentIndex === 0 && { tintColor: COLORS.primary },
                     ]}
                     source={IMAGES.profilepic}
@@ -139,7 +146,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                       {
                         ...FONTS.fontMedium,
                         fontSize: 14,
-                        color: '#475A77',
+                        color: "#475A77",
                         marginLeft: 5,
                       },
                       currentIndex === 0 && { color: COLORS.primary },
@@ -154,7 +161,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                 >
                   <Image
                     style={[
-                      { width: 16, height: 16, tintColor: '#475A77' },
+                      { width: 16, height: 16, tintColor: "#475A77" },
                       currentIndex === 1 && { tintColor: COLORS.primary },
                     ]}
                     source={IMAGES.reels}
@@ -164,7 +171,7 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                       {
                         ...FONTS.fontMedium,
                         fontSize: 14,
-                        color: '#475A77',
+                        color: "#475A77",
                         marginLeft: 5,
                       },
                       currentIndex === 1 && { color: COLORS.primary },
@@ -176,9 +183,9 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                 <Animated.View
                   style={{
                     backgroundColor: COLORS.primary,
-                    width: '50%',
+                    width: "50%",
                     height: 2,
-                    position: 'absolute',
+                    position: "absolute",
                     bottom: 0,
                     left: 0,
                     transform: [{ translateX: slideIndicator }],
@@ -186,7 +193,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                 />
               </View>
             </View>
- 
+
+            {/* Scrollable Tabs */}
             <ScrollView
               horizontal
               scrollEventThrottle={16}
@@ -198,19 +206,11 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                 { useNativeDriver: false }
               )}
               onMomentumScrollEnd={(e: any) => {
-                if (
-                  e.nativeEvent.contentOffset.x.toFixed(0) ===
-                  SIZES.width.toFixed(0)
-                ) {
-                  setCurrentIndex(1);
-                } else if (e.nativeEvent.contentOffset.x.toFixed(0) === 0) {
-                  setCurrentIndex(0);
-                } else {
-                  setCurrentIndex(0);
-                }
+                const xOffset = e.nativeEvent.contentOffset.x;
+                setCurrentIndex(xOffset >= SIZES.width / 2 ? 1 : 0);
               }}
             >
-              {/* Liked Posts */}
+              {/* Posts Tab */}
               <View
                 style={[
                   GlobalStyleSheet.container,
@@ -221,32 +221,34 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                   <View
                     style={{
                       flex: 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
+                      justifyContent: "center",
+                      alignItems: "center",
                       height: SIZES.height - 200,
                     }}
                   >
-                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text>No posts yet</Text>
                   </View>
                 ) : (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                     {profilePosts.map((data: any, index) => (
-                      <View key={index} style={{ width: '33.33%' }}>
+                      <View key={index} style={{ width: "33.33%" }}>
                         <TouchableOpacity
                           style={{ padding: 2 }}
-                          onPress={() => navigation.navigate('LikePost', { data })}
+                          onPress={() =>
+                            navigation.navigate("UserPostDetail", { data })
+                          }
                         >
                           <Image
-                            style={{ width: '100%', height: null, aspectRatio: 1 }}
+                            style={{ width: "100%", height: null, aspectRatio: 1 }}
                             source={{ uri: data.image }}
                           />
                           <View
                             style={{
-                              flexDirection: 'row',
+                              flexDirection: "row",
                               gap: 5,
-                              alignItems: 'center',
-                              backgroundColor: 'rgba(255, 255, 255, 0.20)',
-                              position: 'absolute',
+                              alignItems: "center",
+                              backgroundColor: "rgba(255, 255, 255, 0.20)",
+                              position: "absolute",
                               borderRadius: 15,
                               paddingHorizontal: 10,
                               paddingVertical: 3,
@@ -258,8 +260,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                               style={{
                                 width: 10,
                                 height: 10,
-                                resizeMode: 'contain',
-                                tintColor: '#fff',
+                                resizeMode: "contain",
+                                tintColor: "#fff",
                               }}
                               source={IMAGES.like}
                             />
@@ -268,7 +270,6 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                                 ...FONTS.fontRegular,
                                 fontSize: 10,
                                 color: COLORS.white,
-                                lineHeight: 14,
                               }}
                             >
                               {data.likeCount || 0}
@@ -280,8 +281,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                   </View>
                 )}
               </View>
- 
-              {/* Liked Reels */}
+
+              {/* Reels Tab */}
               <View
                 style={[
                   GlobalStyleSheet.container,
@@ -292,23 +293,25 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                   <View
                     style={{
                       flex: 1,
-                      justifyContent: 'center',
-                      alignItems: 'center',
+                      justifyContent: "center",
+                      alignItems: "center",
                       height: SIZES.height - 200,
                     }}
                   >
-                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Text>No reels yet</Text>
                   </View>
                 ) : (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
                     {reelsPosts.map((data: any, index) => (
-                      <View key={index} style={{ width: '33.33%', padding: 2 }}>
+                      <View key={index} style={{ width: "33.33%", padding: 2 }}>
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('LikeReels', { data })}
+                          onPress={() =>
+                            navigation.navigate("UserReelDetail", { data })
+                          }
                         >
                           <Image
                             style={{
-                              width: '100%',
+                              width: "100%",
                               height: null,
                               aspectRatio: 1 / 1.9,
                             }}
@@ -316,11 +319,11 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                           />
                           <View
                             style={{
-                              flexDirection: 'row',
+                              flexDirection: "row",
                               gap: 5,
-                              alignItems: 'center',
-                              backgroundColor: 'rgba(255, 255, 255, 0.20)',
-                              position: 'absolute',
+                              alignItems: "center",
+                              backgroundColor: "rgba(255, 255, 255, 0.20)",
+                              position: "absolute",
                               borderRadius: 15,
                               paddingHorizontal: 10,
                               paddingVertical: 3,
@@ -332,8 +335,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                               style={{
                                 width: 12,
                                 height: 12,
-                                resizeMode: 'contain',
-                                tintColor: '#fff',
+                                resizeMode: "contain",
+                                tintColor: "#fff",
                               }}
                               source={IMAGES.eyeopen}
                             />
@@ -342,7 +345,6 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
                                 ...FONTS.fontRegular,
                                 fontSize: 10,
                                 color: COLORS.white,
-                                lineHeight: 14,
                               }}
                             >
                               {data.views || 0}
@@ -361,6 +363,5 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
     </SafeAreaView>
   );
 };
- 
-export default LikeFeed;
- 
+
+export default UserPostFeed;

@@ -108,7 +108,7 @@ const SubscriptionDetails = () => {
   const handlePopupAction = async () => {
     if (isCancelConfirm) {
       try {
-        const response = await fetch('http://192.168.1.42:5000/api/user/cancel/subscription', {
+        const response = await fetch('http://192.168.1.10:5000/api/user/cancel/subscription', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

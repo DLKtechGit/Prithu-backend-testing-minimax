@@ -51,7 +51,7 @@ const FeedLanguage: React.FC = () => {
     const loadFeedLanguage = async () => {
       try {
         const token = await AsyncStorage.getItem("userToken");
-        const res = await fetch("http://192.168.1.42:5000/api/user/get/feed/language", {
+        const res = await fetch("http://192.168.1.10:5000/api/user/get/feed/language", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -101,7 +101,7 @@ const FeedLanguage: React.FC = () => {
       const token = await AsyncStorage.getItem("userToken");
 
       // ✅ Update backend
-      await fetch("http://192.168.1.42:5000/api/user/feed/language", {
+      await fetch("http://192.168.1.10:5000/api/user/feed/language", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
