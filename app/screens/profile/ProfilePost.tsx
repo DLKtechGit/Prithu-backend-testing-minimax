@@ -19,7 +19,10 @@ import * as Haptics from 'expo-haptics';
 
 const API_BASE = 'http://192.168.1.10:5000/api';
 
-const ProfilePost = () => {
+const ProfilePost = ({
+      themeColor,
+      textColor,
+      }: any) => {
     const sheetRef = useRef<any>();
     const moresheet = useRef<any>();
     const theme = useTheme();
@@ -113,15 +116,15 @@ const ProfilePost = () => {
     };
 
     useEffect(() => {
-        const fetchAccountType = async () => {
-            try {
-                const storedType = await AsyncStorage.getItem('activeAccountType');
-                if (storedType) setActiveAccountType(storedType);
-            } catch (err) {
-                console.log('Error fetching account type:', err);
-            }
-        };
-        fetchAccountType();
+        // const fetchAccountType = async () => {
+        //     try {
+        //         const storedType = await AsyncStorage.getItem('activeAccountType');
+        //         if (storedType) setActiveAccountType(storedType);
+        //     } catch (err) {
+        //         console.log('Error fetching account type:', err);
+        //     }
+        // };
+        // fetchAccountType();
         fetchPosts();
         fetchProfile();
     }, [isFocused]); // Refetch posts when screen is focused
@@ -297,7 +300,7 @@ const ProfilePost = () => {
                                                     <Image
                                                         style={{ width: '100%', height: '100%' }}
                                                         source={post.image}
-                                                        resizeMode="contain"
+                                                        resizeMode="cover"
                                                     />
                                                     <Image
                                                         source={data.image}

@@ -57,7 +57,7 @@ const HomeHeader = ({ theme }: any) => {
                 )}
 
                 {/* Always visible - Notifications */}
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={[
                         GlobalStyleSheet.btnicon,
                         { marginRight: 10, backgroundColor: theme.dark ? 'rgba(255,255,255,.1)' : '#EFF3FA' }
@@ -68,7 +68,7 @@ const HomeHeader = ({ theme }: any) => {
                         style={{ width: 20, height: 20, tintColor: theme.dark ? '#fff' : '#475A77' }}
                         source={IMAGES.bell}
                     />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
             </View>
         </View>
     )

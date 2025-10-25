@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { height: windowHeight } = Dimensions.get('window');
 // Decrease the height by 10% (adjust the multiplier as needed)
-const REELS_CONTAINER_HEIGHT = 810;
+const REELS_CONTAINER_HEIGHT = 670; //810
 
 const Reels = () => {
   const sheetRef = useRef<any>();

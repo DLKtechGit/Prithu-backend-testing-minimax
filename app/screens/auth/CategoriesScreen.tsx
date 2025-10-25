@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   tagText: { fontSize: 15, fontWeight: "500" },
-  bottomContainer: { alignItems: "center", paddingHorizontal: 20 },
+  bottomContainer: { alignItems: "center", paddingHorizontal: 20, marginBottom: 35 },
   continueBtn: {
     width: "100%",
     paddingVertical: 14,

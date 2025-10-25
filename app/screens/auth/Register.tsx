@@ -9,8 +9,10 @@ import TermsOfUse from './TermsOfUse';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import { Ionicons } from "@expo/vector-icons";
-import { useState , useEffect} from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 type RegisterScreenProps = StackScreenProps<RootStackParamList, 'Register'>;
 
@@ -20,12 +22,16 @@ const Register = ({ navigation }: RegisterScreenProps) => {
 
     const [show, setShow] = React.useState(true);
     const [acceptedTerms, setAcceptedTerms] = React.useState(false);
-    const [inputFocus, setFocus] = React.useState({
+    const [termsError, setTermsError] = useState('');
+    const [inputFocus, setFocus] = useState({
         onFocus1: false,
         onFocus2: false,
         onFocus3: false,
         onFocus4: false,
+        onFocus5: false,
+
     });
+
 
     const [username, setUsername] = React.useState('');
     const [email, setEmail] = React.useState('');
@@ -38,12 +44,22 @@ const Register = ({ navigation }: RegisterScreenProps) => {
     const [usernameError, setUsernameError] = React.useState('');
     const [useremailError, setUseremailError] = React.useState('');
     const [passwordError, setPasswordError] = React.useState('');
+    const [referralCode, setreferralCode] = React.useState('');
     const [showPopup, setShowPopup] = useState(false); // State to control popup visibility
     const [popupMessage, setPopupMessage] = useState(''); // Message for the popup
     const [popupSubtitle, setPopupSubtitle] = useState(''); // Subtitle for the popup
     const fadeAnim = useState(new Animated.Value(0))[0]; // Animation value for fade and position
 
     const route = useRoute<any>();
+
+     useFocusEffect(
+     React.useCallback(() => {
+        if (route.params?.referralCode) {
+            setreferralCode(route.params.referralCode);
+        }
+    }, [route.params?.referralCode])
+);
+
 
     // Restore form data and other states when navigating back
     React.useEffect(() => {
@@ -148,7 +164,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
 
     const sendOtp = async () => {
         if (!email) {
-          setPopupMessage('Error');
+            setPopupMessage('Error');
             setPopupSubtitle('Please enter your email first');
             setShowPopup(true);
             return;
@@ -166,19 +182,19 @@ const Register = ({ navigation }: RegisterScreenProps) => {
             const data = await res.json();
 
             if (res.ok) {
-              setOtpSent(true);
+                setOtpSent(true);
                 setPopupMessage('Success');
                 setPopupSubtitle('Successfully the OTP is sent');
                 setShowPopup(true);
             } else {
-               setPopupMessage('Error');
+                setPopupMessage('Error');
                 setPopupSubtitle(data.message || 'Failed to send OTP');
                 setShowPopup(true);
                 console.log(data);
             }
         } catch (error) {
             console.error(error);
-           setPopupMessage('Error');
+            setPopupMessage('Error');
             setPopupSubtitle('Failed to connect to server');
             setShowPopup(true);
         }
@@ -203,7 +219,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
             console.log(data);
 
             if (res.ok) {
-             setOtpVerified(true);
+                setOtpVerified(true);
                 setPopupMessage('Success');
                 setPopupSubtitle('Your OTP is verified');
                 setShowPopup(true);
@@ -215,7 +231,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
             }
         } catch (error) {
             console.error(error);
-           setPopupMessage('Error');
+            setPopupMessage('Error');
             setPopupSubtitle('Failed to connect to server');
             setShowPopup(true);
         }
@@ -223,7 +239,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
 
     const handleRegister = async () => {
         const incompleteFields = [];
-        
+
         if (!username || usernameError) {
             incompleteFields.push('Username');
         }
@@ -236,12 +252,16 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         if (!password || passwordError) {
             incompleteFields.push('Password');
         }
-        // if (!acceptedTerms) {
-        //     incompleteFields.push('Terms of Use');
-        // }
+        if (!acceptedTerms) {
+            setTermsError('You must accept the Terms of Use before registering.');
+            return;
+        } else {
+            setTermsError('');
+        }
+
 
         if (incompleteFields.length > 0) {
-          setPopupMessage('Error');
+            setPopupMessage('Error');
             setPopupSubtitle(`Please complete the ${incompleteFields.join(', ')} field`);
             setShowPopup(true);
             return;
@@ -257,7 +277,13 @@ const Register = ({ navigation }: RegisterScreenProps) => {
             const res = await fetch('http://192.168.1.10:5000/api/auth/user/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password, otp })
+                body: JSON.stringify({
+                    username: username.trim(),
+                    email: email.trim(),
+                    password,
+                    otp,
+                    referralCode: referralCode?.trim() || "",
+                })
             });
 
             const data = await res.json();
@@ -270,7 +296,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
                     navigation.navigate('Login');
                 }, 2000); // Delay navigation to show success message
             } else {
-               setPopupMessage('Error');
+                setPopupMessage('Error');
                 setPopupSubtitle(data.message || 'Something went wrong');
                 setShowPopup(true);
                 console.log(data);
@@ -305,7 +331,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         }
     }, [showPopup, fadeAnim]);
 
-   // Custom Popup Component
+    // Custom Popup Component
     const Popup = () => (
         <Animated.View style={[styles.popupOverlay, {
             opacity: fadeAnim,
@@ -548,6 +574,36 @@ const Register = ({ navigation }: RegisterScreenProps) => {
                                 </Text>
                             ) : null}
 
+                            <Text style={[GlobalStyleSheet.inputlable, { color: colors.title }]}>ReferralCode</Text>
+                            <View
+                                style={[
+                                    GlobalStyleSheet.inputBox,
+                                    { backgroundColor: colors.input },
+                                    inputFocus.onFocus1 && { borderColor: COLORS.primary }
+                                ]}
+                            >
+                                <Image
+                                    style={[GlobalStyleSheet.inputimage, { tintColor: theme.dark ? colors.title : colors.text }]}
+                                    source={IMAGES.copylink}
+                                />
+                                <TextInput
+                                    style={[GlobalStyleSheet.input, { color: colors.title }]}
+                                    placeholder="Enter your ReferralCode"
+                                    placeholderTextColor={colors.placeholder}
+                                    value={referralCode}
+                                    onChangeText={(text) => setreferralCode(text)}
+                                    onFocus={() => setFocus({ ...inputFocus, onFocus5: true })}
+                                    onBlur={() => setFocus({ ...inputFocus, onFocus5: false })}
+                                    editable={true}
+                                    showSoftInputOnFocus={true}
+                                />
+                            </View>
+                            {termsError ? (
+                                <Text style={{ ...FONTS.fontSm, color: COLORS.danger, marginTop: 5, textAlign: 'center' }}>
+                                    {termsError}
+                                </Text>
+                            ) : null}
+
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 15, justifyContent: 'center', marginLeft: 25 }}>
                                 <TouchableOpacity
                                     onPress={() => setAcceptedTerms(!acceptedTerms)}
@@ -578,6 +634,7 @@ const Register = ({ navigation }: RegisterScreenProps) => {
                                                 otpSent,
                                                 otpVerified,
                                                 acceptedTerms,
+                                                referralCode,
                                             })
                                         }
                                         style={{ color: COLORS.primary, textDecorationLine: 'underline' }}

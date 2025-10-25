@@ -153,7 +153,7 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
     // Handle different navigation for Creator vs Regular accounts
     if (!isCreator) {
       if (label === 'Reels') return 'Reels';
-      if (label === 'Chat') return 'createpost';
+      if (label === 'Chat') return 'AddStory';  //addstory
     } else {
       if (label === 'Reels') return 'AddStory';
       if (label === 'Chat') return 'Reels';

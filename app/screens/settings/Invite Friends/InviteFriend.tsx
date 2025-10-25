@@ -99,7 +99,7 @@ const InviteFriends = () => {
             <Text style={styles.activeTabText}>Your Referrals</Text>
           </LinearGradient>
           <TouchableOpacity style={styles.inactiveTab}>
-            <Text style={styles.inactiveTabText}>Invited Friends (26)</Text>
+            <Text style={styles.inactiveTabText}>Invited Friends</Text>
           </TouchableOpacity>
         </View>
 

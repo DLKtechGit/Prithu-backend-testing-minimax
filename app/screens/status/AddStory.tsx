@@ -403,11 +403,32 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
                 <Text style={[GlobalStyleSheet.textfont, { color: COLORS.white }]}>{data.text}</Text>
 
                 {/* Optional small tick on selected top tile (mirrors gallery tick) */}
-                {isSelectedTop && (
-                  <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: COLORS.grey, borderRadius: 12, padding: 3 }}>
-                    <Image source={IMAGES.check} style={{ width: 16, height: 16, tintColor: '#fff' }} />
-                  </View>
-                )}
+              {isSelectedTop && (
+  <View
+    style={{
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      width: 22, // ✅ fixed size for circular shape
+      height: 22,
+      borderRadius: 11, // ✅ perfect circle
+      backgroundColor: '#41c124', // ✅ bright green background
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}
+  >
+    <Image
+      source={IMAGES.check}
+      style={{
+        width: 12,
+        height: 12,
+        tintColor: '#fff', // ✅ white tick
+        resizeMode: 'contain',
+      }}
+    />
+  </View>
+)}
+
               </TouchableOpacity>
 
               {/* Small helper text if there’s a mismatch */}
@@ -476,12 +497,12 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
                     position: 'absolute',
                     top: 5,
                     right: 5,
-                    backgroundColor: COLORS.grey,
+                    backgroundColor: '#41c124',
                     borderRadius: 12,
                     padding: 3,
                   }}
                 >
-                  <Image source={IMAGES.check} style={{ width: 16, height: 16, tintColor: '#fff' }} />
+                  <Image source={IMAGES.check} style={{ width: 10, height: 10, tintColor: '#fff' }} />
                 </View>
               )}
             </TouchableOpacity>

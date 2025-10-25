@@ -106,7 +106,6 @@ const Search = ({ navigation }: any) => {
       );
       setCategories(res.data.categories || []);
     } catch (err) {
-      console.error('Error searching categories:', err);
       setCategories([]);
     } finally {
       setCatLoading(false);
@@ -122,11 +121,11 @@ const Search = ({ navigation }: any) => {
         console.warn('No token found in storage');
         return;
       }
-      const res = await axios.get(`${API_BASE}/all/catagories/${categoryId}`, {
+      const res = await axios.get(`${API_BASE}/user/get/feed/with/search/cat/${categoryId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      const feeds = res.data?.category?.feeds || [];
+    console.log("categry",res.data.feeds)
+     const feeds = res.data?.feeds || [];
       const imageFeeds = feeds
         .filter((item: any) => item.type === 'image')
         .map((item: any) => ({

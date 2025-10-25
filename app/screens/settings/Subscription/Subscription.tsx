@@ -799,10 +799,11 @@ const SubscriptionScreen = () => {
 
  
     // ✅ Handle backend response (no 'success' field)
-    if (response.status === 200 && response.data.subscription) {
-      setPopupMessage("Success!");
-      setPopupSubtitle(response.data.message || "Subscription activated successfully!");
-      setShowPopup(true);
+if (response.status === 200 && (response.data.success === true || !response.data.success)) {
+  setPopupMessage("Success!");
+  setPopupSubtitle(response.data.message || "Subscription activated successfully!");
+  setShowPopup(true);
+
 
       // Optionally navigate home after a short delay
       setTimeout(() => {

@@ -46,7 +46,7 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://192.168.1.10:5000/api/creator/get/feed/category');
+        const res = await axios.get('http://192.168.1.10:5000/api/user/get/all/category');
         console.log("ddd", res.data);
 
         if (Array.isArray(res.data.categories)) {
@@ -302,7 +302,7 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
                   {categories.map((cat) => (
                     <Picker.Item
                       key={cat.categoryId}
-                      label={cat.categoriesName}
+                      label={cat.categoryName}
                       value={cat.categoryId}
                     />
                   ))}

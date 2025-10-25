@@ -300,13 +300,13 @@ const EditProfile = () => {
         setShowPopup(true);
         fetchProfileDetail();
       } else {
-        console.error('Error updating profile:', data);
+        // console.error('Error updating profile:', data);
         setPopupMessage('Error!');
         setPopupSubtitle(data.message || 'Update failed');
         setShowPopup(true);
       }
     } catch (err) {
-      console.error('Save error:', err);
+      // console.error('Save error:', err);
       setPopupMessage('Error!');
       setPopupSubtitle('Something went wrong while saving');
       setShowPopup(true);
@@ -339,46 +339,49 @@ const EditProfile = () => {
       setUsernameError('Error checking username');
     }
   };
-  useEffect(() => {
-    if (showPopup) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [showPopup, fadeAnim]);
+
+useEffect(() => {
+  if (showPopup) {
+    // Fade-in only (no slide)
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  } else {
+    // Fade-out only
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }
+}, [showPopup]);
 
   // Custom Popup Component
-  const Popup = () => (
-    <Animated.View style={[styles.popupOverlay, {
-      opacity: fadeAnim,
-      transform: [{
-        translateY: fadeAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [300, 0] // Slide from 300 (bottom) to 0 (top)
-        })
-      }]
-    }]}>
-      <View style={styles.popupContainer}>
-        <Image
-          source={IMAGES.bugrepellent}
-          style={styles.popupImage}
-        />
-        <Text style={styles.popupTitle}>{popupMessage}</Text>
-        <Text style={styles.popupSubtitle}>{popupSubtitle}</Text>
-        <TouchableOpacity style={styles.popupButton} onPress={() => setShowPopup(false)}>
-          <Text style={styles.popupButtonText}>Let's Go</Text>
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
-  );
+ 
+const Popup = () => (
+  <Animated.View
+    style={[
+      styles.popupOverlay,               // <-- new style (center + overlay)
+      { opacity: fadeAnim },              // only fade animation
+    ]}
+  >
+    <View style={styles.popupContainer}>
+      <Image source={IMAGES.bugrepellent} style={styles.popupImage} />
+      <Text style={styles.popupTitle}>{popupMessage}</Text>
+      <Text style={styles.popupSubtitle}>{popupSubtitle}</Text>
+
+      <TouchableOpacity
+        style={styles.popupButton}
+        onPress={() => setShowPopup(false)}
+      >
+        <Text style={styles.popupButtonText}>Let's Go</Text>
+      </TouchableOpacity>
+    </View>
+  </Animated.View>
+);
+
 
   return (
     <SafeAreaView style={{ backgroundColor: colors.card, flex: 1 }}>
@@ -578,14 +581,22 @@ const EditProfile = () => {
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Marital Status
           </Text>
-          <Picker
-            selectedValue={maritalStatus ? 'married' : 'single'}
-            onValueChange={(val) => setMaritalStatus(val === 'married')}
-            style={{ color: colors.title }}
-          >
-            <Picker.Item label="Single" value="single" />
-            <Picker.Item label="Married" value="married" />
-          </Picker>
+      <View
+  style={[
+    GlobalStyleSheet.inputBox,
+    { borderColor: colors.border, borderWidth: 1, paddingLeft: 10 },
+  ]}
+>
+  <Picker
+    selectedValue={maritalStatus ? 'married' : 'single'}
+    onValueChange={(val) => setMaritalStatus(val === 'married')}
+    style={{ color: colors.title, width: '100%' }}
+    dropdownIconColor={colors.title}
+  >
+    <Picker.Item label="Single" value="single" />
+    <Picker.Item label="Married" value="married" />
+  </Picker>
+</View>
 
           {maritalStatus && (
             <>
@@ -667,17 +678,26 @@ const EditProfile = () => {
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Language
           </Text>
-          <Picker
-            selectedValue={language}
-            onValueChange={(val) => setLanguage(val)}
-            style={{ color: colors.title }}
-          >
-            <Picker.Item label="English" value="en" />
-            <Picker.Item label="Tamil" value="ta" />
-            <Picker.Item label="Hindi" value="hi" />
-            <Picker.Item label="French" value="fr" />
-            <Picker.Item label="Spanish" value="es" />
-          </Picker>
+       <View
+  style={[
+    GlobalStyleSheet.inputBox,
+    { borderColor: colors.border, borderWidth: 1, paddingLeft: 10 },
+  ]}
+>
+  <Picker
+    selectedValue={language}
+    onValueChange={(val) => setLanguage(val)}
+    style={{ color: colors.title, width: '100%' }}
+    dropdownIconColor={colors.title}
+  >
+    <Picker.Item label="English" value="en" />
+    <Picker.Item label="Tamil" value="ta" />
+    <Picker.Item label="Hindi" value="hi" />
+    <Picker.Item label="French" value="fr" />
+    <Picker.Item label="Spanish" value="es" />
+  </Picker>
+</View>
+
 
           <Button title="Save" onPress={handleSave} />
         </View>
@@ -687,40 +707,51 @@ const EditProfile = () => {
   );
 };
 const styles = StyleSheet.create({
-  popupOverlay: {
+ popupOverlay: {
     position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',   // dark overlay
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   popupContainer: {
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
-    width: '100%',
-    elevation: 20,
+    width: '90%',               // same width as the example you gave
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
+
   popupImage: {
     width: 80,
     height: 80,
     borderRadius: 40,
     marginBottom: 15,
   },
+
   popupTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     textAlign: 'center',
   },
+
   popupSubtitle: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
     marginVertical: 10,
   },
+
   popupButton: {
     backgroundColor: '#28A745',
     paddingVertical: 10,
@@ -728,6 +759,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 15,
   },
+
   popupButtonText: {
     color: '#fff',
     fontSize: 16,

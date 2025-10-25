@@ -136,6 +136,7 @@ const TermsOfUse: React.FC<Props> = ({ navigation, route }) => {
                                         otp: route.params?.otp || '',
                                         otpSent: route.params?.otpSent || false,
                                         otpVerified: route.params?.otpVerified || false,
+                                        referralCode: route.params?.referralCode || false,
                                     });
                                 }}
                             />
