@@ -434,21 +434,32 @@ const Reelsitem = ({
   reelsvideo,
   hasStory,
   autoplay,
-}) => {
+  isLiked: initialIsLiked,
+  themeColor,
+  textColor,
+}: any) => {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
   const video = useRef(null);
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [isShowText, setIsShowText] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialIsLiked || false);
   const [isSaved, setIsSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(like || 0);
   const [activeAccountType, setActiveAccountType] = useState(null);
+  const [isPhoneVisible, setIsPhoneVisible] = useState(false);
+  const [isNameVisible, setisNameVisible] = useState(false);
   const [profile, setProfile] = useState({
     displayName: '',
     phoneNumber: '',
   });
   const [hasViewed, setHasViewed] = useState(false);
+
+
+  useEffect(() => {
+    setIsLiked(initialIsLiked || false);
+  }, [initialIsLiked]);
+
 
   // Fetch account type
   useEffect(() => {
@@ -472,25 +483,51 @@ const Reelsitem = ({
           Alert.alert('Error', 'User not authenticated');
           return;
         }
+
+        // Step 1: Fetch profile details
         const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${userToken}`,
           },
         });
+
         const data = await res.json();
+
         if (res.ok && data.profile) {
           setProfile({
             displayName: data.profile.displayName || '',
             phoneNumber: data.profile.phoneNumber || '',
           });
-        } 
+
+          // Step 2: Fetch visibility settings *after* profile details
+          const visRes = await fetch('http://192.168.1.10:5000/api/profile/visibility', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${userToken}`,
+            },
+          });
+
+          const visData = await visRes.json();
+
+          if (visRes.ok && visData.success) {
+            setIsPhoneVisible(visData.visibility?.phoneNumber ?? false);
+            setisNameVisible(visData.visibility?.displayName ?? false);
+          } else {
+            console.log('Failed to get visibility settings:', visData.message);
+          }
+        } else {
+          console.log('Error fetching profile:', data.message);
+        }
       } catch (err) {
         console.error('Fetch profile error:', err);
       }
     };
+
     fetchProfile();
   }, []);
+
 
   // Play/pause based on autoplay and focus
   useEffect(() => {
@@ -517,7 +554,7 @@ const Reelsitem = ({
     };
   }, []);
 
-   // Handle video end to record view
+  // Handle video end to record view
   const handleVideoEnd = async () => {
     if (hasViewed) {
       console.log('Video view already recorded for feedId:', id);
@@ -567,18 +604,13 @@ const Reelsitem = ({
   const handleLike = async () => {
     try {
       const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken || !activeAccountType) {
-        Alert.alert('Error', 'User not authenticated or account type missing');
-        return;
-      }
+      if (!userToken) return Alert.alert('Error', 'User not authenticated');
+
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
-      setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
-      const endpoint =
-        activeAccountType === 'Personal'
-          ? 'http://192.168.1.10:5000/api/user/feed/like'
-          : 'http://192.168.1.10:5000/api/creator/feed/like';
-      const res = await fetch(endpoint, {
+      setLikeCount(prev => newLikeState ? prev + 1 : prev - 1);
+
+      const res = await fetch('http://192.168.1.10:5000/api/user/feed/like', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -586,19 +618,21 @@ const Reelsitem = ({
         },
         body: JSON.stringify({ feedId: id }),
       });
+
       const data = await res.json();
+      console.log("likebtn", data)
       if (!res.ok) {
-        setIsLiked(!newLikeState);
-        setLikeCount((prev) => (newLikeState ? prev - 1 : prev + 1));
+        setIsLiked(!newLikeState); // rollback
+        setLikeCount(prev => newLikeState ? prev - 1 : prev + 1);
         Alert.alert('Error', data.message || 'Failed to like/unlike reel');
       }
     } catch (error) {
-      console.error('Like error:', error);
-      setIsLiked(!isLiked);
-      setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
+      setIsLiked(!isLiked); // rollback
+      setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
       Alert.alert('Error', 'Something went wrong while liking reel');
     }
   };
+
 
   // Comment handler
   const handleComment = async () => {
@@ -615,16 +649,13 @@ const Reelsitem = ({
   const handleSave = async () => {
     try {
       const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken || !activeAccountType) {
-        Alert.alert('Error', 'User not authenticated or account type missing');
+      if (!userToken) {
+        Alert.alert('Error', 'User not authenticated');
         return;
       }
       const newSaveState = !isSaved;
       setIsSaved(newSaveState);
-      const endpoint =
-        activeAccountType === 'Personal'
-          ? 'http://192.168.1.10:5000/api/user/feed/save'
-          : 'http://192.168.1.10:5000/api/creator/feed/save';
+      const endpoint = 'http://192.168.1.10:5000/api/user/feed/save';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -704,15 +735,15 @@ const Reelsitem = ({
         <View style={GlobalStyleSheet.flexaling}>
           {/* Profile Image */}
           <TouchableOpacity
-            onPress={() =>
-              hasStory
-                ? navigation.navigate('status', {
-                    name: holder,
-                    image: image,
-                    statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
-                  })
-                : navigation.navigate('AnotherProfile', { feedId: id })
-            }
+            // onPress={() =>
+            //   hasStory
+            //     ? navigation.navigate('status', {
+            //         name: holder,
+            //         image: image,
+            //         statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
+            //       })
+            //     : navigation.navigate('AnotherProfile', { feedId: id })
+            // }
             style={{ marginRight: 20 }}
           >
             <View style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -724,7 +755,9 @@ const Reelsitem = ({
           </TouchableOpacity>
 
           {/* Creator Name */}
-          <TouchableOpacity onPress={() => navigation.navigate('AnotherProfile', { feedId: id })}>
+          <TouchableOpacity
+          // onPress={() => navigation.navigate('AnotherProfile', { feedId: id })}
+          >
             <Text style={{ ...FONTS.font, ...FONTS.fontMedium, color: COLORS.white }}>{holder}</Text>
           </TouchableOpacity>
         </View>
@@ -770,7 +803,7 @@ const Reelsitem = ({
           bottom: 0,
           left: 0,
           width: '100%',
-          backgroundColor: '#d2a904ff',
+          backgroundColor: themeColor || '#b1ba52ff',
           paddingVertical: 5,
           paddingHorizontal: 10,
           flexDirection: 'row',
@@ -778,28 +811,16 @@ const Reelsitem = ({
           alignItems: 'center',
         }}
       >
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#fff',
-          }}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {profile.displayName || 'No name provided'}
-        </Text>
-        <Text
-          style={{
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#fff',
-          }}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {profile.phoneNumber || 'No number provided'}
-        </Text>
+        {isNameVisible && (
+          <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+            {profile.displayName}
+          </Text>
+        )}
+        {isPhoneVisible && (
+          <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+            {profile.phoneNumber}
+          </Text>
+        )}
       </View>
 
       {/* Right-side buttons */}
@@ -808,7 +829,13 @@ const Reelsitem = ({
         <View style={{ alignItems: 'center' }}>
           <TouchableOpacity onPress={handleLike}>
             <View style={GlobalStyleSheet.background}>
-              <LikeBtn color={isLiked ? COLORS.primary : '#fff'} sizes="sm" liked={isLiked} />
+              <LikeBtn
+                color={isLiked ? COLORS.primary : '#fff'}
+                sizes="sm"
+                liked={isLiked}
+                onPress={handleLike}
+              />
+
             </View>
           </TouchableOpacity>
           <Text style={{ ...FONTS.fontSm, color: COLORS.white }}>{likeCount}</Text>
@@ -824,6 +851,16 @@ const Reelsitem = ({
           <Text style={{ ...FONTS.fontSm, color: COLORS.white }}>{comment}</Text>
         </View>
 
+        {/* Share */}
+        <View style={{ alignItems: 'center', bottom: 12 }}>
+          <TouchableOpacity onPress={handleShare}>
+            <View style={GlobalStyleSheet.background}>
+              <Image style={[GlobalStyleSheet.image, { tintColor: COLORS.white }]} source={IMAGES.send} />
+            </View>
+          </TouchableOpacity>
+          <Text style={{ ...FONTS.fontSm, color: COLORS.white }}>{send}</Text>
+        </View>
+
         {/* Save */}
         <View style={{ alignItems: 'center' }}>
           <TouchableOpacity onPress={handleSave}>
@@ -834,18 +871,9 @@ const Reelsitem = ({
               />
             </View>
           </TouchableOpacity>
-          <Text style={{ ...FONTS.fontSm, color: COLORS.white }}>{save}</Text>
+          {/* <Text style={{ ...FONTS.fontSm, color: COLORS.white }}>{save}</Text> */}
         </View>
 
-        {/* Share */}
-        <View style={{ alignItems: 'center' , bottom: 12 }}>
-          <TouchableOpacity onPress={handleShare}>
-            <View style={GlobalStyleSheet.background}>
-              <Image style={[GlobalStyleSheet.image, { tintColor: COLORS.white }]} source={IMAGES.send} />
-            </View>
-          </TouchableOpacity>
-          <Text style={{ ...FONTS.fontSm, color: COLORS.white }}>{send}</Text>
-        </View>
       </View>
     </View>
   );

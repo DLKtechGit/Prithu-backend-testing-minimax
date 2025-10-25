@@ -194,14 +194,14 @@ const Comments = () => {
         try {
             const token = await AsyncStorage.getItem('userToken');
             // const userId = await AsyncStorage.getItem('userId');
-            console.log('handleLike inputs:', { commentId, token, accountType });
+            console.log('handleLike inputs:', { commentId, token });
             if (!token) {
                 // console.warn('Authentication check failed:', { token, userId });
                 Alert.alert('Error', 'User not authenticated');
                 return null;
             }
 
-            const endpoint = accountType?.toLowerCase() === 'Creator' ? '/creator/comment/like' : '/user/comment/like';
+            const endpoint =  '/user/comment/like';
             // console.log('Calling endpoint:', endpoint);
             const res = await axios.post(
                 `http://192.168.1.10:5000/api${endpoint}`,

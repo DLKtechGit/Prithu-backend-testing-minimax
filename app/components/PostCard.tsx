@@ -482,10 +482,7 @@ const PostCard = ({
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
-      const endpoint =
-        accountType === 'Personal'
-          ? 'http://192.168.1.10:5000/api/user/feed/like'
-          : 'http://192.168.1.10:5000/api/creator/feed/like';
+      const endpoint = 'http://192.168.1.10:5000/api/user/feed/like';
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -816,10 +813,7 @@ const PostCard = ({
                     Alert.alert('Error', 'User not authenticated or account type missing');
                     return;
                   }
-                  const endpoint =
-                    accountType === 'Personal'
-                      ? 'http://192.168.1.10:5000/api/user/feed/save'
-                      : 'http://192.168.1.10:5000/api/creator/feed/save';
+                  const endpoint = 'http://192.168.1.10:5000/api/user/feed/save';
                   const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {

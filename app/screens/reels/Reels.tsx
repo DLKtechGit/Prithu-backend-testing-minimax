@@ -19,7 +19,10 @@ const { height: windowHeight } = Dimensions.get('window');
 // Decrease the height by 10% (adjust the multiplier as needed)
 const REELS_CONTAINER_HEIGHT = 670; //810
 
-const Reels = () => {
+const Reels = ({
+  themeColor,
+  textColor,
+}:any) => {
   const sheetRef = useRef<any>();
   const flatListRef = useRef<any>();
   const [reelsData, setReelsData] = useState<any[]>([]);
