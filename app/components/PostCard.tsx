@@ -96,14 +96,20 @@ const PostCard = ({
   // Skeleton Loader Components
   const SkeletonAvatar = () => {
     const shimmer = useRef(new Animated.Value(0)).current;
+    
     useEffect(() => {
-      Animated.loop(
+      const animation = Animated.loop(
         Animated.timing(shimmer, {
           toValue: 1,
           duration: 1000,
           useNativeDriver: true,
         })
-      ).start();
+      );
+      animation.start();
+      
+      return () => {
+        animation.stop();
+      };
     }, [shimmer]);
     const shimmerOpacity = shimmer.interpolate({
       inputRange: [0, 0.5, 1],
@@ -124,14 +130,20 @@ const PostCard = ({
 
   const SkeletonImage = () => {
     const shimmer = useRef(new Animated.Value(0)).current;
+    
     useEffect(() => {
-      Animated.loop(
+      const animation = Animated.loop(
         Animated.timing(shimmer, {
           toValue: 1,
           duration: 1000,
           useNativeDriver: true,
         })
-      ).start();
+      );
+      animation.start();
+      
+      return () => {
+        animation.stop();
+      };
     }, [shimmer]);
     const shimmerOpacity = shimmer.interpolate({
       inputRange: [0, 0.5, 1],

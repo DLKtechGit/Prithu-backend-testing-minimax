@@ -8,6 +8,7 @@ import Button from '../../components/button/Button';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import { StyleSheet } from 'react-native';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 type ForgotScreenProps = StackScreenProps<RootStackParamList, 'Forgot'>;
 
@@ -35,16 +36,14 @@ const Forgot = ({ navigation }: ForgotScreenProps) => {
         }
 
         try {
-            const res = await fetch("http://192.168.1.10:5000/api/auth/user/otp-send", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email })
+            const response = await api.post("/api/auth/user/otp-send", {
+                email
             });
 
-            const data = await res.json();
+            const data = response.data;
             console.log("Forgot Response:", data);
 
-            if (res.ok) {
+            if (data) {
                 setPopupMessage('Success');
                 setPopupSubtitle('OTP has been sent to your email');
                 setShowPopup(true);
@@ -53,10 +52,11 @@ const Forgot = ({ navigation }: ForgotScreenProps) => {
                 setPopupSubtitle(data.message || "Please fill the required email");
                 setShowPopup(true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            const errorMessage = error.response?.data?.message || 'Failed to connect to server';
             setPopupMessage('Error!');
-            setPopupSubtitle('Failed to connect to server');
+            setPopupSubtitle(errorMessage);
             setShowPopup(true);
         }
     };

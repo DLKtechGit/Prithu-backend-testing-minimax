@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, TextInput, ScrollView, SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useCallback, useRef } from 'react';
+import { View, Text, Image, TouchableOpacity, TextInput, ScrollView, SafeAreaView, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, IMAGES } from '../../constants/theme';
 import { useFocusEffect, useTheme } from '@react-navigation/native';
@@ -8,93 +8,117 @@ import Button from '../../components/button/Button';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {connectSocket} from '../../../webSocket/webScoket';
-import {startHeartbeat} from "../../../webSocket/heartBeat";
+import {connectSocket, disconnectSocket} from '../../../webSocket/webScoket';
+import {startHeartbeat, stopHeartbeat} from "../../../webSocket/heartBeat";
 import CategoriesScreen from './CategoriesScreen';
+import api from '../../../apiInterpretor/apiInterceptor';
  
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
  
 const Login = ({ navigation }: LoginScreenProps) => {
- 
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
- 
+  const mountedRef = useRef(true);
+
   const [show, setshow] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
- 
+
   const [inputFocus, setFocus] = React.useState({
     onFocus1: false,
     onFocus2: false
   })
-  // ✅ add states for inputs
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
- 
-  const LoginButton = async () => {
-  if (!email || !password) {
-    alert("Please enter email and password");
-    return;
-  }
- 
-  setLoading(true);
- 
-  try {
-    const res = await fetch("http://192.168.1.10:5000/api/auth/user/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password })
-    });
-    await connectSocket();
 
-     startHeartbeat();
-    const data = await res.json();
-    console.log("Login response:", data);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
  
-    if (res.ok) {
-      // Save token
-    await AsyncStorage.clear();
-    await AsyncStorage.setItem('userToken', data.accessToken);
-    await AsyncStorage.setItem("refreshToken", data.refreshToken);
-    await AsyncStorage.setItem("sessionId", data.sessionId);
-    await AsyncStorage.setItem("deviceId", data.deviceId);
-    await AsyncStorage.setItem("userId", data.userId);
-    const { appLanguage, feedLanguage, category , gender,  } = data;
-      console.log({ appLanguage, feedLanguage, category , gender,  })
-       
-      // ✅ Navigation logic:
-// ✅ Sequential onboarding logic
-  if (!appLanguage) {
-    navigation.navigate('LanguageScreen');
-  } 
-  else if (!feedLanguage) {
-    navigation.navigate('FeedScreen');
-  } 
-  else if (!category) {
-    navigation.navigate('CategoriesScreen');
-  } 
-  else if (!gender) {
-    navigation.navigate('gender'); // make sure this matches your stack name
-  } 
-  else {
-    navigation.navigate('DrawerNavigation', { screen: 'Home' });
-  }
+  const LoginButton = useCallback(async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Please enter email and password");
+      return;
+    }
 
-} else {
-  alert(data.error || data.message || "Invalid email or password");
-}
-  } catch (error) {
-    console.error("Login error:", error);
-    alert("Something went wrong, try again later");
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!mountedRef.current) return;
+
+    setLoading(true);
+
+    try {
+      const response = await api.post('/api/auth/user/login', {
+        identifier: email,
+        password
+      });
+
+      if (!mountedRef.current) return;
+
+      await connectSocket();
+      if (mountedRef.current) {
+        startHeartbeat();
+      }
+
+      const data = response.data;
+      console.log("Login response:", data);
+
+      if (res.ok) {
+        // Save token
+        await AsyncStorage.clear();
+        await AsyncStorage.setItem('userToken', data.accessToken);
+        await AsyncStorage.setItem("refreshToken", data.refreshToken);
+        await AsyncStorage.setItem("sessionId", data.sessionId);
+        await AsyncStorage.setItem("deviceId", data.deviceId);
+        await AsyncStorage.setItem("userId", data.userId);
+        
+        const { appLanguage, feedLanguage, category, gender } = data;
+        console.log({ appLanguage, feedLanguage, category, gender });
+        
+        if (!mountedRef.current) return;
+
+        // Sequential onboarding logic
+        if (!appLanguage) {
+          navigation.navigate('LanguageScreen');
+        } 
+        else if (!feedLanguage) {
+          navigation.navigate('FeedScreen');
+        } 
+        else if (!category) {
+          navigation.navigate('CategoriesScreen');
+        } 
+        else if (!gender) {
+          navigation.navigate('gender');
+        } 
+        else {
+          navigation.navigate('DrawerNavigation', { screen: 'Home' });
+        }
+      } else {
+        if (mountedRef.current) {
+          Alert.alert("Error", data.error || data.message || "Invalid email or password");
+        }
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      if (mountedRef.current) {
+        Alert.alert("Error", "Something went wrong, try again later");
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [email, password, navigation]);
  
  
  
-  useFocusEffect(() => {
-    setLoading(false);
-  })
+  useFocusEffect(
+    React.useCallback(() => {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }, [])
+  );
  
   return (
     <>
@@ -276,4 +300,5 @@ const Login = ({ navigation }: LoginScreenProps) => {
   );
 };
  
+export default Login;
 export default Login;

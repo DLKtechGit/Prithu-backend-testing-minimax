@@ -45,7 +45,12 @@
     "extra": {
       "eas": {
         "projectId": "a7661f0e-a27a-4065-bb87-96e0aae2d18b"
-      }
+      },
+      "apiUrl": "http://192.168.1.10:5000",
+      "wsUrl": "http://192.168.1.10:5000",
+      "enableNotifications": true,
+      "enableWebSocket": true,
+      "debugMode": true
     }
   }
 }

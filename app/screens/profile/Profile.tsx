@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, Image, ImageBackground, TouchableOpacity, Animated, Dimensions, Share, Alert, SafeAreaView,ActivityIndicator } from 'react-native';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 type ProfileScreenProps = StackScreenProps<RootStackParamList, 'Profile'>;
 
 const Profile = ({ navigation }: ProfileScreenProps) => {
+  const mountedRef = useRef(true);
   const [profile, setProfile] = useState<any>({
     displayName: '',
     username: '',
@@ -25,13 +26,20 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
   const [posts, setPosts] = useState<any[]>([]);
   const [reels, setReels] = useState([]);
   const [postCount, setPostCount] = useState<number>(0);
-  const [followersCount, setFollowersCount] = useState<number>(0); // New state for followers count
+  const [followersCount, setFollowersCount] = useState<number>(0);
   const [followingCount, setfollowingCount] = useState<number>(0);
   const [feedCount, setfeedCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
-   const [isImageLoading, setIsImageLoading] = useState(true); // New state for image loading
+  const [isImageLoading, setIsImageLoading] = useState(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return '';
@@ -45,13 +53,18 @@ const SkeletonAvatar = () => {
   const shimmer = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const animation = Animated.loop(
       Animated.timing(shimmer, {
         toValue: 1,
         duration: 1000,
         useNativeDriver: true,
       })
-    ).start();
+    );
+    animation.start();
+    
+    return () => {
+      animation.stop();
+    };
   }, [shimmer]);
 
   const shimmerOpacity = shimmer.interpolate({
@@ -126,22 +139,30 @@ useEffect(() => {
 
 
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const userToken = await AsyncStorage.getItem('userToken');
       if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
+        if (mountedRef.current) {
+          Alert.alert('Error', 'User not authenticated');
+          setError('User not authenticated');
+        }
         return;
       }
 
+      setError(null);
+      
       const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${userToken}`,
         },
       });
+      
+      if (!mountedRef.current) return;
+      
       const data = await res.json();
-       console.log("data",data)
+      console.log("Profile data:", data);
 
       if (res.ok && data.profile) {
         const profileData = data.profile;
@@ -153,16 +174,23 @@ useEffect(() => {
           profileAvatar: profileData.profileAvatar,
         });
       } else {
-        console.log('Error fetching profile:', data.message);
+        const errorMsg = data.message || 'Failed to fetch profile';
+        console.log('Error fetching profile:', errorMsg);
+        if (mountedRef.current) {
+          setError(errorMsg);
+        }
       }
     } catch (err) {
       console.error('Fetch profile error:', err);
+      if (mountedRef.current) {
+        setError('Network error occurred');
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [fetchProfile]);
 
 // useEffect(() => {
 //     const fetchFeeds = async () => {

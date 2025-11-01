@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useMemo,
   memo,
+  useCallback,
   RefObject
 } from "react";
 import {
@@ -17,12 +18,13 @@ import {
   StyleSheet,
   Animated,
   Text,
+  Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import PostCard from "../../components/PostCard";
 import { connectSocket } from "../../../webSocket/webScoket";
 import { startHeartbeat } from "../../../webSocket/heartBeat";
-import axios from "axios";
+import api from "../../../apiInterpretor/apiInterceptor";
 
 // --------------------------- Types ----------------------------
 
@@ -185,41 +187,55 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshingTop, setRefreshingTop] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
     const boxRefs = useRef<Record<string, { y: number; height: number }>>({});
     const viewedPosts = useRef<Set<string>>(new Set());
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // --------------------------- Fetch Posts ----------------------------
 
-    const fetchPosts = async (catId: string | null = null) => {
-      try {
-        setLoading(true);
+    const fetchPosts = useCallback(async (catId: string | null = null) => {
+      // Prevent concurrent requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      try {
+        setError(null);
+        
+        // Check if user is authenticated
         const token = await AsyncStorage.getItem("userToken");
         if (!token) {
-          console.warn("No user token found");
+          setError("Please log in to view posts");
           setPosts([]);
           return;
         }
 
+        // Set loading state
+        if (!catId) {
+          setLoading(true);
+        }
+
         const endpoint = catId
-          ? `http://192.168.1.10:5000/api/user/get/feed/with/cat/${catId}`
-          : `http://192.168.1.10:5000/api/get/all/feeds/user`;
+          ? `/api/user/get/feed/with/cat/${catId}`
+          : `/api/get/all/feeds/user`;
 
         console.log("Fetching posts from:", endpoint);
 
-        const res = await axios.get(endpoint, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        const response = await api.get(endpoint, {
+          signal: abortControllerRef.current.signal,
+          timeout: 10000, // 10 second timeout
         });
-           
-        // console.log("data:",res.data.feeds)
 
-        const feeds = res.data?.feeds ?? [];
+        const feeds = response.data?.feeds ?? [];
         if (!Array.isArray(feeds)) {
-          console.warn("No feeds found");
+          console.warn("Invalid feeds data received");
+          setError("Invalid data format received");
           setPosts([]);
           return;
         }
@@ -240,46 +256,61 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             likesCount: item.likesCount || 0,
             type: item.type,
             profileUserId: item.createdByAccount,
-            roleRef:item.roleRef,
+            roleRef: item.roleRef,
             isLiked: !!item.isLiked,
             isSaved: !!item.isSaved,
-            isDisliked: !!item.isDisliked || false, 
-            dislikeCount: item.dislikesCount || 0,
-            framedAvatar: item.framedAvatar || null,
-            themeColor: item.themeColor?.primary || "#fff", 
-            textColor: item.themeColor?.accent || "#fff", 
+            isDisliked: !!item.isDisliked || false,
+            dislikesCount: item.dislikesCount || 0,
+            primary: item.themeColor?.primary || "#fff",
+            accent: item.themeColor?.accent || "#fff",
           }))
           .filter((item) => item.type === "image");
-  
+
         setPosts(mapped);
+        setLastFetchTime(Date.now());
       } catch (err: any) {
+        if (err.name === 'AbortError') {
+          // Request was cancelled, don't show error
+          console.log("Request cancelled");
+          return;
+        }
+
         console.error("Error fetching posts:", err.response?.data || err.message);
+        
+        let errorMessage = "Failed to load posts. Please try again.";
+        
+        if (err.response?.status === 401) {
+          errorMessage = "Session expired. Please log in again.";
+        } else if (err.response?.status === 404) {
+          errorMessage = "Posts not found.";
+        } else if (err.code === 'ECONNABORTED') {
+          errorMessage = "Request timed out. Please check your connection.";
+        }
+
+        setError(errorMessage);
         setPosts([]);
       } finally {
         setLoading(false);
       }
-    };
+    }, []); // Memoize to prevent recreation
 
 
     // --------------------------- View Count ----------------------------
 
-    const recordViewCount = async (feedId: string) => {
+    const recordViewCount = useCallback(async (feedId: string) => {
       try {
         if (viewedPosts.current.has(feedId)) return;
 
         const token = await AsyncStorage.getItem("userToken");
         if (!token) return;
 
-        await axios.post(
-          "http://192.168.1.10:5000/api/user/image/view/count",
-          { feedId },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await api.post("/api/user/image/view/count", { feedId });
         viewedPosts.current.add(feedId);
       } catch (err: any) {
-        console.error("Error recording view:", err.response?.data || err.message);
+        // Don't log view recording errors to avoid console spam
+        console.debug("Error recording view:", err.response?.data || err.message);
       }
-    };
+    }, []); // Memoize to prevent recreation
 
     // --------------------------- Scroll Handlers ----------------------------
 
@@ -329,15 +360,19 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     useEffect(() => {
       fetchPosts(categoryId ?? null);
-    }, [categoryId]);
+    }, [categoryId, fetchPosts]);
 
     useEffect(() => {
       const initSocket = async () => {
-        const token = await AsyncStorage.getItem("userToken");
-        const sessionId = await AsyncStorage.getItem("sessionId");
-        if (token && sessionId) {
-          await connectSocket();
-          startHeartbeat();
+        try {
+          const token = await AsyncStorage.getItem("userToken");
+          const sessionId = await AsyncStorage.getItem("sessionId");
+          if (token && sessionId) {
+            await connectSocket();
+            startHeartbeat();
+          }
+        } catch (err) {
+          console.debug("Socket initialization error:", err);
         }
       };
       initSocket();
@@ -345,7 +380,16 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     useEffect(() => {
       visibleBoxes.forEach(recordViewCount);
-    }, [visibleBoxes]);
+    }, [visibleBoxes, recordViewCount]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      };
+    }, []);
 
     // --------------------------- Imperative Handle ----------------------------
 
@@ -353,9 +397,15 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
       refreshPosts: async () => {
         setRefreshingTop(true);
         setPosts([]);
-        await fetchPosts(null);
-        setPosts((prev) => shuffleArray(prev));
-        setRefreshingTop(false);
+        try {
+          await fetchPosts(null);
+          setPosts((prev) => shuffleArray(prev));
+        } catch (err) {
+          console.error("Error refreshing posts:", err);
+          Alert.alert("Error", "Failed to refresh posts. Please try again.");
+        } finally {
+          setRefreshingTop(false);
+        }
       },
       scrollToTop: () => {
         scrollRef?.current?.scrollTo({ y: 0, animated: true });
@@ -368,10 +418,10 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     const memoVisibleBoxes = useMemo(() => visibleBoxes, [visibleBoxes]);
 
-    if (loading || refreshingTop) {
+    // Show loading skeleton for initial load
+    if (loading) {
       return (
         <View style={styles.skeletonContainer}>
-          {/* Display multiple skeleton cards to mimic a list */}
           {[...Array(3)].map((_, index) => (
             <SkeletonPostCard key={index} />
           ))}
@@ -379,11 +429,30 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
       );
     }
 
+    // Show error state with retry option
+    if (error && posts.length === 0) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text 
+            style={styles.retryText}
+            onPress={() => {
+              setError(null);
+              fetchPosts(categoryId ?? null);
+            }}
+          >
+            Tap to Retry
+          </Text>
+        </View>
+      );
+    }
+
+    // Show empty state
     if (posts.length === 0) {
       return (
-        <View style={{ height: windowHeight, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: 16, color: "#666", textAlign: "center" }}>
-            No feeds available
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {error ? "Unable to load posts" : "No feeds available"}
           </Text>
         </View>
       );
@@ -423,8 +492,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
               roleRef={post.roleRef}
               isLiked={post.isLiked}
               isSaved={post.isSaved}
-              isDisliked={post.isDisliked || false} // Pass initial isDisliked state
-              dislikeCount={post.dislikeCount || 0} // Pass initial dislike count
+              isDisliked={post.isDisliked || false}
+              dislikesCount={post.dislikesCount || 0}
               onDislikeUpdate={(newIsDisliked, newDislikeCount) =>
               handleDislikeUpdate(post._id, newIsDisliked, newDislikeCount)
               }
@@ -449,6 +518,39 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 20,
+  },
+  emptyContainer: {
+    height: windowHeight,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#d32f2f",
+    textAlign: "center",
+    marginBottom: 16,
+    fontWeight: "500",
+  },
+  retryText: {
+    fontSize: 16,
+    color: "#1976d2",
+    textAlign: "center",
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    fontWeight: "500",
   },
   skeletonCard: {
     backgroundColor: "#fff",
@@ -481,16 +583,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginBottom: 10,
   },
-  // skeletonMoreIcon: {
-  //   width: 18,
-  //   height: 18,
-  //   backgroundColor: "#e0e0e0",
-  //   borderRadius: 4,
-  //   margin: 10,
-  // },
   skeletonImage: {
     width: "100%",
-    height: Dimensions.get("window").width * 0.99, // Matches PostCard's image height
+    height: Dimensions.get("window").width * 0.99,
     backgroundColor: "#e0e0e0",
     borderRadius: 8,
     marginBottom: 10,
@@ -505,12 +600,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  // skeletonActionButton: {
-  //   width: 28,
-  //   height: 28,
-  //   backgroundColor: "#e0e0e0",
-  //   borderRadius: 14,
-  // },
 });
 
 export default PostList;

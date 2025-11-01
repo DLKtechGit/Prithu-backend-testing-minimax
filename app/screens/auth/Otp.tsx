@@ -9,6 +9,7 @@ import OTPTextInput from 'react-native-otp-textinput';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 type OtpScreenProps = StackScreenProps<RootStackParamList, 'Otp'>;
 
@@ -35,16 +36,14 @@ const Otp = ({ navigation }: OtpScreenProps) => {
         }
 
         try {
-            const response = await fetch("http://192.168.1.10:5000/api/auth/exist/user/verify-otp", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ otp }),
+            const response = await api.post("/api/auth/exist/user/verify-otp", {
+                otp,
             });
 
-            const data = await response.json();
+            const data = response.data;
             console.log("Backend response:", data);
 
-            if (response.ok) {
+            if (data) {
                 console.log(data.email);
                 await AsyncStorage.removeItem('verifiedEmail');
                 await AsyncStorage.setItem('verifiedEmail', data.email);
@@ -56,10 +55,11 @@ const Otp = ({ navigation }: OtpScreenProps) => {
                 setPopupSubtitle(data.message || "Invalid OTP, please try again");
                 setShowPopup(true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("OTP Verify Error:", error);
+            const errorMessage = error.response?.data?.message || 'Something went wrong. Please try again later.';
             setPopupMessage('Error!');
-            setPopupSubtitle('Something went wrong. Please try again later.');
+            setPopupSubtitle(errorMessage);
             setShowPopup(true);
         }
     };

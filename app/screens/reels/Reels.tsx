@@ -1,6 +1,6 @@
 
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   SafeAreaView, 
   ActivityIndicator, 
@@ -25,6 +25,7 @@ const Reels = ({
 }:any) => {
   const sheetRef = useRef<any>();
   const flatListRef = useRef<any>();
+  const mountedRef = useRef(true);
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -36,38 +37,53 @@ const Reels = ({
     return `http://192.168.1.10:5000/${path.replace(/\\/g, '/')}`;
   };
 
+  // Cleanup on unmount
   useEffect(() => {
-    const fetchReels = async () => {
-      try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-          console.warn('No token found, user might not be logged in');
-          return;
-        }
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
-        const res = await axios.get('http://192.168.1.10:5000/api/get/all/feeds/user', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  const fetchReels = useCallback(async () => {
+    try {
+      const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        console.warn('No token found, user might not be logged in');
+        return;
+      }
 
-        // console.log("Fetched feeds:", res.data.feeds);
-        const videoFeeds = res.data.feeds
-          .filter((feed: any) => feed.type === 'video')
-          .map((feed: any) => ({
-            ...feed,
-            duration: feed.duration || 0, // Fallback to 0 if duration is not provided
-          }));
-        setReelsData(videoFeeds);
-        watchedTimes.current = new Array(videoFeeds.length).fill(0);
-      } catch (err) {
-        console.error('Error fetching reels:', err);
-      } finally {
+      const res = await axios.get('http://192.168.1.10:5000/api/get/all/feeds/user', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!mountedRef.current) return;
+
+      const videoFeeds = res.data.feeds
+        .filter((feed: any) => feed.type === 'video')
+        .map((feed: any) => ({
+          ...feed,
+          duration: feed.duration || 0,
+        }));
+        
+      setReelsData(videoFeeds);
+      watchedTimes.current = new Array(videoFeeds.length).fill(0);
+    } catch (err) {
+      console.error('Error fetching reels:', err);
+      if (mountedRef.current) {
+        // Handle error state here if needed
+      }
+    } finally {
+      if (mountedRef.current) {
         setLoading(false);
       }
-    };
-    fetchReels();
+    }
   }, []);
+
+  useEffect(() => {
+    fetchReels();
+  }, [fetchReels]);
 
   // const recordVideoView = async (feedId: string, watchedSeconds: number) => {
   //   try {

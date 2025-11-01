@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 
 type RegisterScreenProps = StackScreenProps<RootStackParamList, 'Register'>;
@@ -83,22 +84,22 @@ const Register = ({ navigation }: RegisterScreenProps) => {
 
         try {
             console.log('Checking username:', name);
-            const res = await fetch(
-                `http://192.168.1.10:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
-                { method: 'GET' }
+            const response = await api.get(
+                `/api/check/username/availability?username=${encodeURIComponent(name)}`
             );
 
-            const data = await res.json();
+            const data = response.data;
             console.log('API Response:', data);
 
-            if (res.ok && data.available) {
+            if (data.available) {
                 setUsernameError('');
             } else {
                 setUsernameError(data.message || 'Username is already taken');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error:', error);
-            setUsernameError('Error checking username');
+            const errorMessage = error.response?.data?.message || 'Error checking username';
+            setUsernameError(errorMessage);
         }
     };
 
@@ -110,22 +111,22 @@ const Register = ({ navigation }: RegisterScreenProps) => {
 
         try {
             console.log('Checking email:', email);
-            const res = await fetch(
-                `http://192.168.1.10:5000/api/check/email/availability?email=${encodeURIComponent(email)}`,
-                { method: 'GET' }
+            const response = await api.get(
+                `/api/check/email/availability?email=${encodeURIComponent(email)}`
             );
 
-            const data = await res.json();
+            const data = response.data;
             console.log('API Response:', data);
 
-            if (res.ok && data.available) {
+            if (data.available) {
                 setUseremailError('');
             } else {
                 setUseremailError(data.message || 'Email is already taken');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error:', error);
-            setUseremailError('Error checking email');
+            const errorMessage = error.response?.data?.message || 'Error checking email';
+            setUseremailError(errorMessage);
         }
     };
 
@@ -173,15 +174,13 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         console.log('Email domain:', domain);
 
         try {
-            const res = await fetch('http://192.168.1.10:5000/api/auth/user/otp-send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+            const response = await api.post('/api/auth/user/otp-send', {
+                email
             });
 
-            const data = await res.json();
+            const data = response.data;
 
-            if (res.ok) {
+            if (data) {
                 setOtpSent(true);
                 setPopupMessage('Success');
                 setPopupSubtitle('Successfully the OTP is sent');
@@ -192,10 +191,11 @@ const Register = ({ navigation }: RegisterScreenProps) => {
                 setShowPopup(true);
                 console.log(data);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            const errorMessage = error.response?.data?.message || 'Failed to connect to server';
             setPopupMessage('Error');
-            setPopupSubtitle('Failed to connect to server');
+            setPopupSubtitle(errorMessage);
             setShowPopup(true);
         }
     };
@@ -209,16 +209,15 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         }
 
         try {
-            const res = await fetch('http://192.168.1.10:5000/api/auth/new/user/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp })
+            const response = await api.post('/api/auth/new/user/verify-otp', {
+                email,
+                otp
             });
 
-            const data = await res.json();
+            const data = response.data;
             console.log(data);
 
-            if (res.ok) {
+            if (data) {
                 setOtpVerified(true);
                 setPopupMessage('Success');
                 setPopupSubtitle('Your OTP is verified');
@@ -229,10 +228,11 @@ const Register = ({ navigation }: RegisterScreenProps) => {
                 setPopupSubtitle(data.message || 'Please verify the OTP');
                 setShowPopup(true);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            const errorMessage = error.response?.data?.message || 'Failed to connect to server';
             setPopupMessage('Error');
-            setPopupSubtitle('Failed to connect to server');
+            setPopupSubtitle(errorMessage);
             setShowPopup(true);
         }
     };
@@ -274,21 +274,17 @@ const Register = ({ navigation }: RegisterScreenProps) => {
         }
 
         try {
-            const res = await fetch('http://192.168.1.10:5000/api/auth/user/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: username.trim(),
-                    email: email.trim(),
-                    password,
-                    otp,
-                    referralCode: referralCode?.trim() || "",
-                })
+            const response = await api.post('/api/auth/user/register', {
+                username: username.trim(),
+                email: email.trim(),
+                password,
+                otp,
+                referralCode: referralCode?.trim() || "",
             });
 
-            const data = await res.json();
+            const data = response.data;
 
-            if (res.ok) {
+            if (data) {
                 setPopupMessage('Success');
                 setPopupSubtitle('Account created successfully');
                 setShowPopup(true);
@@ -301,10 +297,11 @@ const Register = ({ navigation }: RegisterScreenProps) => {
                 setShowPopup(true);
                 console.log(data);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
+            const errorMessage = error.response?.data?.message || 'Failed to connect to server';
             setPopupMessage('Error');
-            setPopupSubtitle('Failed to connect to server');
+            setPopupSubtitle(errorMessage);
             setShowPopup(true);
         }
     };

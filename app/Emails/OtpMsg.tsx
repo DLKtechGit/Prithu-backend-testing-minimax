@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { getConfig } from '../../config/environment';
 
 const OtpMsg = () => {
   const username = 'Rima'; // Example username, can be dynamic
+  const config = getConfig();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -18,7 +20,7 @@ const OtpMsg = () => {
 
       {/* Vertical Picture */}
       <Image
-        source={{ uri: 'https://example.com/vertical-picture.jpg' }} // Replace with actual image URL or local asset
+        source={{ uri: config.defaultImageUrl }}
         style={styles.verticalImage}
       />
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ const API_BASE = 'http://192.168.1.10:5000/api';
 const Search = ({ navigation }: any) => {
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
+  const mountedRef = useRef(true);
 
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -32,6 +33,14 @@ const Search = ({ navigation }: any) => {
   const [categories, setCategories] = useState<any[]>([]);
   const [catLoading, setCatLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Converts a backend path into a usable full URL
   const buildUrl = (path: string | undefined | null) => {

@@ -8,6 +8,7 @@ import Button from '../../components/button/Button';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 type ChangePasswordScreenProps = StackScreenProps<RootStackParamList, 'ChangePassword'>;
 
@@ -69,19 +70,15 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
                 return;
             }
 
-            const response = await fetch('http://192.168.1.10:5000/api/auth/user/reset-password', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    newPassword,
-                }),
+            const response = await api.post('/api/auth/user/reset-password', {
+                email,
+                newPassword,
             });
 
-            const data = await response.json();
+            const data = response.data;
             console.log('Reset password response:', data);
 
-            if (response.ok) {
+            if (data) {
                 await AsyncStorage.removeItem('verifiedEmail');
                 setPopupMessage('Success');
                 setPopupSubtitle('Password changed successfully!');
@@ -93,8 +90,9 @@ const ChangePassword = ({ navigation }: ChangePasswordScreenProps) => {
             }
         } catch (err: any) {
             console.error('Reset password error:', err);
+            const errorMessage = err.response?.data?.message || 'Failed to connect to server';
             setPopupMessage('Error!');
-            setPopupSubtitle('Failed to connect to server');
+            setPopupSubtitle(errorMessage);
             setShowPopup(true);
         }
     };

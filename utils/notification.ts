@@ -3,6 +3,8 @@ import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messag
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Alert } from 'react-native';
+
+import { getConfig, configHelpers } from '../config/environment';
  
 /**
 
@@ -67,31 +69,33 @@ export async function getFcmToken(): Promise<string | null> {
 */
 
 export async function registerTokenToServer(token: string, jwtToken: string) {
-
   try {
+    const config = getConfig();
+    
+    // Only proceed if notifications are enabled
+    if (!config.enableNotifications) {
+      console.log('Notifications are disabled, skipping token registration');
+      return;
+    }
 
-    await fetch('https://your-backend.com/api/devices/register', {
+    const apiEndpoint = configHelpers.getAPIEndpoint('/api/devices/register');
 
+    await fetch(apiEndpoint, {
       method: 'POST',
-
       headers: {
-
         'Content-Type': 'application/json',
-
         Authorization: `Bearer ${jwtToken}`,
-
       },
-
-      body: JSON.stringify({ token, platform: 'react-native' }),
-
+      body: JSON.stringify({ 
+        token, 
+        platform: 'react-native',
+        fcmProjectId: config.fcmProjectId 
+      }),
     });
 
   } catch (err) {
-
     console.error('Register token error', err);
-
   }
-
 }
  
 /**
@@ -139,21 +143,28 @@ export async function switchAccountMode({
       : ['allUsers', `user_${userId}`];
  
   try {
+    const config = getConfig();
+    
+    // Only proceed if notifications are enabled
+    if (!config.enableNotifications) {
+      console.log('Notifications are disabled, skipping mode switch');
+      return;
+    }
 
-    await fetch('https://your-backend.com/api/devices/subscribe', {
+    const apiEndpoint = configHelpers.getAPIEndpoint('/api/devices/subscribe');
 
+    await fetch(apiEndpoint, {
       method: 'POST',
-
       headers: {
-
         'Content-Type': 'application/json',
-
         Authorization: `Bearer ${jwtToken}`,
-
       },
-
-      body: JSON.stringify({ token, subscribeTo, unsubscribeFrom }),
-
+      body: JSON.stringify({ 
+        token, 
+        subscribeTo, 
+        unsubscribeFrom,
+        fcmProjectId: config.fcmProjectId 
+      }),
     });
 
   } catch (err) {

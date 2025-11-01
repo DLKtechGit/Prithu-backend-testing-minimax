@@ -107,19 +107,27 @@ useFocusEffect(
     setRefreshing(false);
   }, []);
     useEffect(() => {
+      let animation: Animated.CompositeAnimation;
+      
       if (showPopup) {
-        Animated.timing(fadeAnim, {
+        animation = Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 300,
           useNativeDriver: true,
-        }).start();
+        });
       } else {
-        Animated.timing(fadeAnim, {
+        animation = Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        }).start();
+        });
       }
+      
+      animation.start();
+      
+      return () => {
+        animation.stop();
+      };
     }, [showPopup, fadeAnim]);
 // Custom Popup Component (already defined in your code)
 const Popup = () => (

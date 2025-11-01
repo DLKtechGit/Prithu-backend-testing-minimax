@@ -1,51 +1,56 @@
-// import axios, { InternalAxiosRequestConfig } from "axios";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios, { InternalAxiosRequestConfig } from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getConfig } from "../config/environment";
 
-// const api = axios.create({ baseURL: "http://192.168.1.10:5000" });
+// Get base URL from environment configuration
+const config = getConfig();
+const baseURL = config.apiUrl;
 
-// // Request Interceptor
-// api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
-//   const accessToken = await AsyncStorage.getItem("userToken");
-//   if (accessToken && config.headers) {
-//     config.headers.Authorization = `Bearer ${accessToken}`;
-//   }
-//   return config;
-// });
+const api = axios.create({ baseURL });
 
-// // Response Interceptor
-// api.interceptors.response.use(
-//   (response) => response,
-//   async (error: any) => {
-//     const originalRequest = error.config;
+// Request Interceptor
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  const accessToken = await AsyncStorage.getItem("userToken");
+  if (accessToken && config.headers) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
 
-//     if (error.response?.status === 401 && !originalRequest._retry) {
-//       originalRequest._retry = true;
+// Response Interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error: any) => {
+    const originalRequest = error.config;
 
-//       try {
-//         const refreshToken = await AsyncStorage.getItem("refreshToken");
-//         if (!refreshToken) throw new Error("No refresh token");
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
 
-//         const res = await axios.post<{ accessToken: string }>(
-//           "http://192.168.1.10:5000/api/refresh-token",
-//           { refreshToken }
-//         );
+      try {
+        const refreshToken = await AsyncStorage.getItem("refreshToken");
+        if (!refreshToken) throw new Error("No refresh token");
 
-//         const newAccessToken = res.data.accessToken;
-//         await AsyncStorage.setItem("userToken", newAccessToken);
+        const res = await axios.post<{ accessToken: string }>(
+          `${baseURL}/api/refresh-token`,
+          { refreshToken }
+        );
 
-//         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        const newAccessToken = res.data.accessToken;
+        await AsyncStorage.setItem("userToken", newAccessToken);
 
-//         return api(originalRequest); // retry with updated token
-//       } catch (err) {
-//         // optional: clear tokens and redirect to login
-//         await AsyncStorage.removeItem("userToken");
-//         await AsyncStorage.removeItem("refreshToken");
-//         return Promise.reject(err);
-//       }
-//     }
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-//     return Promise.reject(error);
-//   }
-// );
+        return api(originalRequest); // retry with updated token
+      } catch (err) {
+        // optional: clear tokens and redirect to login
+        await AsyncStorage.removeItem("userToken");
+        await AsyncStorage.removeItem("refreshToken");
+        return Promise.reject(err);
+      }
+    }
 
-// export default api;
+    return Promise.reject(error);
+  }
+);
+
+export default api;
