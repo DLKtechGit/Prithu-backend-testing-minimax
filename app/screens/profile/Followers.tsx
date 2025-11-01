@@ -10,6 +10,7 @@ import { useTheme, useNavigation } from '@react-navigation/native';
 import Followbtn from '../../components/button/Followbtn';
 import ChatoptionSheet from '../../components/bottomsheet/ChatoptionSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const following = [
   {
@@ -108,7 +109,9 @@ const Followers = () => {
 
   const buildUrl = (path: string | undefined | null) => {
     if (!path || path === 'Unavailable') return IMAGES.profile;
-    return { uri: `http://192.168.1.10:5000/${path.replace(/\\/g, '/')}` };
+    // Remove the hardcoded IP and use relative path for images
+    const cleanPath = path.replace(/\\/g, '/').replace(/^.*?\/uploads/, '/uploads');
+    return { uri: `${cleanPath}` };
   };
 
   // Fetch active account type
@@ -129,31 +132,19 @@ const Followers = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = await AsyncStorage.getItem('userToken');
-        if (!token) {
-          Alert.alert('Error', 'User not authenticated');
-          return;
-        }
-
         let endpoint = '';
         if (activeAccountType === 'Creator') {
-          endpoint = 'http://192.168.1.10:5000/api/creator/get/followers';
+          endpoint = '/api/creator/get/followers';
         } else {
           console.log("usercall")
-          endpoint = 'http://192.168.1.10:5000/api/user/following/data';
+          endpoint = '/api/user/following/data';
         }
 
-        const response = await fetch(endpoint, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json();
+        const response = await api.get(endpoint);
+        const data = response.data;
         console.log('Fetched data:', data);
 
-        if (response.ok && data) {
+        if (data) {
           if (activeAccountType === 'Creator') {
             // Handle creator followers response
             const formattedFollowers = data.followers.map((f: any, index: number) => ({
@@ -195,9 +186,9 @@ const Followers = () => {
           console.log('Error fetching data:', data.message);
           Alert.alert('Error', data.message || 'Failed to fetch data');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Fetch data error:', err);
-        Alert.alert('Error', 'Failed to fetch data');
+        Alert.alert('Error', err.response?.data?.message || 'Failed to fetch data');
       }
     };
 

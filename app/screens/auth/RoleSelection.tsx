@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import axios from "axios";
- 
+import api from "../../apiInterpretor/apiInterceptor";
+
 const RoleSelectionScreen: React.FC = () => {
   const [role, setRole] = useState<"Creator" | "User" | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,14 +31,9 @@ const RoleSelectionScreen: React.FC = () => {
       if (role === "Creator") {
         setLoading(true);
         try {
-          const response = await axios.post(
-            "http://192.168.1.10:5000/api/account/add",
-            { type: "Creator" },
-            {
-              headers: {
-                Authorization: `Bearer ${userToken}`,
-              },
-            }
+          const response = await api.post(
+            "/api/account/add",
+            { type: "Creator" }
           );
  
           if (response.status === 201) {

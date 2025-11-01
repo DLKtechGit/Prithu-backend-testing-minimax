@@ -23,8 +23,7 @@ import BottomSheet, {
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { useTheme } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
 import { FONTS, IMAGES } from '../../constants/theme';
 import * as Haptics from 'expo-haptics'; // Add for Instagram-like feedback
@@ -51,15 +50,10 @@ const CommentSheet = (props: any, ref: any) => {
     const currentFeedId = id || feedId;
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
 
-      const response = await axios.post(
-        `http://192.168.1.10:5000/api/get/comments/for/feed`,
-        { feedId: currentFeedId },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await api.post('/api/get/comments/for/feed', {
+        feedId: currentFeedId,
+      });
 
       setComments(response.data.comments || []);
       setLoading(false);
@@ -101,17 +95,11 @@ const CommentSheet = (props: any, ref: any) => {
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Tactile post feedback
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.error('No token found');
-        return;
-      }
 
-      const response = await axios.post(
-        'http://192.168.1.10:5000/api/user/feed/comment',
-        { feedId, commentText },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.post('/api/user/feed/comment', {
+        feedId,
+        commentText,
+      });
 
       // Add new comment optimistically
       setComments([response.data.comment, ...comments]);

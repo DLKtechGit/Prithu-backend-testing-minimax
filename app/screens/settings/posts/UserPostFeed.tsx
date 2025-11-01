@@ -14,7 +14,7 @@ import { IMAGES, COLORS, FONTS, SIZES } from "../../../constants/theme";
 import Header from "../../../layout/Header";
 import { useTheme } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const UserPostFeed = ({ navigation }) => {
   const scrollRef = useRef<any>();
@@ -45,25 +45,18 @@ const UserPostFeed = ({ navigation }) => {
   const fetchUserPosts = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem("userToken");
       const userId = await AsyncStorage.getItem("userId"); // make sure you store userId after login
 
-      if (!token || !userId) {
-        console.log("❌ Missing token or userId");
+      if (!userId) {
+        console.log("❌ Missing userId");
         setLoading(false);
         return;
       }
 
-      const res = await axios.post(
-        "http://192.168.1.10:5000/api/user/get/post",
+      const res = await api.post(
+        "/api/user/get/post",
         {
           currentUserId: userId, // 👈 sending userId in body
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
         }
       );
 

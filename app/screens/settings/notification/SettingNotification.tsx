@@ -167,7 +167,7 @@ import {
 import { useTheme } from "@react-navigation/native";
 import Header from "../../../layout/Header";
 import { GlobalStyleSheet } from "../../../constants/styleSheet";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const FeedCategoryFloating = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
@@ -183,11 +183,10 @@ const FeedCategoryFloating = ({ navigation }) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("http://192.168.1.10:5000/api/get/feed/category");
-        const data = await response.json();
-        if (data.categories && data.categories.length > 0) {
-          setCategories(data.categories);
-          data.categories.forEach(() => animations.push(new Animated.Value(1)));
+        const response = await api.get('/api/get/feed/category');
+        if (response.data.categories && response.data.categories.length > 0) {
+          setCategories(response.data.categories);
+          response.data.categories.forEach(() => animations.push(new Animated.Value(1)));
         }
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -359,42 +358,26 @@ const FeedCategoryFloating = ({ navigation }) => {
           <TouchableOpacity
             style={[styles.continueBtn, { backgroundColor: colors.primary }]}
     onPress={async () => {
-    if (selectedCategories.length === 0) {
-    showAlert("Please select at least one category");
-    return;
-  }
+      if (selectedCategories.length === 0) {
+        showAlert("Please select at least one category");
+        return;
+      }
 
-  try {
-    // 👇 Get user token (or userId) from AsyncStorage
-    const userData = await AsyncStorage.getItem("userToken");
+      try {
+        // 👇 Send all selected categories in a single request using axios interceptor
+        const response = await api.post('/api/user/intrested/category/begin', {
+          categoryIds: selectedCategories, // 👈 send array here
+        });
 
-    // 👇 Send all selected categories in a single request
-    const response = await fetch("http://192.168.1.10:5000/api/user/intrested/category/begin", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${userData}`, // only if your backend uses token auth
-      },
-      body: JSON.stringify({
-        userId: userData, // directly pass stored value if backend extracts from token
-        categoryIds: selectedCategories, // 👈 send array here
-      }),
-    });
+        console.log("✅ Categories saved:", response.data);
+        navigation.navigate("DrawerNavigation", { screen: "Home" });
 
-    const result = await response.json();
-    console.log("✅ Categories saved:", result);
-
-    if (response.ok) {
-      navigation.navigate("DrawerNavigation", { screen: "Home" });
-    } else {
-      showAlert(result.message || "Something went wrong. Please try again.");
-    }
-
-  } catch (error) {
-    console.error("Error saving categories:", error);
-    showAlert("Something went wrong. Please try again.");
-  }
-}}
+      } catch (error) {
+        console.error("Error saving categories:", error);
+        const errorMessage = error.response?.data?.message || "Something went wrong. Please try again.";
+        showAlert(errorMessage);
+      }
+    }}
 
 >
             <Text style={styles.continueText}>Continue</Text>

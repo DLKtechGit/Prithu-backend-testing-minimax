@@ -417,6 +417,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
+import api from '../../apiInterpretor/apiInterceptor';
 
 const { height: windowHeight } = Dimensions.get('window');
 
@@ -478,47 +479,26 @@ const Reelsitem = ({
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-          Alert.alert('Error', 'User not authenticated');
-          return;
-        }
-
         // Step 1: Fetch profile details
-        const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
+        const profileResponse = await api.get('/api/get/profile/detail');
 
-        const data = await res.json();
-
-        if (res.ok && data.profile) {
+        if (profileResponse.data.profile) {
           setProfile({
-            displayName: data.profile.displayName || '',
-            phoneNumber: data.profile.phoneNumber || '',
+            displayName: profileResponse.data.profile.displayName || '',
+            phoneNumber: profileResponse.data.profile.phoneNumber || '',
           });
 
           // Step 2: Fetch visibility settings *after* profile details
-          const visRes = await fetch('http://192.168.1.10:5000/api/profile/visibility', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${userToken}`,
-            },
-          });
+          const visibilityResponse = await api.get('/api/profile/visibility');
 
-          const visData = await visRes.json();
-
-          if (visRes.ok && visData.success) {
-            setIsPhoneVisible(visData.visibility?.phoneNumber ?? false);
-            setisNameVisible(visData.visibility?.displayName ?? false);
+          if (visibilityResponse.data.success) {
+            setIsPhoneVisible(visibilityResponse.data.visibility?.phoneNumber ?? false);
+            setisNameVisible(visibilityResponse.data.visibility?.displayName ?? false);
           } else {
-            console.log('Failed to get visibility settings:', visData.message);
+            console.log('Failed to get visibility settings:', visibilityResponse.data.message);
           }
         } else {
-          console.log('Error fetching profile:', data.message);
+          console.log('Error fetching profile:', profileResponse.data.message);
         }
       } catch (err) {
         console.error('Fetch profile error:', err);
@@ -561,26 +541,12 @@ const Reelsitem = ({
       return;
     }
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      console.log("user", userToken);
-      if (!userToken) {
-        return;
-      }
-      const endpoint = 'http://192.168.1.10:5000/api/user/watching/vidoes';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({ feedId: id }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        console.log('Error recording video view:', data.message);
-      } else {
-        console.log('Video view recorded:', data.message);
+      const response = await api.post('/api/user/watching/vidoes', { feedId: id });
+      if (response.data.success) {
+        console.log('Video view recorded:', response.data.message);
         setHasViewed(true); // Mark as viewed only on successful API call
+      } else {
+        console.log('Error recording video view:', response.data.message);
       }
     } catch (error) {
       console.error('Error recording video view:', error);
@@ -603,28 +569,17 @@ const Reelsitem = ({
   // Like handler
   const handleLike = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) return Alert.alert('Error', 'User not authenticated');
-
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
       setLikeCount(prev => newLikeState ? prev + 1 : prev - 1);
 
-      const res = await fetch('http://192.168.1.10:5000/api/user/feed/like', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({ feedId: id }),
-      });
+      const response = await api.post('/api/user/feed/like', { feedId: id });
+      console.log("likebtn", response.data);
 
-      const data = await res.json();
-      console.log("likebtn", data)
-      if (!res.ok) {
+      if (!response.data.success) {
         setIsLiked(!newLikeState); // rollback
         setLikeCount(prev => newLikeState ? prev - 1 : prev + 1);
-        Alert.alert('Error', data.message || 'Failed to like/unlike reel');
+        Alert.alert('Error', response.data.message || 'Failed to like/unlike reel');
       }
     } catch (error) {
       setIsLiked(!isLiked); // rollback
@@ -648,26 +603,13 @@ const Reelsitem = ({
   // Save handler
   const handleSave = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
       const newSaveState = !isSaved;
       setIsSaved(newSaveState);
-      const endpoint = 'http://192.168.1.10:5000/api/user/feed/save';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({ feedId: id }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
+      const response = await api.post('/api/user/feed/save', { feedId: id });
+      
+      if (!response.data.success) {
         setIsSaved(!newSaveState);
-        Alert.alert('Error', data.message || 'Failed to save reel');
+        Alert.alert('Error', response.data.message || 'Failed to save reel');
       }
     } catch (error) {
       console.error('Save error:', error);

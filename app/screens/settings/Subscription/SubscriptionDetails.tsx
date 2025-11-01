@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../../layout/Header';
 import { IMAGES } from '../../../constants/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,28 +23,13 @@ const SubscriptionDetails = () => {
   const { plan } = route.params as { plan: any }; // Plan details passed from Settings
   const theme = useTheme();
   const { colors } = theme;
-  const [userToken, setUserToken] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false); // State to control popup visibility
   const [popupMessage, setPopupMessage] = useState(''); // Message for the popup
   const [popupSubtitle, setPopupSubtitle] = useState(''); // Subtitle for the popup
   const [isCancelConfirm, setIsCancelConfirm] = useState(false); // State to track cancel confirmation
   const fadeAnim = useState(new Animated.Value(0))[0]; // Animation value for fade and position
 
-  useEffect(() => {
-    const fetchToken = async () => {
-      try {
-        const token = await AsyncStorage.getItem('userToken');
-        console.log('Fetched userToken:', token);
-        setUserToken(token);
-      } catch (error) {
-        console.error('Error fetching userToken:', error);
-        setPopupMessage('Error!');
-        setPopupSubtitle('Failed to retrieve authentication token');
-        setShowPopup(true);
-      }
-    };
-    fetchToken();
-  }, []);
+
 
   useEffect(() => {
     if (showPopup) {
@@ -91,13 +76,6 @@ const SubscriptionDetails = () => {
       return;
     }
 
-    if (!userToken) {
-      setPopupMessage('Error!');
-      setPopupSubtitle('Authentication token is missing');
-      setShowPopup(true);
-      return;
-    }
-
     setPopupMessage('Confirm Cancellation');
     setPopupSubtitle('Are you sure you want to cancel your subscription?');
     setIsCancelConfirm(true);
@@ -108,38 +86,24 @@ const SubscriptionDetails = () => {
   const handlePopupAction = async () => {
     if (isCancelConfirm) {
       try {
-        const response = await fetch('http://192.168.1.10:5000/api/user/cancel/subscription', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userToken}`,
-          },
-          body: JSON.stringify({
-            subscriptionId: plan.id,
-          }),
+        const response = await api.put('/api/user/cancel/subscription', {
+          subscriptionId: plan.id,
         });
 
-        const data = await response.json();
-        console.log('Cancel API Response:', data);
+        console.log('Cancel API Response:', response.data);
 
-        if (response.ok) {
-          setPopupMessage('Success');
-          setPopupSubtitle(data.message);
-          setIsCancelConfirm(false);
-          setShowPopup(true);
-          setTimeout(() => {
-            navigation.goBack();
-          }, 1000); // Delay navigation to show success message
-        } else {
-          setPopupMessage('Error!');
-          setPopupSubtitle(data.message || 'Failed to cancel subscription');
-          setIsCancelConfirm(false);
-          setShowPopup(true);
-        }
-      } catch (error) {
+        setPopupMessage('Success');
+        setPopupSubtitle(response.data.message);
+        setIsCancelConfirm(false);
+        setShowPopup(true);
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1000); // Delay navigation to show success message
+      } catch (error: any) {
         console.error('Cancel Subscription Error:', error);
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to cancel subscription';
         setPopupMessage('Error!');
-        setPopupSubtitle(`An error occurred: ${error.message || 'Unknown error'}`);
+        setPopupSubtitle(errorMessage);
         setIsCancelConfirm(false);
         setShowPopup(true);
       }

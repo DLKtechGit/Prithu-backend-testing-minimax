@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios, { AxiosError } from "axios";
-import { API_CONFIG, getAPIEndpoint } from "../config/api.config";
+import { AxiosError } from "axios";
+import api from "../apiInterpretor/apiInterceptor";
+import { API_CONFIG } from "../config/api.config";
 
 interface HeartbeatResponse {
   success: boolean;
@@ -21,13 +22,6 @@ export const startHeartbeat = async (customInterval?: number) => {
     return;
   }
 
-  // Validate configuration
-  const apiEndpoint = getAPIEndpoint("/api/heartbeat");
-  if (!apiEndpoint) {
-    console.error("Invalid API endpoint configuration");
-    return;
-  }
-
   isHeartbeatRunning = true;
   consecutiveFailures = 0;
 
@@ -40,23 +34,18 @@ export const startHeartbeat = async (customInterval?: number) => {
   const sendHeartbeat = async () => {
     try {
       const sessionId = await AsyncStorage.getItem("sessionId");
-      const token = await AsyncStorage.getItem("userToken");
 
-      if (!sessionId || !token) {
-        console.warn("Missing session ID or authentication token");
+      if (!sessionId) {
+        console.warn("Missing session ID");
         return;
       }
 
       console.log("Sending heartbeat...", { sessionId });
 
-      const response = await axios.post<HeartbeatResponse>(
-        apiEndpoint,
+      const response = await api.post<HeartbeatResponse>(
+        '/api/heartbeat',
         { sessionId },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
           timeout: 10000, // 10 second timeout
         }
       );
@@ -152,23 +141,16 @@ export const isHeartbeatActive = (): boolean => {
 export const testHeartbeatConnection = async (): Promise<boolean> => {
   try {
     const sessionId = await AsyncStorage.getItem("sessionId");
-    const token = await AsyncStorage.getItem("userToken");
 
-    if (!sessionId || !token) {
-      console.error("Missing session ID or token for heartbeat test");
+    if (!sessionId) {
+      console.error("Missing session ID for heartbeat test");
       return false;
     }
-
-    const apiEndpoint = getAPIEndpoint("/api/heartbeat");
     
-    await axios.post(
-      apiEndpoint,
+    await api.post(
+      '/api/heartbeat',
       { sessionId },
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
         timeout: 5000, // 5 second timeout for test
       }
     );

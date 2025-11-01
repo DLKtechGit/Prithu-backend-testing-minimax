@@ -7,8 +7,8 @@ import {
   SafeAreaView,
   Image,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import api from "../../../apiInterpretor/apiInterceptor";
  
 const GenderScreen: React.FC = () => {
   const [gender, setGender] = useState<"Male" | "Female" | "Other" | null>(null);
@@ -16,35 +16,23 @@ const GenderScreen: React.FC = () => {
  
   const handleSave = async () => {
     try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        alert("User not authenticated, please login again");
-        return;
-      }
- 
       const formData = new FormData();
       formData.append("gender", gender!);
- 
-      const res = await fetch(
-        "http://192.168.1.10:5000/api/user/profile/detail/update",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
+
+      const response = await api.post(
+        "/api/user/profile/detail/update",
+        formData
       );
- 
-      const data = await res.json();
-      if (res.ok) {
+
+      if (response.data) {
         alert("Gender updated successfully!");
         navigation.navigate('DrawerNavigation', { screen: 'Home' });
       } else {
-        alert(data.message || "Update failed");
+        alert("Update failed");
       }
-    } catch (err) {
-      alert("Something went wrong while saving");
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || "Something went wrong while saving";
+      alert(errorMessage);
       console.error(err);
     }
   };

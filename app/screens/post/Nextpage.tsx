@@ -17,7 +17,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import { Picker } from '@react-native-picker/picker';
-import axios from 'axios';
+import api from '../../apiInterpretor/apiInterceptor';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -46,7 +46,7 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://192.168.1.10:5000/api/user/get/all/category');
+        const res = await api.get('/api/user/get/all/category');
         console.log("ddd", res.data);
 
         if (Array.isArray(res.data.categories)) {
@@ -106,13 +106,11 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
       });
       console.log('FormData JSON:', JSON.stringify(formDataJSON, null, 2));
 
-      const token = await AsyncStorage.getItem('userToken');
-      const res = await axios.post(
-        'http://192.168.1.10:5000/api/creator/feed/upload',
+      const res = await api.post(
+        '/api/creator/feed/upload',
         formData,
         {
           headers: {
-            Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
         }

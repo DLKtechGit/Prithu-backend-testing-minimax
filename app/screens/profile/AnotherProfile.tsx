@@ -53,11 +53,7 @@ const AnotherProfile = () => {
  
 
 
-  // Convert a backend path to full URL
-  const buildUrl = (path: string | undefined | null) => {
-    if (!path || path === "Unknown") return null;
-    return `http://192.168.1.10:5000/${path.replace(/\\/g, "/")}`;
-  };
+
 
 //currentUserId
 useEffect(() => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
 import { useTheme } from '@react-navigation/native';
 import Header from '../../../layout/Header';
 import { GlobalStyleSheet } from '../../../constants/styleSheet';
@@ -25,11 +25,7 @@ const NotInterestedCategories = () => {
         }
 
         // Make API request
-        const response = await axios.get('http://192.168.1.10:5000/api/user/notintrested/category', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get('/api/user/notintrested/category');
 
         console.log('API Response:', JSON.stringify(response.data, null, 2));
 

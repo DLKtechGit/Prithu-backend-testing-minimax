@@ -1,6 +1,7 @@
 import axios, { InternalAxiosRequestConfig } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getConfig } from "../config/environment";
+import { handleTokenRefresh } from "../webSocket/webScoket";
 
 // Get base URL from environment configuration
 const config = getConfig();
@@ -49,6 +50,15 @@ api.interceptors.response.use(
 
         // Update the original request headers
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+        // Notify WebSocket of token refresh
+        try {
+          await handleTokenRefresh(newAccessToken);
+          console.log('WebSocket notified of token refresh');
+        } catch (wsError) {
+          console.error('Error notifying WebSocket of token refresh:', wsError);
+          // Don't fail the request if WebSocket notification fails
+        }
 
         // Retry the original request
         return api(originalRequest);

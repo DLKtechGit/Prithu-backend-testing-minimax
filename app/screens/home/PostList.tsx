@@ -259,7 +259,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             timeAgo: item.timeAgo,
             contentUrl: item.contentUrl?.startsWith("http")
               ? item.contentUrl
-              : `http://192.168.1.10:5000/${item.contentUrl?.replace(/\\/g, "/")}`,
+              : `${api.defaults.baseURL}/${item.contentUrl?.replace(/\\/g, "/")}`,
             caption: item.caption || "",
             tags: item.tags || [],
             background: item.background || "#fff",

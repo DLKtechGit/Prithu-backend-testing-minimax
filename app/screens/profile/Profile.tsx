@@ -164,60 +164,49 @@ useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
-// useEffect(() => {
-//     const fetchFeeds = async () => {
-//       try {
-//         setLoading(true);
-//         const token = await AsyncStorage.getItem('userToken');
-//         const notInterested = JSON.parse(await AsyncStorage.getItem('notInterested') || '[]');
-//         if (!token) {
-//           Alert.alert('Error', 'User not authenticated');
-//           setLoading(false);
-//           return;
-//         }
+  useEffect(() => {
+    const fetchFeeds = async () => {
+      try {
+        setLoading(true);
+        const notInterested = JSON.parse(await AsyncStorage.getItem('notInterested') || '[]');
 
-//         const response = await fetch('http://192.168.1.10:5000/api/creator/getall/feeds', {
-//           headers: {
-//             Authorization: `Bearer ${token}`,
-//           },
-//         });
+        const response = await api.get('/api/creator/getall/feeds');
+        const data = response.data;
+        const feeds = (data.feeds || []).filter((feed: any) => !notInterested.includes(feed._id));
+        console.log("Fetched feeds:", feeds.map((feed: any) => ({ id: feed._id, type: feed.type })));
+        setFollowersCount(data.followersCount || 0);
 
-//         const data = await response.json();
-//         const feeds = (data.feeds || []).filter((feed: any) => !notInterested.includes(feed._id));
-//         console.log("Fetched feeds:", feeds.map((feed: any) => ({ id: feed._id, type: feed.type })));
-//         setFollowersCount(data.followersCount || 0);
+        const imagePosts = feeds
+          .filter((feed: any) => feed.type === 'image')
+          .map((feed: any) => ({
+            id: feed._id,
+            image: { uri: feed.contentUrl },
+            like: (feed.like ?? 0).toString(),
+          }));
 
-//         const imagePosts = feeds
-//           .filter((feed: any) => feed.type === 'image')
-//           .map((feed: any) => ({
-//             id: feed._id,
-//             image: { uri: feed.contentUrl },
-//             like: (feed.like ?? 0).toString(),
-//           }));
+        const videoReels = feeds
+          .filter((feed: any) => feed.type === 'video')
+          .map((feed: any) => ({
+            id: feed._id,
+            image: { uri: feed.contentUrl.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg') },
+            videoUrl: feed.contentUrl,
+            like: (feed.like ?? 0).toString(),
+          }));
 
-//         const videoReels = feeds
-//           .filter((feed: any) => feed.type === 'video')
-//           .map((feed: any) => ({
-//             id: feed._id,
-//             image: { uri: feed.contentUrl.replace('/video/upload/', '/video/upload/so_0/').replace('.mp4', '.jpg') },
-//             videoUrl: feed.contentUrl,
-//             like: (feed.like ?? 0).toString(),
-//           }));
+        setPosts(imagePosts);
+        setReels(videoReels);
+        setPostCount(imagePosts.length);
+      } catch (err: any) {
+        console.error('Fetch posts error:', err);
+        setError(err.message || 'Failed to fetch posts');
+        Alert.alert('Error', err.message || 'Failed to fetch posts');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-//         setPosts(imagePosts);
-//         setReels(videoReels);
-//         setPostCount(imagePosts.length);
-//       } catch (err: any) {
-//         console.error('Fetch posts error:', err);
-//         setError(err.message || 'Failed to fetch posts');
-//         Alert.alert('Error', err.message || 'Failed to fetch posts');
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchFeeds();
-//   }, []);
+    fetchFeeds();
+  }, []);
   
   const handleNotInterested = async (postId: string) => {
     console.log('Profile handleNotInterested called with postId:', postId);
@@ -263,7 +252,7 @@ useEffect(() => {
         return;
       }
 
-      const profileUrl = `http://192.168.1.10:5000/api/profile/${userId}`;
+      const profileUrl = `https://prithubackend.onrender.com/api/profile/${userId}`;
       const result = await Share.share({
         message: `Check out this profile: ${profileUrl}`,
       });

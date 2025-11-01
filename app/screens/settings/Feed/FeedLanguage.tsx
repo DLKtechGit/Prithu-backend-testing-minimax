@@ -14,6 +14,7 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../../../api/apiInterceptor";
 
 type Language = {
   code: string;
@@ -50,19 +51,10 @@ const FeedLanguage: React.FC = () => {
   useEffect(() => {
     const loadFeedLanguage = async () => {
       try {
-        const token = await AsyncStorage.getItem("userToken");
-        const res = await fetch("http://192.168.1.10:5000/api/user/get/feed/language", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get("/api/user/get/feed/language");
 
-        const data = await res.json();
-
-        if (res.ok && data?.data?.feedLanguageCode) {
-          const backendCode = data.data.feedLanguageCode;
+        if (response?.data?.data?.feedLanguageCode) {
+          const backendCode = response.data.data.feedLanguageCode;
           const langObj = allLanguages.find((l) => l.code === backendCode);
           if (langObj) {
             setRecentLang(langObj);
@@ -98,21 +90,11 @@ const FeedLanguage: React.FC = () => {
       setRecentLang(lang);
       await AsyncStorage.setItem("feedLanguage", lang.code);
 
-      const token = await AsyncStorage.getItem("userToken");
-
       // ✅ Update backend
-      await fetch("http://192.168.1.10:5000/api/user/feed/language", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          feedLanguageCode: lang.code,
-          feedNativeCode: lang.name,
-          feedLanguage: lang.code,
-
-        }),
+      await api.post("/api/user/feed/language", {
+        feedLanguageCode: lang.code,
+        feedNativeCode: lang.name,
+        feedLanguage: lang.code,
       });
 
       console.log("Feed Language Selected:", lang.name);

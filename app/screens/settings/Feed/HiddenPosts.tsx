@@ -9,7 +9,7 @@ import { useTheme } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../../apiInterpretor/apiInterceptor';
 
 type HiddenPostsScreenProps = StackScreenProps<RootStackParamList, 'HiddenPosts'>;
 
@@ -51,13 +51,8 @@ const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
       }
 
       // CORRECTED API ENDPOINT
-      const res = await axios.get(
-        'http://192.168.1.10:5000/api/get/user/hide/post', // Updated endpoint
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const res = await api.get(
+        '/api/get/user/hide/post' // Updated endpoint
       );
       
       console.log('✅ Hidden Posts API Response:', res.data);

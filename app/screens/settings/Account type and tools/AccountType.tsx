@@ -11,10 +11,10 @@ import Header from '../../../layout/Header';
 import { GlobalStyleSheet } from '../../../constants/styleSheet';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const API_BASE_URL = 'http://192.168.1.10:5000/api/account';
+
 
 // 🔹 Type definitions
 interface AccountStatusResponse {
@@ -59,10 +59,9 @@ const AccountType: React.FC<Props> = ({ navigation }) => {
       const userToken = await AsyncStorage.getItem('userToken');
       if (!userToken) throw new Error('No user token found');
         console.log(userToken)
-      const response = await axios.post<AccountStatusResponse>(
-        `${API_BASE_URL}/status`,
-        {},
-        { headers: { Authorization: `Bearer ${userToken}` } }
+      const response = await api.post<AccountStatusResponse>(
+        '/api/account/status',
+        {}
       );
 
       const { activeAccountType, hasAccounts } = response.data;
@@ -144,21 +143,18 @@ const AccountType: React.FC<Props> = ({ navigation }) => {
       setLoading(true);
       setError(null);
 
-      const switchUrl =
+      const switchEndpoint =
         option.role === 'Personal'
-          ? `${API_BASE_URL}/switch/user`
-          : `${API_BASE_URL}/switch/creator`;
+          ? '/api/account/switch/user'
+          : '/api/account/switch/creator';
 
-      const response = await axios.post<SwitchResponse>(
-        switchUrl,
+      const response = await api.post<SwitchResponse>(
+        switchEndpoint,
         {
           refreshToken,
           sessionId,
           deviceId,
           deviceType: 'mobile',
-        },
-        {
-          headers: { Authorization: `Bearer ${userToken}` },
         }
       );
 

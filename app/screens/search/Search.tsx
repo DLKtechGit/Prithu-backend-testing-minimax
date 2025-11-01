@@ -17,10 +17,9 @@ import { useTheme } from '@react-navigation/native';
 import { IMAGES, SIZES } from '../../constants/theme';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
 import ProfilePostData from '../profile/ProfilePostData';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
+import { configHelpers } from '../../../config/api.config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_BASE = 'http://192.168.1.10:5000/api';
 
 const Search = ({ navigation }: any) => {
   const theme = useTheme();
@@ -42,11 +41,11 @@ const Search = ({ navigation }: any) => {
     };
   }, []);
 
-  // Converts a backend path into a usable full URL
+  // Converts a backend path into a usable full URL using environment config
   const buildUrl = (path: string | undefined | null) => {
     if (!path) return null;
-    // Replace backslashes and prepend base
-    return `http://192.168.1.10:5000/${path.replace(/\\/g, '/')}`;
+    // Replace backslashes and prepend base from environment config
+    return configHelpers.getAPIEndpoint(path.replace(/\\/g, '/'));
   };
 
   // Shuffle array using Fisher-Yates algorithm
@@ -63,14 +62,7 @@ const Search = ({ navigation }: any) => {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.warn('No token found in storage');
-        return;
-      }
-      const res = await axios.get(`${API_BASE}/get/all/feeds/user`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/api/get/all/feeds/user');
 
       const feeds = res.data.feeds || [];
       const imageFeeds = feeds
@@ -103,16 +95,7 @@ const Search = ({ navigation }: any) => {
     }
     try {
       setCatLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.warn('No token found in storage');
-        return;
-      }
-      const res = await axios.post(
-        `${API_BASE}/search/all/category`,
-        { query: text },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post('/api/search/all/category', { query: text });
       setCategories(res.data.categories || []);
     } catch (err) {
       setCategories([]);
@@ -125,14 +108,7 @@ const Search = ({ navigation }: any) => {
   const fetchCategoryPosts = async (categoryId: string) => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.warn('No token found in storage');
-        return;
-      }
-      const res = await axios.get(`${API_BASE}/user/get/feed/with/search/cat/${categoryId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get(`/api/user/get/feed/with/search/cat/${categoryId}`);
     console.log("categry",res.data.feeds)
      const feeds = res.data?.feeds || [];
       const imageFeeds = feeds

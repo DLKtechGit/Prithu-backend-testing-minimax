@@ -9,7 +9,7 @@ import Collapsible from 'react-native-collapsible';
 import LikeBtn from '../../components/likebtn/LikeBtn';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
 import ChatoptionSheet from '../../components/bottomsheet/ChatoptionSheet';
 
 const Comments = () => {
@@ -69,16 +69,10 @@ const Comments = () => {
         const currentFeedId = id || feedId;
         try {
             setLoading(true);
-            const token = await AsyncStorage.getItem('userToken');
-            if (!token) {
-                Alert.alert('Error', 'User not authenticated');
-                return;
-            }
 
-            const response = await axios.post(
-                `http://192.168.1.10:5000/api/get/comments/for/feed`,
-                { feedId: currentFeedId },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const response = await api.post(
+                '/api/get/comments/for/feed',
+                { feedId: currentFeedId }
             );
             console.log('Fetched comments:', response.data);
             const commentsWithReplies = response.data.comments.map(comment => ({
@@ -99,16 +93,9 @@ const Comments = () => {
 
     const fetchReplies = async (commentId) => {
         try {
-            const token = await AsyncStorage.getItem('userToken');
-            if (!token) {
-                Alert.alert('Error', 'User not authenticated');
-                return [];
-            }
-
-            const response = await axios.post(
-                `http://192.168.1.10:5000/api/get/comments/relpy/for/feed`,
-                { parentCommentId: commentId },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const response = await api.post(
+                '/api/get/comments/reply/for/feed',
+                { parentCommentId: commentId }
             );
             console.log(`Fetched replies for comment ${commentId}:`, response.data);
 
@@ -132,16 +119,9 @@ const Comments = () => {
         if (!commentText.trim() || !feedId) return;
 
         try {
-            const token = await AsyncStorage.getItem('userToken');
-            if (!token) {
-                Alert.alert('Error', 'User not authenticated');
-                return;
-            }
-
-            const response = await axios.post(
-                'http://192.168.1.10:5000/api/user/feed/comment',
-                { feedId, commentText },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const response = await api.post(
+                '/api/user/feed/comment',
+                { feedId, commentText }
             );
 
             setComments([{ ...response.data.comment, replies: [], isLiked: false, likeCount: 0 }, ...comments]);
@@ -160,18 +140,11 @@ const Comments = () => {
         }
 
         try {
-            const token = await AsyncStorage.getItem('userToken');
-            if (!token) {
-                Alert.alert('Error', 'User not authenticated');
-                return;
-            }
-
             console.log('Posting reply:', { feedId, commentText: replyText, parentCommentId: commentId });
 
-            await axios.post(
-                'http://192.168.1.10:5000/api/user/feed/reply/comment',
-                { feedId, commentText: replyText, parentCommentId: commentId },
-                { headers: { Authorization: `Bearer ${token}` } }
+            await api.post(
+                '/api/user/feed/reply/comment',
+                { feedId, commentText: replyText, parentCommentId: commentId }
             );
 
             const updatedReplies = await fetchReplies(commentId);
@@ -192,21 +165,14 @@ const Comments = () => {
     const handleLike = useCallback(async (commentId) => {
         // console.log('handleLike called with:', { commentId });
         try {
-            const token = await AsyncStorage.getItem('userToken');
             // const userId = await AsyncStorage.getItem('userId');
-            console.log('handleLike inputs:', { commentId, token });
-            if (!token) {
-                // console.warn('Authentication check failed:', { token, userId });
-                Alert.alert('Error', 'User not authenticated');
-                return null;
-            }
+            console.log('handleLike inputs:', { commentId });
 
-            const endpoint =  '/user/comment/like';
+            const endpoint =  '/api/user/comment/like';
             // console.log('Calling endpoint:', endpoint);
-            const res = await axios.post(
-                `http://192.168.1.10:5000/api${endpoint}`,
-                { commentId },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await api.post(
+                endpoint,
+                { commentId }
             );
 
             console.log('Like response:', res.data);

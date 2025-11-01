@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import axios from "axios"; // Import axios for API calls
+import api from "../../../apiInterpretor/apiInterceptor";
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,7 +22,7 @@ const SubscriptionPlans = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await axios.get("http://192.168.1.10:5000/api/user/getall/subscriptions");
+        const response = await api.get("/api/user/getall/subscriptions");
         console.log(response);
         const fetchedPlans = response.data.plans.map((plan) => ({
           id: plan._id, // Use MongoDB _id instead of index-based ID

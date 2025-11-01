@@ -3,8 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ScrollView
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../../../apiInterpretor/apiInterceptor";
 import * as Clipboard from "expo-clipboard"; // Import Clipboard for copy functionality
 
 const { width } = Dimensions.get("window");
@@ -19,21 +18,10 @@ const InviteFriends = () => {
   useEffect(() => {
     const fetchReferralCode = async () => {
       try {
-        // Retrieve token from AsyncStorage
-        const userToken = await AsyncStorage.getItem("userToken"); // Adjust key if different
-        if (!userToken) {
-          setError("No authentication token found");
-          setLoading(false);
-          return;
-        }
         console.log("working")
 
-        // Make API request with token
-        const response = await axios.get("http://192.168.1.10:5000/api/user/referal/code", {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
+        // Make API request with interceptor
+        const response = await api.get("/api/user/referal/code");
 
         if (response.data.success && response.data.referralCode) {
           console.log(response.data.referralCode)

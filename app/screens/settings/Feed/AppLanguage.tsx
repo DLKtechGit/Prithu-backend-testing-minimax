@@ -53,7 +53,7 @@ const AppLanguage: React.FC = () => {
         const response = await api.get('/api/user/get/app/language');
         
         if (response.data?.data?.appLanguageCode) {
-          const backendCode = data.data.appLanguageCode;
+          const backendCode = response.data.data.appLanguageCode;
           const langObj = allLanguages.find((l) => l.code === backendCode);
           if (langObj) {
             setRecentLang(langObj);
@@ -89,19 +89,11 @@ const AppLanguage: React.FC = () => {
       setRecentLang(lang);
       await AsyncStorage.setItem("AppLanguage", lang.code);
 
-      const token = await AsyncStorage.getItem("userToken");
-      // ✅ Send update to backend
-      await fetch("http://192.168.1.10:5000/api/user/app/language", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          appLanguageCode: lang.code,
-          appNativeCode: lang.name,
-          appLanguage: lang.code,  
-        }),
+      // ✅ Send update to backend using axios interceptor
+      await api.post('/api/user/app/language', {
+        appLanguageCode: lang.code,
+        appNativeCode: lang.name,
+        appLanguage: lang.code,
       });
 
       console.log("Selected Language:", lang.name);

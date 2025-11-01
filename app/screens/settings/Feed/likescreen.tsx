@@ -9,7 +9,7 @@ import { useTheme } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
  
 type LikeScreenProps = StackScreenProps<RootStackParamList, 'LikeFeed'>;
  
@@ -52,13 +52,8 @@ const LikeFeed = ({ navigation }: LikeScreenProps) => {
       }
       
 
-      const res = await axios.get(
-        'http://192.168.1.10:5000/api/user/liked/feeds',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const res = await api.get(
+        '/api/user/liked/feeds'
       );
 
       console.log('✅ API Response:', res.data);

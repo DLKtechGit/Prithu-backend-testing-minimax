@@ -28,6 +28,8 @@ import { useTheme, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import RazorpayCheckout from 'react-native-razorpay';
+
+import api from '../../../apiInterpretor/apiInterceptor';
  
 interface Plan {
 
@@ -81,25 +83,13 @@ const SubscriptionPaymentScreen: React.FC = () => {
 
     try {
 
-      const token = await AsyncStorage.getItem('userToken');
-    
-      const res = await fetch('http://192.168.1.10:5000/api/user/plan/subscription', {
+      const response = await api.post('/api/user/plan/subscription', {
 
-        method: 'POST',
-
-        headers: {
-
-          'Content-Type': 'application/json',
-
-          Authorization: `Bearer ${token}`,
-
-        },
-
-        body: JSON.stringify({ planId: selectedPlan.id }),
+        planId: selectedPlan.id,
 
       });
  
-      const data = await res.json();
+      const data = response.data;
       console.log(data)
       if (!data.subscription) {
 
@@ -131,43 +121,27 @@ const SubscriptionPaymentScreen: React.FC = () => {
 
     try {
 
-      const token = await AsyncStorage.getItem('userToken');
-
       const userData = await AsyncStorage.getItem('user');
 
       const user = userData ? JSON.parse(userData) : { _id: '' };
  
-      const res = await fetch('http://192.168.1.10:5000/api/user/plan/subscription', {
+      const response = await api.post('/api/user/plan/subscription', {
 
-        method: 'POST',
+        planId: selectedPlan.id,
 
-        headers: {
+        result: 'success',
 
-          'Content-Type': 'application/json',
+        razorpay_payment_id: paymentSuccess.razorpay_payment_id,
 
-          Authorization: `Bearer ${token}`,
+        razorpay_subscription_id: paymentSuccess.razorpay_subscription_id,
 
-        },
+        razorpay_signature: paymentSuccess.razorpay_signature,
 
-        body: JSON.stringify({
-
-          planId: selectedPlan.id,
-
-          result: 'success',
-
-          razorpay_payment_id: paymentSuccess.razorpay_payment_id,
-
-          razorpay_subscription_id: paymentSuccess.razorpay_subscription_id,
-
-          razorpay_signature: paymentSuccess.razorpay_signature,
-
-          userId: user._id,
-
-        }),
+        userId: user._id,
 
       });
  
-      const confirmData = await res.json();
+      const confirmData = response.data;
 
       Alert.alert('Payment Success', confirmData.message);
 

@@ -8,6 +8,12 @@ export {
   getSocketStatus,
   isSocketConnected,
   emitEvent,
+  reauthenticateSocket,
+  isTokenValid,
+  checkAndRefreshToken,
+  initializeTokenRefreshIntegration,
+  registerTokenRefreshListener,
+  handleTokenRefresh,
 } from "./webScoket";
 
 // Heartbeat exports

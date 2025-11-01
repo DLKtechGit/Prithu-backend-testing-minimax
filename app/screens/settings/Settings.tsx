@@ -185,9 +185,11 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
         //   }
         // );
 
-        // Stop heartbeat & disconnect socket (optional but recommended)
-        // stopHeartbeat();
-        // disconnectSocket();
+        // Stop heartbeat & disconnect socket
+        const { stopHeartbeat } = await import("../../../webSocket/heartBeat");
+        const { disconnectSocket } = await import("../../../webSocket/webScoket");
+        await stopHeartbeat();
+        disconnectSocket();
 
         // Clear all storage
         await AsyncStorage.multiRemove([

@@ -534,7 +534,7 @@ import {
 import { CheckCircle2 } from "lucide-react-native"; // Lucide icon
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import axios from "axios"; // Import axios for API calls
+import api from "../../../apiInterpretor/apiInterceptor";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IMAGES } from "../../../constants/theme";
 
@@ -568,7 +568,7 @@ const SubscriptionScreen = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await axios.get("http://192.168.1.10:5000/api/user/getall/subscriptions");
+        const response = await api.get("/api/user/getall/subscriptions");
         console.log("Fetch plans response:", response.data.plans);
         const plans = response.data.plans.map((plan) => ({
           id: plan._id, // Use MongoDB _id
@@ -641,15 +641,7 @@ const SubscriptionScreen = () => {
         return;
       }
 
-      const response = await axios.post(
-        "http://192.168.1.10:5000/api/user/activate/trial/plan",
-        {}, // Empty body, assuming userId is from token
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.post("/api/user/activate/trial/plan", {});
       console.log(response.data);
       if (response.data.subscription.success === false) {
         setPopupMessage(response.data.subscription.message);
@@ -778,22 +770,13 @@ const SubscriptionScreen = () => {
     }
     console.log(planId)
     // ✅ Call subscription activation API
-    const response = await axios.post(
-      "http://192.168.1.10:5000/api/user/plan/subscription",
-      {
-        planId,
-        price: planDetails.price,
-        duration: planDetails.duration,
-        planType: planDetails.planType,
-        result: "success",
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await api.post("/api/user/plan/subscription", {
+      planId,
+      price: planDetails.price,
+      duration: planDetails.duration,
+      planType: planDetails.planType,
+      result: "success",
+    });
    
     console.log("Subscription activation response:", response.data);
 

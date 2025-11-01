@@ -57,50 +57,7 @@
 //         try {
 //             // Retrieve user token from AsyncStorage
 //             const userToken = await AsyncStorage.getItem("userToken");
-//             if (!userToken) {
-//                 throw new Error("No user token found");
-//             }
 
-//             // Make API call to add account with default type
-//             const response = await axios.post(
-//                 "http://192.168.1.10:5000/api/account/add",
-//                 {
-//                     type:"Creator", // Use selected category or default to "Creator"
-//                 },
-//                 {
-//                     headers: {
-//                         Authorization: `Bearer ${userToken}`, // Pass token in Authorization header
-//                     },
-//                 }
-//             );
-
-//             // Check for 201 status
-//             if (response.status === 201) {
-//                 // Store the new token if provided in the response
-//                 if (response.data.token) {
-//                     await AsyncStorage.setItem("userToken", response.data.token);
-//                 }
-//                 // Navigate to DrawerNavigation with Home screen
-//                 navigation.navigate("DrawerNavigation", { screen: "Home" });
-//             }
-//         } catch (err) {
-//             if (err.response) {
-//                 // Handle specific error statuses
-//                 if (err.response.status === 400) {
-//                     setError(err.response.data.message || "Failed to create account");
-//                 } else {
-//                     setError("Error creating account. Please try again.");
-//                 }
-//             } else {
-//                 setError("Network error. Please check your connection.");
-//             }
-//             console.error("Switch Account Error:", err.message);
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-
-//     return (
 //         <SafeAreaView style={{ flex: 1, backgroundColor: colors.card }}>
 //             {/* Fixed Header */}
 //             <View
@@ -299,7 +256,7 @@ import {
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import api from "../../../apiInterpretor/apiInterceptor";
 
 const allCategories = [
     "Artist",
@@ -379,18 +336,13 @@ const Categories = forwardRef(({ onSelectCategory, navigation }, ref) => {
             }
 
             // Make API call to add account with selected category or default type
-            const response = await axios.post(
-                "http://192.168.1.10:5000/api/account/add",
+            const response = await api.post(
+                "/api/account/add",
                 {
                     type: selected || "Creator", // Use selected category or default to "Creator"
                     deviceId: deviceId,
                     deviceType: "mobile",
                     refreshToken: refreshToken,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${userToken}`, // Pass token in Authorization header
-                    },
                 }
             );
 

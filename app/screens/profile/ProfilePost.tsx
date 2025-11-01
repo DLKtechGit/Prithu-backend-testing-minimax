@@ -17,8 +17,6 @@ import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
 
-const API_BASE = 'http://192.168.1.10:5000/api';
-
 const ProfilePost = ({
       themeColor,
       textColor,
@@ -43,15 +41,8 @@ const ProfilePost = ({
     const fetchPosts = async () => {
         try {
             setLoading(true);
-            const token = await AsyncStorage.getItem('userToken');
-            if (!token) {
-                console.warn('No user token found in AsyncStorage');
-                return;
-            }
 
-            const res = await axios.get(`${API_BASE}/get/all/feeds/user`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await axios.get('/get/all/feeds/user');
 
             const feeds = res.data.feeds || [];
             const mappedFeeds = feeds
@@ -84,31 +75,21 @@ const ProfilePost = ({
 
     const fetchProfile = async () => {
         try {
-            const userToken = await AsyncStorage.getItem('userToken');
-            if (!userToken) {
-                Alert.alert('Error', 'User not authenticated');
-                return;
-            }
-            const res = await fetch(`${API_BASE}/get/profile/detail`, {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${userToken}`,
-                },
-            });
-            const data = await res.json();
-            if (res.ok && data.profile) {
-                const profileData = data.profile;
+            const response = await axios.get('/get/profile/detail');
+            
+            if (response.data.profile) {
+                const profileData = response.data.profile;
                 const fixedAvatar = profileData.profileAvatar;
                 setProfile({
                     displayName: profileData.displayName || '',
-                    username: data.userName || '',
+                    username: response.data.userName || '',
                     bio: profileData.bio || '',
                     balance: profileData.balance || '',
                     profileAvatar: fixedAvatar,
                     phoneNumber: profileData.phoneNumber || '',
                 });
             } else {
-                console.log('Error fetching profile:', data.message);
+                console.log('Error fetching profile:', response.data.message);
             }
         } catch (err) {
             console.error('Fetch profile error:', err);
@@ -131,9 +112,8 @@ const ProfilePost = ({
 
     const handleLike = async (postId: string, index: number) => {
         try {
-            const userToken = await AsyncStorage.getItem('userToken');
-            if (!userToken || !activeAccountType) {
-                Alert.alert('Error', 'User not authenticated or account type missing');
+            if (!activeAccountType) {
+                Alert.alert('Error', 'Account type missing');
                 return;
             }
 
@@ -147,18 +127,12 @@ const ProfilePost = ({
             setPosts(updatedPosts);
 
             const endpoint = activeAccountType === 'Personal'
-                ? `${API_BASE}/user/feed/like`
-                : `${API_BASE}/creator/feed/like`;
+                ? '/user/feed/like'
+                : '/creator/feed/like';
 
             const res = await axios.post(
                 endpoint,
-                { feedId: postId },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${userToken}`,
-                    },
-                }
+                { feedId: postId }
             );
 
             if (!res.data.success) {
@@ -407,25 +381,18 @@ const ProfilePost = ({
                                                             updatedPosts[index] = { ...updatedPosts[index], isSaved: !data.isSaved };
                                                             setPosts(updatedPosts);
 
-                                                            const userToken = await AsyncStorage.getItem('userToken');
-                                                            if (!userToken || !activeAccountType) {
-                                                                Alert.alert('Error', 'User not authenticated or account type missing');
+                                                            if (!activeAccountType) {
+                                                                Alert.alert('Error', 'Account type missing');
                                                                 return;
                                                             }
 
                                                             const endpoint = activeAccountType === 'Personal'
-                                                                ? `${API_BASE}/user/feed/save`
-                                                                : `${API_BASE}/creator/feed/save`;
+                                                                ? '/user/feed/save'
+                                                                : '/creator/feed/save';
 
                                                             const res = await axios.post(
                                                                 endpoint,
-                                                                { feedId: data.id },
-                                                                {
-                                                                    headers: {
-                                                                        'Content-Type': 'application/json',
-                                                                        Authorization: `Bearer ${userToken}`,
-                                                                    },
-                                                                }
+                                                                { feedId: data.id }
                                                             );
 
                                                             if (!res.data.success) {

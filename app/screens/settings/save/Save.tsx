@@ -9,7 +9,7 @@ import { useTheme } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 type SaveScreenProps = StackScreenProps<RootStackParamList, 'Save'>;
 
@@ -43,25 +43,10 @@ const Save = ({ navigation }: SaveScreenProps) => {
 const fetchSavedFeeds = async () => {
   try {
     setLoading(true);
-    const token = await AsyncStorage.getItem("userToken");
-    console.log("🔑 Retrieved token:", token);
 
-    if (!token) {
-      console.log("❌ No token found in AsyncStorage");
-      setLoading(false);
-      return;
-    }
+    const res = await api.get('/api/user/get/saved/feeds');
 
-    const res = await axios.get(
-      "http://192.168.1.10:5000/api/user/get/saved/feeds",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    console.log("✅ API Response:", res.data);
+    console.log('✅ API Response:', res.data);
 
     const allFeeds = res.data.savedFeeds || [];
 

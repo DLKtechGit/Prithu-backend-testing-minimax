@@ -101,6 +101,54 @@ if (validateConfig()) {
 }
 ```
 
+### Token Refresh Management
+
+```typescript
+import { 
+  reauthenticateSocket, 
+  isTokenValid, 
+  checkAndRefreshToken,
+  initializeTokenRefreshIntegration 
+} from './webSocket';
+
+// Initialize automatic token refresh integration
+const unregister = initializeTokenRefreshIntegration();
+
+// Check token validity before operations
+const valid = await isTokenValid();
+if (!valid) {
+  console.log('Token is invalid, forcing re-authentication...');
+  await reauthenticateSocket();
+}
+
+// Manually check and refresh token
+const isCurrent = await checkAndRefreshToken();
+console.log('Token is current:', isCurrent);
+
+// Force re-authentication on demand
+await reauthenticateSocket();
+
+// Clean up when done
+unregister();
+```
+
+### Custom Token Refresh Listeners
+
+```typescript
+import { registerTokenRefreshListener } from './webSocket';
+
+// Register custom token refresh handler
+const unregister = registerTokenRefreshListener(async (newToken: string) => {
+  console.log('Custom handler: Token refreshed:', newToken.substring(0, 10) + '...');
+  
+  // Your custom logic here
+  // e.g., Update local state, notify other services, etc.
+});
+
+// Remember to unregister when no longer needed
+unregister();
+```
+
 ## Features
 
 ### WebSocket Service
@@ -117,6 +165,14 @@ if (validateConfig()) {
 - **Connection Testing**: Built-in connection validation
 - **Performance Monitoring**: Tracks consecutive failure counts
 
+### Token Refresh System
+- **Automatic Token Monitoring**: Detects token changes every 10 seconds
+- **Seamless Re-authentication**: Updates WebSocket authentication when tokens refresh
+- **Integration with API Interceptor**: Automatically notifies WebSocket when API tokens refresh
+- **Manual Re-authentication**: Functions to force token refresh and re-authentication
+- **Token Validation**: Validates token format and expiry before connection
+- **Error Recovery**: Handles authentication errors and triggers reconnection
+
 ### Configuration System
 - **Environment Variables**: Full environment variable support
 - **Runtime Validation**: Configuration validation on startup
@@ -127,15 +183,24 @@ if (validateConfig()) {
 
 ### WebSocket Errors
 - Connection timeout protection
-- Authentication failure handling
+- Authentication failure handling (automatic re-authentication)
 - Maximum reconnection attempt limits
 - Proper cleanup on connection failure
+- Token validation before connection
+- Automatic token refresh detection and handling
 
 ### Heartbeat Errors
 - Network error handling
 - Authentication failure detection
 - Consecutive failure tracking
 - Automatic service restart
+
+### Token Refresh Errors
+- Invalid token format detection
+- Expired token handling
+- Token refresh failure recovery
+- Stale token prevention
+- Seamless re-authentication on token changes
 
 ## API Reference
 
@@ -169,6 +234,39 @@ Safely emits events to the WebSocket.
 
 #### `getSocketStatus(): object`
 Returns current connection status information.
+
+#### `reauthenticateSocket(): Promise<boolean>`
+Forces re-authentication of the WebSocket with the current token.
+
+**Returns**: True if re-authentication was successful
+
+**Use Cases**:
+- Manual token refresh triggers
+- Authentication error recovery
+- Force token validation
+
+#### `isTokenValid(): Promise<boolean>`
+Checks if the current authentication token is valid.
+
+**Returns**: True if token is valid
+
+#### `checkAndRefreshToken(): Promise<boolean>`
+Manually checks for token updates and refreshes if needed.
+
+**Returns**: True if token is current
+
+#### `registerTokenRefreshListener(callback: (newToken: string) => void): () => void`
+Registers a callback to be notified when tokens are refreshed.
+
+**Parameters**:
+- `callback`: Function to call when token changes
+
+**Returns**: Unregister function to remove the listener
+
+#### `initializeTokenRefreshIntegration(): () => void`
+Initializes automatic token refresh handling integration.
+
+**Returns**: Unregister function
 
 ### Heartbeat Functions
 
@@ -219,25 +317,84 @@ Constructs an API endpoint URL with the given path.
    - Check environment variables for correct URLs
    - Verify network connectivity
    - Ensure authentication token is valid
+   - Use `isTokenValid()` to check token format
+   - Use `checkAndRefreshToken()` to force token refresh
 
-2. **Heartbeat Stops Working**
+2. **WebSocket Uses Stale Token After API Refresh**
+   - Initialize token refresh integration: `initializeTokenRefreshIntegration()`
+   - The system now automatically detects token changes every 10 seconds
+   - Manually trigger re-authentication: `reauthenticateSocket()`
+   - Check if WebSocket is properly integrated with API interceptor
+
+3. **Authentication Errors**
+   - Use `isTokenValid()` to check token validity
+   - Call `reauthenticateSocket()` to force re-authentication
+   - Verify token format and expiry
+   - Check for proper integration with API interceptor
+
+4. **Heartbeat Stops Working**
    - Check for authentication failures
    - Verify API endpoint configuration
    - Monitor consecutive failure counts
 
-3. **Configuration Issues**
+5. **Configuration Issues**
    - Validate URLs with `validateConfig()`
    - Check environment variable names
    - Ensure proper TypeScript configuration
 
 ### Debug Information
 
-Both services provide comprehensive logging:
+All services provide comprehensive logging:
 ```typescript
-// Enable debug logging
+// Check WebSocket status
 console.log('WebSocket Status:', getSocketStatus());
+
+// Check if token is valid
+console.log('Token Valid:', await isTokenValid());
+
+// Check and refresh token manually
+await checkAndRefreshToken();
+
+// Force re-authentication
+await reauthenticateSocket();
+
+// Check heartbeat status
 console.log('Heartbeat Status:', getHeartbeatStatus());
+
+// Configuration
 console.log('Configuration:', API_CONFIG);
+```
+
+### Token Refresh Integration Verification
+
+Verify the API interceptor integration:
+```typescript
+// In apiInterceptor.ts, look for this line:
+import { handleTokenRefresh } from "../webSocket/webScoket";
+
+// And ensure handleTokenRefresh is called after token refresh:
+await handleTokenRefresh(newAccessToken);
+```
+
+### Testing Token Refresh
+
+Test the token refresh functionality:
+```typescript
+import { initializeTokenRefreshIntegration } from './webSocket';
+
+// Initialize integration
+const cleanup = initializeTokenRefreshIntegration();
+
+// Simulate token refresh (in your auth logic)
+await AsyncStorage.setItem("userToken", "new-token-here");
+
+// Wait a few seconds and check WebSocket status
+setTimeout(() => {
+  console.log('WebSocket should be re-authenticated:', getSocketStatus());
+}, 5000);
+
+// Cleanup
+cleanup();
 ```
 
 ## Migration from Hardcoded URLs

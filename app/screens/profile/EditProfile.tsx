@@ -49,10 +49,7 @@ const EditProfile = () => {
    const [showName, setShowName] = useState(true);
 
 
-  const buildUrl = (path: string | undefined | null) => {
-    if (!path) return '';
-    return `http://192.168.1.10:5000/${path.replace(/\\/g, '/')}`;
-  };
+
 
   const formatDate = (date) => {
     if (!date) return '';
