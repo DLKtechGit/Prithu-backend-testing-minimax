@@ -21,6 +21,7 @@ import Followbtn from "../../components/button/Followbtn";
 import Sharebtn from "../../components/button/Sharebtn";
 import { useTheme, useRoute, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "../../apiInterpretor/apiInterceptor";
 
 const AnotherProfile = () => {
   const scrollRef = useRef<any>();
@@ -94,33 +95,19 @@ useEffect(() => {
     }
 
     try {
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        console.warn("No token found, user not logged in");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(
-        `http://192.168.1.10:5000/api/get/user/detail/at/feed/icon?profileUserId=${profileUserId}&roleRef=${roleRef}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await api.get(
+        `/api/get/user/detail/at/feed/icon?profileUserId=${profileUserId}&roleRef=${roleRef}`
       );
 
-      const result = await res.json();
-      console.log("API response for creator profile:", result);
+      console.log("API response for creator profile:", response.data);
 
-      if (res.ok && result.success && result.profile) {
-        setProfile(result.profile);
-        setIsFollowing(result.profile.isFollowing);
-        setfollowingCount(result.profile.followingCount);
-        setcreatorFollowerCount(result.profile.creatorFollowerCount);
+      if (response.data.success && response.data.profile) {
+        setProfile(response.data.profile);
+        setIsFollowing(response.data.profile.isFollowing);
+        setfollowingCount(response.data.profile.followingCount);
+        setcreatorFollowerCount(response.data.profile.creatorFollowerCount);
       } else {
-        console.warn("Failed to fetch profile:", result.message);
+        console.warn("Failed to fetch profile:", response.data.message);
       }
     } catch (err) {
       console.log("Error fetching creator profile:", err);
@@ -141,31 +128,16 @@ useEffect(() => {
     try {
       setLoading(true);
 
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        Alert.alert("Error", "User not authenticated");
-        setLoading(false);
-        return;
-      }
-
-      // 🔹 Replace this with the actual user ID you want to fetch (e.g., from route params)
-      const profileUserId = route?.params?.profileUserId; // or however you pass it
+      const profileUserId = route?.params?.profileUserId;
       if (!profileUserId) {
         console.warn("No profileUserId provided");
       }
 
-      const response = await fetch("http://192.168.1.10:5000/api/user/get/post", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          profileUserId: profileUserId, // ✅ send it in the request body
-        }),
+      const response = await api.post("/api/user/get/post", {
+        profileUserId: profileUserId,
       });
 
-      const data = await response.json();
+      const data = response.data;
       console.log("API response for posts:", data);
 
       const feeds = data.feeds || [];
@@ -368,32 +340,11 @@ useEffect(() => {
           setFollowersCount((prev) => prev + 1);
           setFollowLoading(true);
 
-          const token = await AsyncStorage.getItem("userToken");
-          if (!token) {
-            Alert.alert("Error", "User not authenticated");
-            setIsFollowing(false);
-            setFollowersCount((prev) => Math.max(0, prev - 1));
-            return;
-          }
-
-          const res = await fetch("http://192.168.1.10:5000/api/user/follow/creator", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ userId: profileUserId }),
+          const response = await api.post("/api/user/follow/creator", {
+            userId: profileUserId
           });
 
-          const result = await res.json();
-          console.log("Follow response:", result);
-
-          if (!res.ok) {
-            Alert.alert("Error", result.message || "Failed to follow");
-            // revert UI if backend fails
-            setIsFollowing(false);
-            setFollowersCount((prev) => Math.max(0, prev - 1));
-          }
+          console.log("Follow response:", response.data);
         } catch (err) {
           console.error("Follow error:", err);
           Alert.alert("Error", "Something went wrong");
@@ -442,35 +393,11 @@ useEffect(() => {
                     setFollowersCount((prev) => Math.max(0, prev - 1));
                     setFollowLoading(true);
 
-                    const token = await AsyncStorage.getItem("userToken");
-                    if (!token) {
-                      Alert.alert("Error", "User not authenticated");
-                      setIsFollowing(true);
-                      setFollowersCount((prev) => prev + 1);
-                      return;
-                    }
+                    const response = await api.post("/api/user/unfollow/creator", {
+                      userId: profileUserId
+                    });
 
-                    const res = await fetch(
-                      "http://192.168.1.10:5000/api/user/unfollow/creator",
-                      {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ userId: profileUserId }),
-                      }
-                    );
-
-                    const result = await res.json();
-                    console.log("Unfollow response:", result);
-
-                    if (!res.ok) {
-                      Alert.alert("Error", result.message || "Failed to unfollow");
-                      // revert if backend fails
-                      setIsFollowing(true);
-                      setFollowersCount((prev) => prev + 1);
-                    }
+                    console.log("Unfollow response:", response.data);
                   } catch (err) {
                     console.error("Unfollow error:", err);
                     Alert.alert("Error", "Something went wrong");

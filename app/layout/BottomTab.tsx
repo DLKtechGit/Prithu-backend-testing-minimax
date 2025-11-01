@@ -7,6 +7,7 @@ import {
   widthPercentageToDP as wp,
 } from 'react-native-responsive-screen';
 import { GlobalStyleSheet } from '../constants/styleSheet';
+import api from '../apiInterpretor/apiInterceptor';
 
 type Props = {
   state: any,
@@ -103,36 +104,15 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
 
   const fetchProfilePic = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        console.warn("No user token found in AsyncStorage");
-        setIsProfileImageLoading(false); // Reset loading state if no token
-        return;
-      }
+      const response = await api.get("/api/get/profile/detail");
 
-      const res = await fetch("http://192.168.1.10:5000/api/get/profile/detail", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${userToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!res.ok) {
-        console.error(`Failed to fetch profile: ${res.status} ${res.statusText}`);
-        setIsProfileImageLoading(false); // Reset loading state on error
-        return;
-      }
-
-      const data = await res.json();
-
-      if (data?.profile?.profileAvatar && data.profile.profileAvatar !== 'Unknown') {
-        const fixedUrl = data.profile.profileAvatar;
+      if (response.data?.profile?.profileAvatar && response.data.profile.profileAvatar !== 'Unknown') {
+        const fixedUrl = response.data.profile.profileAvatar;
         setProfilePic(fixedUrl);
         console.log('Profile avatar URL:', fixedUrl);
       } else {
         setProfilePic(null);
-        setIsProfileImageLoading(false); // Reset loading state if no valid URL
+        setIsProfileImageLoading(false);
       }
     } catch (err) {
       console.error("Error fetching profile picture:", err);

@@ -63,40 +63,35 @@ const Login = ({ navigation }: LoginScreenProps) => {
       const data = response.data;
       console.log("Login response:", data);
 
-      if (res.ok) {
-        // Save token
-        await AsyncStorage.clear();
-        await AsyncStorage.setItem('userToken', data.accessToken);
-        await AsyncStorage.setItem("refreshToken", data.refreshToken);
-        await AsyncStorage.setItem("sessionId", data.sessionId);
-        await AsyncStorage.setItem("deviceId", data.deviceId);
-        await AsyncStorage.setItem("userId", data.userId);
-        
-        const { appLanguage, feedLanguage, category, gender } = data;
-        console.log({ appLanguage, feedLanguage, category, gender });
-        
-        if (!mountedRef.current) return;
+      // With axios, success is in try block - no need to check res.ok
+      // Save token
+      await AsyncStorage.clear();
+      await AsyncStorage.setItem('userToken', data.accessToken);
+      await AsyncStorage.setItem("refreshToken", data.refreshToken);
+      await AsyncStorage.setItem("sessionId", data.sessionId);
+      await AsyncStorage.setItem("deviceId", data.deviceId);
+      await AsyncStorage.setItem("userId", data.userId);
+      
+      const { appLanguage, feedLanguage, category, gender } = data;
+      console.log({ appLanguage, feedLanguage, category, gender });
+      
+      if (!mountedRef.current) return;
 
-        // Sequential onboarding logic
-        if (!appLanguage) {
-          navigation.navigate('LanguageScreen');
-        } 
-        else if (!feedLanguage) {
-          navigation.navigate('FeedScreen');
-        } 
-        else if (!category) {
-          navigation.navigate('CategoriesScreen');
-        } 
-        else if (!gender) {
-          navigation.navigate('gender');
-        } 
-        else {
-          navigation.navigate('DrawerNavigation', { screen: 'Home' });
-        }
-      } else {
-        if (mountedRef.current) {
-          Alert.alert("Error", data.error || data.message || "Invalid email or password");
-        }
+      // Sequential onboarding logic
+      if (!appLanguage) {
+        navigation.navigate('LanguageScreen');
+      } 
+      else if (!feedLanguage) {
+        navigation.navigate('FeedScreen');
+      } 
+      else if (!category) {
+        navigation.navigate('CategoriesScreen');
+      } 
+      else if (!gender) {
+        navigation.navigate('gender');
+      } 
+      else {
+        navigation.navigate('DrawerNavigation', { screen: 'Home' });
       }
     } catch (error) {
       console.error("Login error:", error);

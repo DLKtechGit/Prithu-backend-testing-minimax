@@ -13,6 +13,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { Dimensions } from "react-native";
+import api from '../../../apiInterpretor/apiInterceptor';
  
  
 type Language = {
@@ -53,23 +54,9 @@ const LanguageScreen: React.FC = () => {
                 // Save locally
                 await AsyncStorage.setItem("AppLanguage", selectedLang);
  
-                // Get token (assuming you store it in AsyncStorage after login)
-                const token = await AsyncStorage.getItem("userToken");
- 
                 // Send to backend
-                const response = await fetch("http://192.168.1.10:5000/api/user/app/language", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`, // ✅ auth middleware expects token
-                    },
-                    body: JSON.stringify({ appLanguage: selectedLang }),
-                });
- 
-                const data = await response.json();
+                await api.post("/api/user/app/language", { appLanguage: selectedLang });
                
-                console.log("Language saved:", data);
- 
                 // Navigate after success
                 navigation.navigate("FeedScreen");
             } catch (error) {

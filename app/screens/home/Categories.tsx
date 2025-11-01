@@ -9,7 +9,7 @@ import {
   Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const { width } = Dimensions.get("window");
 const ITEM_PER_ROW = 4;
@@ -65,23 +65,11 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const token = await AsyncStorage.getItem("userToken");
-        console.log("token:",token);
-        
+        const response = await api.get("/api/user/get/content/catagories");
+        console.log("cat", response.data);
 
-        const res = await fetch("http://192.168.1.10:5000/api/user/get/content/catagories", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-        });
-      
-        const data = await res.json();
-        console.log("cat",data);
-
-        if (Array.isArray(data.categories)) {
-          const safeCategories = data.categories.map((cat: any, index: number) => ({
+        if (Array.isArray(response.data.categories)) {
+          const safeCategories = response.data.categories.map((cat: any, index: number) => ({
             _id: cat._id || index,
             name: cat.name || "Unnamed",
           }));

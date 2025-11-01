@@ -131,31 +131,12 @@ const Settings = ({ navigation }: SettingsScreenProps) => {
       handleLogout();
     } else if (item.text === "Subscription") {
       try {
-        // Fetch user token
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-          console.log('No userToken found, navigating to Login');
-          setPopupMessage('Error!');
-          setPopupSubtitle('You must be logged in to check subscription.');
-          setShowPopup(true);
-          navigation.navigate('Login');
-          return;
-        }
-
         // Check subscription status
-        const res = await fetch('http://192.168.1.10:5000/api/user/user/subscriptions', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
-
-        const data = await res.json();
+        const response = await api.get('/api/user/user/subscriptions');
+        const data = response.data;
         console.log('Subscription status response:', data.plan._id);
-    
 
-        if (res.ok && data.plan && data.plan.isActive === true) {
+        if (data.plan && data.plan.isActive === true) {
           // User has an active subscription, navigate to SubscriptionDetails
           console.log('Active subscription found, navigating to SubscriptionDetails');
           navigation.navigate('SubscriptionDetails', {

@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
+import api from '../../apiInterpretor/apiInterceptor';
 
 
 
@@ -278,29 +279,12 @@ const PostCard = ({
 
   const handleDownload = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
-      const res = await fetch('http://192.168.1.10:5000/api/user/user/subscriptions', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
-      const data = await res.json();
-      if (res.ok && data.plan && data.plan.isActive) {
-        const trialCheckRes = await fetch('http://192.168.1.10:5000/api/user/check/active/subcription', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
-        const trialData = await trialCheckRes.json();
-        if (trialCheckRes.ok || trialData.isActive) {
+      const response = await api.get('/api/user/user/subscriptions');
+      const data = response.data;
+      if (data.plan && data.plan.isActive) {
+        const trialCheckResponse = await api.get('/api/user/check/active/subcription');
+        const trialData = trialCheckResponse.data;
+        if (trialData.isActive) {
           const hasPermission = await requestPermissions();
           if (!hasPermission) return;
           if (viewShotRef.current) {
@@ -382,39 +366,20 @@ const PostCard = ({
 
   const handleDislike = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
-
       const newDislikeState = !isDisliked;
       const newDislikeCount = isDisliked ? dislikeCount - 1 : dislikeCount + 1; // Local increment/decrement
       setIsDisliked(newDislikeState); // Optimistic update
       setDislikeCount(newDislikeCount); // Optimistic update
 
-      const res = await fetch('http://192.168.1.10:5000/api/user/feed/dislike', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({ feedId: id }),
-      });
-
-      const data = await res.json();
-      console.log("data", res.data)
-      if (!res.ok) {
-        setIsDisliked(!newDislikeState); // Revert on failure
-        setDislikeCount(isDisliked ? dislikeCount : dislikeCount - 1); // Revert count
-        Alert.alert('Error', data.message || 'Failed to toggle dislike');
-      } else {
-        // Notify PostList of the update
-        if (onDislikeUpdate) {
-          onDislikeUpdate(newDislikeState, newDislikeCount);
-        }
-        Alert.alert('Success', data.message);
+      const response = await api.post('/api/user/feed/dislike', { feedId: id });
+      const data = response.data;
+      console.log("data", data)
+      
+      // Notify PostList of the update
+      if (onDislikeUpdate) {
+        onDislikeUpdate(newDislikeState, newDislikeCount);
       }
+      Alert.alert('Success', data.message);
     } catch (error) {
       console.error('Dislike error:', error);
       setIsDisliked(!isDisliked); // Revert on error
@@ -425,17 +390,9 @@ const PostCard = ({
 
   const fetchProfile = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
-      const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${userToken}` },
-      });
-      const data = await res.json();
-      if (res.ok && data.profile) {
+      const response = await api.get('/api/get/profile/detail');
+      const data = response.data;
+      if (data.profile) {
         const profileData = data.profile;
         const fixedAvatar = profileData.profileAvatar;
         const modifyAvatar = profileData.modifyAvatar;
@@ -449,16 +406,9 @@ const PostCard = ({
           phoneNumber: profileData.phoneNumber || '',
         });
         // Fetch visibility settings after profile
-        const visRes = await fetch('http://192.168.1.10:5000/api/profile/visibility', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
-
-        const visData = await visRes.json();
-        if (visRes.ok && visData.success) {
+        const visResponse = await api.get('/api/profile/visibility');
+        const visData = visResponse.data;
+        if (visData.success) {
           setIsPhoneVisible(visData.visibility?.phoneNumber ?? false);
           setisNameVisible(visData.visibility?.displayName ?? false);
         } else {
@@ -485,30 +435,11 @@ const PostCard = ({
 
   const handleLike = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      const accountType = await AsyncStorage.getItem('activeAccountType');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated or account type missing');
-        return;
-      }
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
       setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
-      const endpoint = 'http://192.168.1.10:5000/api/user/feed/like';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({ feedId: id }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setIsLiked(!newLikeState);
-        setLikeCount((prev) => (newLikeState ? prev - 1 : prev + 1));
-        Alert.alert('Error', data.message || 'Failed to like/unlike post');
-      }
+      const response = await api.post('/api/user/feed/like', { feedId: id });
+      const data = response.data;
     } catch (error) {
       console.error('Like error:', error);
       setIsLiked(!isLiked);
@@ -818,29 +749,10 @@ const PostCard = ({
               onPress={async () => {
                 try {
                   setshow(!show);
-                  const userToken = await AsyncStorage.getItem('userToken');
                   const accountType = await AsyncStorage.getItem('activeAccountType');
-                  if (!userToken) {
-                    console.log('token received:', userToken, 'accountType received:', accountType);
-                    Alert.alert('Error', 'User not authenticated or account type missing');
-                    return;
-                  }
-                  const endpoint = 'http://192.168.1.10:5000/api/user/feed/save';
-                  const res = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${userToken}`,
-                    },
-                    body: JSON.stringify({ feedId: id }),
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    console.log(`${accountType} feed saved successfully:`, data.message);
-                  } else {
-                    console.log('Error saving feed:', data.message);
-                    Alert.alert('Error', data.message || 'Failed to save feed');
-                  }
+                  const response = await api.post('/api/user/feed/save', { feedId: id });
+                  const data = response.data;
+                  console.log(`${accountType} feed saved successfully:`, data.message);
                 } catch (error) {
                   console.error('Save feed error:', error);
                   Alert.alert('Error', 'Something went wrong while saving feed');

@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { StyleSheet } from 'react-native';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 
 const EditProfile = () => {
@@ -76,21 +77,10 @@ const EditProfile = () => {
 
   const fetchProfileDetail = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.log('No token found');
-        return;
-      }
-
-      const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-      if (res.ok && data.profile) {
+      const response = await api.get('/api/get/profile/detail');
+      const data = response.data;
+      
+      if (data.profile) {
         const profile = data.profile;
         console.log(data.profile)
 
@@ -125,7 +115,6 @@ const EditProfile = () => {
         }
 
         console.log("md", profile.dateOfBirth)
-
       } else {
         console.log('Error fetching profile:', data.message);
       }
@@ -137,21 +126,11 @@ const EditProfile = () => {
   /* -------------------------- FETCH VISIBILITY -------------------------- */
   const fetchVisibility = async () => {
   try {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) {
-      console.log('No token found');
-      return;
-    }
-
-    const res = await fetch('http://192.168.1.10:5000/api/profile/visibility', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const data = await res.json();
+    const response = await api.get('/api/profile/visibility');
+    const data = response.data;
     console.log("Visibility API response:", data);
 
-    if (res.ok && data.success && data.visibility) {
+    if (data.success && data.visibility) {
       setShowBio(data.visibility.bio === true || data.visibility.bio === 'true');
       setShowPhoneNumber(data.visibility.phoneNumber === true || data.visibility.phoneNumber === 'true');
       setShowName(data.visibility.displayName === true || data.visibility.displayName === 'true');
@@ -173,39 +152,21 @@ const EditProfile = () => {
   // ✅ Add this helper function to update toggle visibility to backend
  const handleToggleVisibility = async (fieldName, value) => {
   try {
-    const token = await AsyncStorage.getItem('userToken');
-    if (!token) return console.log('No token found');
-
-    const res = await fetch('http://192.168.1.10:5000/api/profile/toggle-visibility', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        field: fieldName, // "bio" or "phoneNumber"
-        value: value,      // true or false
-      }),
+    const response = await api.put('/api/profile/toggle-visibility', {
+      field: fieldName, // "bio" or "phoneNumber"
+      value: value,      // true or false
     });
 
-  const data = await res.json();
-      if (!res.ok) {
-        console.log('Toggle update failed:', data.message);
-        // Revert UI on failure
-        if (fieldName === 'bio') setShowBio(!value);
-        if (fieldName === 'phoneNumber') setShowPhoneNumber(!value);
-        if(fieldName === 'displayName') setShowName(!value);
-      } else {
-        console.log('Visibility updated:', data);
-      }
-    } catch (err) {
-      console.error('Error updating visibility:', err);
-      // Revert UI on error
-      if (fieldName === 'bio') setShowBio(!value);
-      if (fieldName === 'phoneNumber') setShowPhoneNumber(!value);
-      if(fieldName === 'displayName') setShowName(!value);
-    }
-  };
+    const data = response.data;
+    console.log('Visibility updated:', data);
+  } catch (err) {
+    console.error('Error updating visibility:', err);
+    // Revert UI on error
+    if (fieldName === 'bio') setShowBio(!value);
+    if (fieldName === 'phoneNumber') setShowPhoneNumber(!value);
+    if(fieldName === 'displayName') setShowName(!value);
+  }
+};
 
 
   const handleImageSelect = async () => {
@@ -233,20 +194,11 @@ const EditProfile = () => {
 
   const handleSave = async () => {
     try {
-      const token = await AsyncStorage.getItem('userToken');
       const userId = await AsyncStorage.getItem('userId');
       const accountId = await AsyncStorage.getItem('accountId');
 
-      console.log("userToken", token);
       console.log("userId", userId);
       console.log("accountId", accountId);
-
-      if (!token) {
-        setPopupMessage('Error!');
-        setPopupSubtitle('User not authenticated, please login again');
-        setShowPopup(true);
-        return;
-      }
 
       const formData = new FormData();
       if (userId) formData.append('userId', userId);
@@ -285,30 +237,21 @@ const EditProfile = () => {
       // Debug: Log FormData entries
       console.log("FormData entries:", [...formData.entries()]);
 
-      const res = await fetch('http://192.168.1.10:5000/api/user/profile/detail/update', {
-        method: 'POST',
+      const response = await api.post('/api/user/profile/detail/update', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData,
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setPopupMessage('Success');
-        setPopupSubtitle('Profile updated successfully!');
-        setShowPopup(true);
-        fetchProfileDetail();
-      } else {
-        // console.error('Error updating profile:', data);
-        setPopupMessage('Error!');
-        setPopupSubtitle(data.message || 'Update failed');
-        setShowPopup(true);
-      }
+      const data = response.data;
+      setPopupMessage('Success');
+      setPopupSubtitle('Profile updated successfully!');
+      setShowPopup(true);
+      fetchProfileDetail();
     } catch (err) {
-      // console.error('Save error:', err);
+      console.error('Save error:', err);
       setPopupMessage('Error!');
-      setPopupSubtitle('Something went wrong while saving');
+      setPopupSubtitle(err.response?.data?.message || 'Something went wrong while saving');
       setShowPopup(true);
     }
   };
@@ -321,22 +264,21 @@ const EditProfile = () => {
 
     try {
       console.log('Checking username:', name);
-      const res = await fetch(
-        `http://192.168.1.10:5000/api/check/username/availability?username=${encodeURIComponent(name)}`,
-        { method: 'GET' }
+      const response = await api.get(
+        `/api/check/username/availability?username=${encodeURIComponent(name)}`
       );
 
-      const data = await res.json();
+      const data = response.data;
       console.log('API Response:', data);
 
-      if (res.ok && data.available) {
+      if (data.available) {
         setUsernameError('');
       } else {
         setUsernameError(data.message || 'Username is already taken ');
       }
     } catch (error) {
       console.error('Error:', error);
-      setUsernameError('Error checking username');
+      setUsernameError(error.response?.data?.message || 'Error checking username');
     }
   };
 

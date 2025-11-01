@@ -5,6 +5,7 @@ import { GlobalStyleSheet } from '../../constants/styleSheet';
 import { FONTS, IMAGES } from '../../constants/theme';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 interface DecodedToken {
     userId: string;
@@ -88,13 +89,6 @@ const PostoptionSheet = (props: any, ref: any) => {
     const handleNotInterested = async () => {
         console.log('handleNotInterested called with postId:', currentPostId);
         try {
-            const userToken = await AsyncStorage.getItem('userToken');
-            if (!userToken) {
-                setPopupMessage('Error!');
-                setPopupSubtitle('User not authenticated');
-                setShowPopup(true);
-                return;
-            }
             if (!currentPostId) {
                 setPopupMessage('Error!');
                 setPopupSubtitle('Post ID is missing');
@@ -102,34 +96,19 @@ const PostoptionSheet = (props: any, ref: any) => {
                 return;
             }
 
-            const res = await fetch('http://192.168.1.10:5000/api/user/not/intrested', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${userToken}`,
-                },
-                body: JSON.stringify({ feedId: currentPostId }),
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                console.log('Category marked as not interested:', data.message);
-                setPopupMessage('Success');
-                setPopupSubtitle('Category marked as not interested');
-                setShowPopup(true);
-                if (notInterestedCallbackRef.current) {
-                    await notInterestedCallbackRef.current(currentPostId);
-                }
-            } else {
-                console.log('Error marking category as not interested:', data.message);
-                setPopupMessage('Error!');
-                setPopupSubtitle(data.message || 'Failed to mark as not interested');
-                setShowPopup(true);
+            const response = await api.post('/api/user/not/intrested', { feedId: currentPostId });
+            
+            console.log('Category marked as not interested:', response.data.message);
+            setPopupMessage('Success');
+            setPopupSubtitle('Category marked as not interested');
+            setShowPopup(true);
+            if (notInterestedCallbackRef.current) {
+                await notInterestedCallbackRef.current(currentPostId);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Not interested error:', error);
             setPopupMessage('Error!');
-            setPopupSubtitle('Something went wrong while marking as not interested');
+            setPopupSubtitle(error.response?.data?.message || 'Something went wrong while marking as not interested');
             setShowPopup(true);
         }
     };
@@ -167,34 +146,19 @@ const PostoptionSheet = (props: any, ref: any) => {
                 return;
             }
 
-            const res = await fetch('http://192.168.1.10:5000/api/user/hide/feed', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${userToken}`,
-                },
-                body: JSON.stringify({ userId, feedId: currentPostId }),
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                console.log('Post hidden successfully:', data.message);
-                setPopupMessage('Success');
-                setPopupSubtitle('Post hidden successfully');
-                setShowPopup(true);
-                if (hidePostCallbackRef.current) {
-                    await hidePostCallbackRef.current(currentPostId);
-                }
-            } else {
-                console.log('Error hiding post:', data.message);
-                setPopupMessage('Error!');
-                setPopupSubtitle(data.message || 'Failed to hide post');
-                setShowPopup(true);
+            const response = await api.post('/api/user/hide/feed', { userId, feedId: currentPostId });
+            
+            console.log('Post hidden successfully:', response.data.message);
+            setPopupMessage('Success');
+            setPopupSubtitle('Post hidden successfully');
+            setShowPopup(true);
+            if (hidePostCallbackRef.current) {
+                await hidePostCallbackRef.current(currentPostId);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Hide post error:', error);
             setPopupMessage('Error!');
-            setPopupSubtitle('Something went wrong while hiding post');
+            setPopupSubtitle(error.response?.data?.message || 'Something went wrong while hiding post');
             setShowPopup(true);
         }
     };
@@ -202,29 +166,12 @@ const PostoptionSheet = (props: any, ref: any) => {
     const fetchReportTypes = async () => {
         setLoading(true);
         try {
-            const userToken = await AsyncStorage.getItem('userToken');
-            const headers: any = { 'Content-Type': 'application/json' };
-            if (userToken) {
-                headers.Authorization = `Bearer ${userToken}`;
-            }
-
-            const res = await fetch('http://192.168.1.10:5000/api/report-types', {
-                method: 'GET',
-                headers,
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                setReportTypes(data.data || []);
-            } else {
-                setPopupMessage('Error!');
-                setPopupSubtitle(data.message || 'Failed to fetch report types');
-                setShowPopup(true);
-            }
-        } catch (error) {
+            const response = await api.get('/api/report-types');
+            setReportTypes(response.data.data || []);
+        } catch (error: any) {
             console.error('Fetch report types error:', error);
             setPopupMessage('Error!');
-            setPopupSubtitle('Something went wrong while fetching report types');
+            setPopupSubtitle(error.response?.data?.message || 'Something went wrong while fetching report types');
             setShowPopup(true);
         } finally {
             setLoading(false);
@@ -242,13 +189,6 @@ const PostoptionSheet = (props: any, ref: any) => {
     setSelections([]); // Reset selections for a new report
     console.log('Selections reset to:', []); // Log reset
     try {
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-            setPopupMessage('Error!');
-            setPopupSubtitle('User not authenticated');
-            setShowPopup(true);
-            return;
-        }
         if (!typeId) {
             setPopupMessage('Error!');
             setPopupSubtitle('Report type ID is missing');
@@ -256,55 +196,40 @@ const PostoptionSheet = (props: any, ref: any) => {
             return;
         }
 
-        const res = await fetch(`http://192.168.1.10:5000/api/report-questions/start?typeId=${typeId}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`,
-            },
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-            console.log('Start question fetched successfully:', data);
-            setCurrentQuestion(data.data);
+        try {
+            const response = await api.get(`/api/report-questions/start?typeId=${typeId}`);
+            console.log('Start question fetched successfully:', response.data);
+            setCurrentQuestion(response.data.data);
             setViewMode('question');
-        } else if (data.message === 'No start question found for this type') {
-            console.log('No start question found, submitting report directly');
-            const reportRes = await fetch('http://192.168.1.10:5000/api/report-post', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${userToken}`,
-                },
-                body: JSON.stringify({
-                    typeId: typeId,
-                    targetId: currentPostId,
-                    targetType: "Feed",
-                    answers: [], // Explicitly send empty answers for no-question reports
-                }),
-            });
-
-            const reportData = await reportRes.json();
-            if (reportRes.ok) {
-                setPopupMessage('Success');
-                setPopupSubtitle('Report submitted successfully');
-                setShowPopup(true);
+        } catch (error: any) {
+            if (error.response?.data?.message === 'No start question found for this type') {
+                console.log('No start question found, submitting report directly');
+                try {
+                    const reportResponse = await api.post('/api/report-post', {
+                        typeId: typeId,
+                        targetId: currentPostId,
+                        targetType: "Feed",
+                        answers: [], // Explicitly send empty answers for no-question reports
+                    });
+                    setPopupMessage('Success');
+                    setPopupSubtitle('Report submitted successfully');
+                    setShowPopup(true);
+                } catch (reportError: any) {
+                    setPopupMessage('Error!');
+                    setPopupSubtitle(reportError.response?.data?.message || 'Failed to submit report');
+                    setShowPopup(true);
+                }
             } else {
+                console.log('Error fetching start question:', error.response?.data?.message);
                 setPopupMessage('Error!');
-                setPopupSubtitle(reportData.message || 'Failed to submit report');
+                setPopupSubtitle(error.response?.data?.message || 'No report questions available for this type');
                 setShowPopup(true);
             }
-        } else {
-            console.log('Error fetching start question:', data.message);
-            setPopupMessage('Error!');
-            setPopupSubtitle(data.message || 'No report questions available for this type');
-            setShowPopup(true);
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Report type selection error:', error);
         setPopupMessage('Error!');
-        setPopupSubtitle('Something went wrong while submitting report type');
+        setPopupSubtitle(error.response?.data?.message || 'Something went wrong while submitting report type');
         setShowPopup(true);
     }
 };
@@ -312,13 +237,6 @@ const PostoptionSheet = (props: any, ref: any) => {
 const handleOptionSelection = async (option: any) => {
     console.log('handleOptionSelection called with option:', option);
     try {
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-            setPopupMessage('Error!');
-            setPopupSubtitle('User not authenticated');
-            setShowPopup(true);
-            return;
-        }
         if (!currentQuestion._id || !option._id) {
             setPopupMessage('Error!');
             setPopupSubtitle('Missing question or option details');
@@ -326,69 +244,43 @@ const handleOptionSelection = async (option: any) => {
             return;
         }
 
-        const res = await fetch('http://192.168.1.10:5000/api/report-questions/next', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`,
-            },
-            body: JSON.stringify({
-                reportId: selectedTypeId,
-                questionId: currentQuestion._id,
-                selectedOption: option._id
-            }),
+        const response = await api.post('/api/report-questions/next', {
+            reportId: selectedTypeId,
+            questionId: currentQuestion._id,
+            selectedOption: option._id
         });
 
-        const textResponse = await res.text();
-        console.log('Raw response:', textResponse);
+        console.log('Response data:', response.data);
 
-        let data;
-        try {
-            data = JSON.parse(textResponse);
-        } catch (error) {
-            console.error('JSON parse error:', error, 'Raw response:', textResponse);
-            setPopupMessage('Error!');
-            setPopupSubtitle('Invalid response from server');
-            setShowPopup(true);
-            return;
-        }
-
-        if (res.ok) {
-            if (data.data) {
-                console.log('Next question fetched successfully:', data);
-                setSelections(prev => {
-                    const newSelections = [...prev, {
-                        questionId: currentQuestion._id,
-                        questionText: currentQuestion.questionText,
-                        answer: option.text
-                    }];
-                    console.log('Updated selections:', newSelections); // Log updated selections
-                    return newSelections;
-                });
-                setCurrentQuestion(data.data);
-            } else {
-                console.log('Reporting flow complete');
-                setSelections(prev => {
-                    const newSelections = [...prev, {
-                        questionId: currentQuestion._id,
-                        questionText: currentQuestion.questionText,
-                        answer: option.text
-                    }];
-                    console.log('Final selections before summary:', newSelections); // Log final selections
-                    return newSelections;
-                });
-                setViewMode('summary');
-            }
+        if (response.data.data) {
+            console.log('Next question fetched successfully:', response.data);
+            setSelections(prev => {
+                const newSelections = [...prev, {
+                    questionId: currentQuestion._id,
+                    questionText: currentQuestion.questionText,
+                    answer: option.text
+                }];
+                console.log('Updated selections:', newSelections); // Log updated selections
+                return newSelections;
+            });
+            setCurrentQuestion(response.data.data);
         } else {
-            console.log('Error fetching next question:', data.message);
-            setPopupMessage('Error!');
-            setPopupSubtitle(data.message || 'No next question available');
-            setShowPopup(true);
+            console.log('Reporting flow complete');
+            setSelections(prev => {
+                const newSelections = [...prev, {
+                    questionId: currentQuestion._id,
+                    questionText: currentQuestion.questionText,
+                    answer: option.text
+                }];
+                console.log('Final selections before summary:', newSelections); // Log final selections
+                return newSelections;
+            });
+            setViewMode('summary');
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Option selection error:', error);
         setPopupMessage('Error!');
-        setPopupSubtitle('Something went wrong while fetching next question');
+        setPopupSubtitle(error.response?.data?.message || 'Something went wrong while fetching next question');
         setShowPopup(true);
     }
 };
@@ -396,13 +288,6 @@ const handleOptionSelection = async (option: any) => {
 const handleSubmitReport = async () => {
     console.log('handleSubmitReport called with selections:', selections); // Log selections before submission
     try {
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-            setPopupMessage('Error!');
-            setPopupSubtitle('User not authenticated');
-            setShowPopup(true);
-            return;
-        }
         if (!selectedTypeId || !currentPostId) {
             setPopupMessage('Error!');
             setPopupSubtitle('Missing report details');
@@ -410,34 +295,21 @@ const handleSubmitReport = async () => {
             return;
         }
 
-        const res = await fetch('http://192.168.1.10:5000/api/report-post', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${userToken}`,
-            },
-            body: JSON.stringify({
-                typeId: selectedTypeId,
-                targetId: currentPostId,
-                targetType: "Feed",
-                answers: selections, // Send selections as answers
-            }),
-        });
         console.log("select",selections)
-        const data = await res.json();
-        if (res.ok) {
-            setPopupMessage('Success');
-            setPopupSubtitle('Report submitted successfully');
-            setShowPopup(true);
-        } else {
-            setPopupMessage('Error!');
-            setPopupSubtitle(data.message || 'Failed to submit report');
-            setShowPopup(true);
-        }
-    } catch (error) {
+        const response = await api.post('/api/report-post', {
+            typeId: selectedTypeId,
+            targetId: currentPostId,
+            targetType: "Feed",
+            answers: selections, // Send selections as answers
+        });
+        
+        setPopupMessage('Success');
+        setPopupSubtitle('Report submitted successfully');
+        setShowPopup(true);
+    } catch (error: any) {
         console.error('Submit report error:', error);
         setPopupMessage('Error!');
-        setPopupSubtitle('Something went wrong while submitting report');
+        setPopupSubtitle(error.response?.data?.message || 'Something went wrong while submitting report');
         setShowPopup(true);
     }
 };

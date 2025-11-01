@@ -11,6 +11,7 @@ import ProfilePostData from './ProfilePostData';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 type ProfileScreenProps = StackScreenProps<RootStackParamList, 'Profile'>;
 
@@ -106,28 +107,13 @@ const SkeletonAvatar = () => {
 useEffect(() => {
   const fetchFollowData = async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        Alert.alert('Error', 'User not authenticated');
-        return;
-      }
-
-      const res = await fetch('http://192.168.1.10:5000/api/user/following/data', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
-
-      const data = await res.json();
+      const response = await api.get('/api/user/following/data');
+      const data = response.data;
       console.log("count",data)
-      if (res.ok && data.data) {
+      if (data.data) {
         setFollowersCount(data.data.followersCount || 0);
         setfollowingCount(data.data.followingCount || 0);
         setfeedCount(data.data.feedCount || 0)
-
-      } else {
-        console.log('Error fetching follow data:', data.message);
       }
     } catch (err) {
       console.error('Fetch follow data error:', err);
@@ -141,30 +127,16 @@ useEffect(() => {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const userToken = await AsyncStorage.getItem('userToken');
-      if (!userToken) {
-        if (mountedRef.current) {
-          Alert.alert('Error', 'User not authenticated');
-          setError('User not authenticated');
-        }
-        return;
-      }
-
       setError(null);
       
-      const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
+      const response = await api.get('/api/get/profile/detail');
       
       if (!mountedRef.current) return;
       
-      const data = await res.json();
+      const data = response.data;
       console.log("Profile data:", data);
 
-      if (res.ok && data.profile) {
+      if (data.profile) {
         const profileData = data.profile;
         setProfile({
           displayName: profileData.displayName || '',
@@ -313,29 +285,12 @@ useEffect(() => {
   
   const handleSubscriptionNavigation = async () => {
     try {
-      // Fetch user token
-      const userToken = await AsyncStorage.getItem('userToken');
-      console.log('Fetched userToken:', userToken);
-      if (!userToken) {
-        console.log('No userToken found, navigating to Login');
-        Alert.alert('Error', 'You must be logged in to check subscription.');
-        navigation.navigate('Login');
-        return;
-      }
-
       // Check subscription status
-      const res = await fetch('http://192.168.1.10:5000/api/user/user/subscriptions', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${userToken}`,
-        },
-      });
-
-      const data = await res.json();
+      const response = await api.get('/api/user/user/subscriptions');
+      const data = response.data;
       console.log('Subscription status response:', data);
 
-      if (res.ok && data.plan && data.plan.isActive === true) {
+      if (data.plan && data.plan.isActive === true) {
         // User has an active subscription, navigate to SubscriptionDetails
         console.log('Active subscription found, navigating to SubscriptionDetails');
         navigation.navigate('SubscriptionDetails', {

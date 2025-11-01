@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from "expo-linear-gradient"; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '../../apiInterpretor/apiInterceptor';
 
 
 interface ReferralData {
@@ -42,28 +43,10 @@ const ReferralDashboard: React.FC = () => {
     const fetchEarnings = async () => {
     try {
       setLoading(true);
-      const token = await AsyncStorage.getItem("userToken");
-      if (!token) {
-        console.warn("No token found");
-        setLoading(false);
-        return;
-      }
 
-      const res = await fetch("http://192.168.1.10:5000/api/get/userearnigs/referrals", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get("/api/get/userearnigs/referrals");
              
-      const data = await res.json();
-      if (res.ok) {
-        setEarningsData(data);
-      } else {
-        console.warn("Error fetching earnings:", data.message);
-        setEarningsData(null);
-      }
+      setEarningsData(response.data);
     } catch (err) {
       console.error("Fetch earnings error:", err);
     } finally {

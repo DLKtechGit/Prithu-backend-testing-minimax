@@ -4,7 +4,8 @@ import { IMAGES } from '../../constants/theme';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation } from '@react-navigation/native';
+import api from '../../apiInterpretor/apiInterceptor';
 
 // Sample StoryItem component (replace with your actual StoryItem if different)
 const StoryItem = ({ title, image, storyItem, id }: { title: string; image: any; storyItem: any[]; id: string }) => {
@@ -76,32 +77,12 @@ const StoryList = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const userToken = await AsyncStorage.getItem('userToken');
-        if (!userToken) {
-          console.warn('No user token found');
-          return;
-        }
+        const response = await api.get('/api/get/profile/detail');
 
-        const res = await fetch('http://192.168.1.10:5000/api/get/profile/detail', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!res.ok) {
-          console.error(`Failed to fetch profile: ${res.status} ${res.statusText}`);
-          return;
-        }
-
-        const data = await res.json();
-
-        // Build full URL + replace backslashes
         let avatarUrl = IMAGES.profile;
-        if (data?.profile?.profileAvatar && data.profile.profileAvatar !== 'Unknown') {
+        if (response.data?.profile?.profileAvatar && response.data.profile.profileAvatar !== 'Unknown') {
           avatarUrl = {
-            uri: data.profile.profileAvatar,
+            uri: response.data.profile.profileAvatar,
           };
         }
 
