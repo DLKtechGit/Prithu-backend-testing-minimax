@@ -21,6 +21,7 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import PostCard from "../../components/PostCard";
 import { connectSocket } from "../../../webSocket/webScoket";
 import { startHeartbeat } from "../../../webSocket/heartBeat";
@@ -193,11 +194,15 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     const boxRefs = useRef<Record<string, { y: number; height: number }>>({});
     const viewedPosts = useRef<Set<string>>(new Set());
     const abortControllerRef = useRef<AbortController | null>(null);
+    const latestRequestIdRef = useRef<number>(0);
 
     // --------------------------- Fetch Posts ----------------------------
 
     const fetchPosts = useCallback(async (catId: string | null = null) => {
-      // Prevent concurrent requests
+      // Create unique request ID
+      const requestId = ++latestRequestIdRef.current;
+      
+      // Abort previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -231,6 +236,12 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           signal: abortControllerRef.current.signal,
           timeout: 10000, // 10 second timeout
         });
+
+        // Only update if this is still the latest request
+        if (requestId !== latestRequestIdRef.current) {
+          console.log("Ignoring outdated response");
+          return;
+        }
 
         const feeds = response.data?.feeds ?? [];
         if (!Array.isArray(feeds)) {
@@ -269,8 +280,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         setPosts(mapped);
         setLastFetchTime(Date.now());
       } catch (err: any) {
-        if (err.name === 'AbortError') {
-          // Request was cancelled, don't show error
+        // Check if request was cancelled (axios cancellation)
+        if (axios.isCancel(err) || err.name === 'CanceledError' || err.message === 'canceled') {
           console.log("Request cancelled");
           return;
         }
