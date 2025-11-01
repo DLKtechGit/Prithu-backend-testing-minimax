@@ -23,28 +23,44 @@ api.interceptors.response.use(
   async (error: any) => {
     const originalRequest = error.config;
 
+    // Only retry once to prevent infinite loops
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = await AsyncStorage.getItem("refreshToken");
-        if (!refreshToken) throw new Error("No refresh token");
+        if (!refreshToken) {
+          console.log('No refresh token available');
+          throw new Error("No refresh token");
+        }
 
-        const res = await axios.post<{ accessToken: string }>(
-          `${baseURL}/api/refresh-token`,
+        console.log('Attempting token refresh...');
+        
+        // Use the same axios instance to ensure consistent behavior
+        const res = await api.post<{ accessToken: string }>(
+          '/api/refresh-token',
           { refreshToken }
         );
 
         const newAccessToken = res.data.accessToken;
+        console.log('Token refreshed successfully');
+        
         await AsyncStorage.setItem("userToken", newAccessToken);
 
+        // Update the original request headers
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-        return api(originalRequest); // retry with updated token
+        // Retry the original request
+        return api(originalRequest);
       } catch (err) {
-        // optional: clear tokens and redirect to login
+        console.error('Token refresh failed:', err);
+        // Clear tokens and redirect to login
         await AsyncStorage.removeItem("userToken");
         await AsyncStorage.removeItem("refreshToken");
+        await AsyncStorage.removeItem("sessionId");
+        await AsyncStorage.removeItem("deviceId");
+        await AsyncStorage.removeItem("userId");
+        
         return Promise.reject(err);
       }
     }

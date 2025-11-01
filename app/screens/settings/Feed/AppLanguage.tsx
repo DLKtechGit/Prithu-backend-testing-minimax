@@ -13,6 +13,7 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from '../../../apiInterpretor/apiInterceptor';
 
 type Language = {
   code: string;
@@ -49,17 +50,9 @@ const AppLanguage: React.FC = () => {
   useEffect(() => {
     const fetchAppLanguage = async () => {
       try {
-        const token = await AsyncStorage.getItem("userToken"); // 🔐 assuming user token saved
-        const res = await fetch("http://192.168.1.10:5000/api/user/get/app/language", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-        if (res.ok && data?.data?.appLanguageCode) {
+        const response = await api.get('/api/user/get/app/language');
+        
+        if (response.data?.data?.appLanguageCode) {
           const backendCode = data.data.appLanguageCode;
           const langObj = allLanguages.find((l) => l.code === backendCode);
           if (langObj) {
