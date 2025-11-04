@@ -1,18 +1,27 @@
 {
   "build": {
     "preview": {
+      "node": "20.19.4",
+      "image": "ubuntu-22.04",
       "android": {
         "buildType": "apk"
       }
     },
     "preview2": {
+      "node": "20.19.4",
+      "image": "ubuntu-22.04",
       "android": {
         "gradleCommand": ":app:assembleRelease"
       }
     },
     "preview3": {
+      "node": "20.19.4",
+      "image": "ubuntu-22.04",
       "developmentClient": true
     },
-    "production": {}
+    "production": {
+      "node": "20.19.4",
+      "image": "ubuntu-22.04"
+    }
   }
 }
