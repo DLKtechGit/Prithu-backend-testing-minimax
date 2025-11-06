@@ -11,7 +11,7 @@ import Header from '../../../layout/Header';
 import { GlobalStyleSheet } from '../../../constants/styleSheet';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 

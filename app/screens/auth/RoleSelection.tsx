@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
-import api from "../../apiInterpretor/apiInterceptor";
+import api from "../../../apiInterpretor/apiInterceptor";
 
 const RoleSelectionScreen: React.FC = () => {
   const [role, setRole] = useState<"Creator" | "User" | null>(null);

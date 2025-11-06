@@ -12,6 +12,7 @@ import {connectSocket, disconnectSocket} from '../../../webSocket/webScoket';
 import {startHeartbeat, stopHeartbeat} from "../../../webSocket/heartBeat";
 import CategoriesScreen from './CategoriesScreen';
 import api from '../../../apiInterpretor/apiInterceptor';
+import { getDeviceDetails } from "../../utils/getDeviceDetails";
  
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
  
@@ -38,72 +39,90 @@ const Login = ({ navigation }: LoginScreenProps) => {
   }, []);
  
   const LoginButton = useCallback(async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
-      return;
-    }
-
+  if (!email || !password) {
+    Alert.alert("Error", "Please enter email and password");
+    return;
+  }
+ 
+  if (!mountedRef.current) return;
+ 
+  setLoading(true);
+ 
+  try {
+    // ✅ 1️⃣ Get device details
+    // const { deviceId, deviceType, os, browser } = getDeviceDetails();
+ 
+    // ✅ 2️⃣ Send login request with device info
+    const response = await api.post("/api/auth/user/login", {
+      identifier: email,
+      password,
+      // deviceId,
+      // deviceType,
+      // os,
+      // browser,
+    });
+ 
     if (!mountedRef.current) return;
-
-    setLoading(true);
-
-    try {
-      const response = await api.post('/api/auth/user/login', {
-        identifier: email,
-        password
-      });
-
-      if (!mountedRef.current) return;
-
-      await connectSocket();
-      if (mountedRef.current) {
-        startHeartbeat();
-      }
-
-      const data = response.data;
-      console.log("Login response:", data);
-
-      // With axios, success is in try block - no need to check res.ok
-      // Save token
-      await AsyncStorage.clear();
-      await AsyncStorage.setItem('userToken', data.accessToken);
-      await AsyncStorage.setItem("refreshToken", data.refreshToken);
-      await AsyncStorage.setItem("sessionId", data.sessionId);
-      await AsyncStorage.setItem("deviceId", data.deviceId);
-      await AsyncStorage.setItem("userId", data.userId);
-      
-      const { appLanguage, feedLanguage, category, gender } = data;
-      console.log({ appLanguage, feedLanguage, category, gender });
-      
-      if (!mountedRef.current) return;
-
-      // Sequential onboarding logic
-      if (!appLanguage) {
-        navigation.navigate('LanguageScreen');
-      } 
-      else if (!feedLanguage) {
-        navigation.navigate('FeedScreen');
-      } 
-      else if (!category) {
-        navigation.navigate('CategoriesScreen');
-      } 
-      else if (!gender) {
-        navigation.navigate('gender');
-      } 
-      else {
-        navigation.navigate('DrawerNavigation', { screen: 'Home' });
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      if (mountedRef.current) {
-        Alert.alert("Error", "Something went wrong, try again later");
-      }
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+ 
+    const data = response.data;
+    console.log("✅ Login response:", data);
+ 
+    // ✅ 3️⃣ Clear any old tokens first
+    await AsyncStorage.multiRemove([
+      "userToken",
+      "refreshToken",
+      "sessionId",
+      "deviceId",
+      "userId",
+    ]);
+ 
+    // ✅ 4️⃣ Save new tokens and session info
+    await AsyncStorage.multiSet([
+      ["userToken", data.accessToken],
+      ["refreshToken", data.refreshToken],
+      ["sessionId", data.sessionId],
+      ["deviceId", data.deviceId],
+      ["userId", data.userId],
+    ]);
+ 
+    // ✅ 5️⃣ Connect WebSocket with token & session
+    await connectSocket(data.accessToken, data.sessionId);
+    console.log("📡 Socket connected for session:", data.sessionId);
+ 
+    // ✅ 6️⃣ Start heartbeat or presence tracking (if available)
+    if (mountedRef.current) {
+      startHeartbeat?.();
     }
-  }, [email, password, navigation]);
+ 
+    // ✅ 7️⃣ Handle onboarding navigation
+    const { appLanguage, feedLanguage, category, gender } = data;
+ 
+    if (!appLanguage) {
+      navigation.navigate("LanguageScreen");
+    } else if (!feedLanguage) {
+      navigation.navigate("FeedScreen");
+    } else if (!category) {
+      navigation.navigate("CategoriesScreen");
+    } else if (!gender) {
+      navigation.navigate("Gender");
+    } else {
+      navigation.navigate("DrawerNavigation", { screen: "Home" });
+    }
+  } catch (error) {
+    console.error("❌ Login error:", error.response?.data || error.message);
+ 
+    if (mountedRef.current) {
+      const errMsg =
+        error.response?.data?.error ||
+        "Something went wrong, please try again later";
+      Alert.alert("Login Failed", errMsg);
+    }
+  } finally {
+    if (mountedRef.current) {
+      setLoading(false);
+    }
+  }
+}, [email, password, navigation]);
  
  
  

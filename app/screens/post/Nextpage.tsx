@@ -17,7 +17,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import { Picker } from '@react-native-picker/picker';
-import api from '../../apiInterpretor/apiInterceptor';
+import api from '../../../apiInterpretor/apiInterceptor';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 

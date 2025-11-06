@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '../../../layout/Header';
 import { IMAGES } from '../../../constants/theme';
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
 
 const { width, height } = Dimensions.get('window');
 

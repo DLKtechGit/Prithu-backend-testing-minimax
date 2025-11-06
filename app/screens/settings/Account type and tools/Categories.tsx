@@ -256,7 +256,7 @@ import {
 import { useTheme } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from "../../../apiInterpretor/apiInterceptor";
+import api from "../../../../apiInterpretor/apiInterceptor";
 
 const allCategories = [
     "Artist",

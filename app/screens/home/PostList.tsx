@@ -49,6 +49,7 @@ interface Post {
   dislikesCount?: number; // Add dislikeCount (optional, if backend supports it)
   primary:string;
   accent:string;
+  avatorToUse:string;
 }
 
 interface PostListProps {
@@ -237,6 +238,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           timeout: 10000, // 10 second timeout
         });
 
+        console.log("ashik",response.data.feeds)
+
         // Only update if this is still the latest request
         if (requestId !== latestRequestIdRef.current) {
           console.log("Ignoring outdated response");
@@ -274,10 +277,12 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             dislikesCount: item.dislikesCount || 0,
             primary: item.themeColor?.primary || "#fff",
             accent: item.themeColor?.accent || "#fff",
+            avatarToUse: item.avatarToUse || null, // Add this mapping
           }))
           .filter((item) => item.type === "image");
 
         setPosts(mapped);
+        console.log("Ashiking",mapped)
         setLastFetchTime(Date.now());
       } catch (err: any) {
         // Check if request was cancelled (axios cancellation)
@@ -479,9 +484,9 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           >
             <MemoPostCard
               id={post._id}
-              themeColor={post.themeColor}
+              themeColor={post.primary}
               textColor={post.textColor}
-              framedAvatar={post.framedAvatar}
+              framedAvatar={post.avatorToUse}
               name={post.creatorUsername}
               profileimage={post.creatorAvatar}
               date={post.timeAgo}

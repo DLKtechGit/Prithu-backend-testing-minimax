@@ -58,10 +58,10 @@ const getBaseConfig = (): Partial<AppConfig> => {
     // API Configuration
     apiUrl: process.env.EXPO_PUBLIC_API_URL || 
             (Constants.expoConfig?.extra?.apiUrl as string) ||
-            'http://192.168.1.10:5000',
+            'http://192.168.1.66:5000',
     wsUrl: process.env.EXPO_PUBLIC_WS_URL || 
            (Constants.expoConfig?.extra?.wsUrl as string) ||
-           'http://192.168.1.10:5000',
+           'http://192.168.1.66:5000',
     timeout: 15000,
     
     // Feature Flags

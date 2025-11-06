@@ -9,7 +9,7 @@ import {
   StyleSheet,
   FlatList
 } from 'react-native';
-import api from '../../apiInterpretor/apiInterceptor';
+import api from '../../../apiInterpretor/apiInterceptor';
 import Reelsitem from '../../components/Reelsitem';
 import Header from '../../layout/Header';
 import PostShareSheet from '../../components/bottomsheet/PostShareSheet';

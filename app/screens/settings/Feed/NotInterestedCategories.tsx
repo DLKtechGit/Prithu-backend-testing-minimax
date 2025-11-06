@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
 import { useTheme } from '@react-navigation/native';
 import Header from '../../../layout/Header';
 import { GlobalStyleSheet } from '../../../constants/styleSheet';

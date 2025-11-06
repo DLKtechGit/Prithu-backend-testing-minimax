@@ -29,7 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import RazorpayCheckout from 'react-native-razorpay';
 
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
  
 interface Plan {
 

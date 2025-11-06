@@ -7,7 +7,7 @@ import {
   widthPercentageToDP as wp,
 } from 'react-native-responsive-screen';
 import { GlobalStyleSheet } from '../constants/styleSheet';
-import api from '../apiInterpretor/apiInterceptor';
+import api from '../../apiInterpretor/apiInterceptor';
 
 type Props = {
   state: any,

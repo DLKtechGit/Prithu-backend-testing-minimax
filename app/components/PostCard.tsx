@@ -23,7 +23,7 @@ const PostCard = ({
   id,
   name,
   profileimage,
-  framedAvatar,
+  avatarToUse,
   date,
   postimage,
   like,
@@ -643,7 +643,7 @@ const PostCard = ({
                       borderRadius: 50,
                       opacity: isImageLoading ? 0.5 : 1,
                     }}
-                    source={{ uri: framedAvatar }}
+                    source={{ uri: avatarToUse }}
 
                     onLoadStart={() => setIsImageLoading(true)}
                     onLoadEnd={() => setIsImageLoading(false)}

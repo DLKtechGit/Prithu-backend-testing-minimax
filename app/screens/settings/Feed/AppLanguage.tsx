@@ -13,7 +13,7 @@ import {
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
 
 type Language = {
   code: string;

@@ -14,7 +14,7 @@ import { IMAGES, COLORS, FONTS, SIZES } from "../../../constants/theme";
 import Header from "../../../layout/Header";
 import { useTheme } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
 
 const UserPostFeed = ({ navigation }) => {
   const scrollRef = useRef<any>();

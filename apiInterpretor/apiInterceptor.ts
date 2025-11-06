@@ -1,82 +1,213 @@
-import axios, { InternalAxiosRequestConfig } from "axios";
+import axios from "axios";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { getConfig } from "../config/environment";
+
 import { handleTokenRefresh } from "../webSocket/webScoket";
 
-// Get base URL from environment configuration
-const config = getConfig();
-const baseURL = config.apiUrl;
+import { getDeviceDetails } from "../app/utils/getDeviceDetails";
+ 
+// 🌐 Base URL from environment
+
+const { apiUrl: baseURL } = getConfig();
+ 
+// Main Axios instance
 
 const api = axios.create({ baseURL });
+ 
+// Separate instance for refresh requests (no interceptors)
 
-// Request Interceptor
-api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+const refreshApi = axios.create({ baseURL });
+ 
+// 🔒 Prevent multiple refreshes at once
+
+let isRefreshing = false;
+
+let refreshSubscribers = [];
+ 
+// Add subscriber (queue requests during token refresh)
+
+const subscribeTokenRefresh = (cb) => {
+
+  refreshSubscribers.push(cb);
+
+};
+ 
+// Notify queued requests once new token is ready
+
+const onRefreshed = (token) => {
+
+  refreshSubscribers.forEach((cb) => cb(token));
+
+  refreshSubscribers = [];
+
+};
+ 
+// 🔑 Request Interceptor — attach Authorization header
+
+api.interceptors.request.use(async (config) => {
+
   const accessToken = await AsyncStorage.getItem("userToken");
+
   if (accessToken && config.headers) {
+
     config.headers.Authorization = `Bearer ${accessToken}`;
+
   }
+
   return config;
+
 });
+ 
+// 🔁 Response Interceptor — handle token expiration
 
-// Response Interceptor
 api.interceptors.response.use(
+
   (response) => response,
-  async (error: any) => {
+
+  async (error) => {
+
     const originalRequest = error.config;
+ 
+    // ⚠️ Token expired or invalid
 
-    // Only retry once to prevent infinite loops
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
 
-      try {
-        const refreshToken = await AsyncStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          console.log('No refresh token available');
-          throw new Error("No refresh token");
-        }
+      originalRequest._retry = true; // prevent infinite loop
+ 
+      if (!isRefreshing) {
 
-        console.log('Attempting token refresh...');
-        
-        // Use the same axios instance to ensure consistent behavior
-        const res = await api.post<{ accessToken: string }>(
-          '/api/refresh-token',
-          { refreshToken }
-        );
+        isRefreshing = true;
 
-        const newAccessToken = res.data.accessToken;
-        console.log('Token refreshed successfully');
-        
-        await AsyncStorage.setItem("userToken", newAccessToken);
-
-        // Update the original request headers
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-        // Notify WebSocket of token refresh
+        console.log("🔄 Starting token refresh process...");
+ 
         try {
-          await handleTokenRefresh(newAccessToken);
-          console.log('WebSocket notified of token refresh');
-        } catch (wsError) {
-          console.error('Error notifying WebSocket of token refresh:', wsError);
-          // Don't fail the request if WebSocket notification fails
+
+          const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+          const deviceId = await AsyncStorage.getItem("deviceId");
+ 
+          if (!refreshToken || !deviceId) {
+
+            console.log("⚠️ Missing refreshToken or deviceId — cannot refresh.");
+
+            throw new Error("Missing refresh token or deviceId");
+
+          }
+ 
+          // 🔍 Get current device info
+
+          // const { os, browser, deviceType } = getDeviceDetails();
+ 
+          // 🔁 Request new access token
+
+          const res = await refreshApi.post("/api/refresh-token", {
+
+            refreshToken,
+
+            deviceId,
+
+            // deviceType,
+
+            // os,
+
+            // browser,
+
+          });
+ 
+          const { accessToken } = res.data;
+ 
+          if (!accessToken) {
+
+            throw new Error("No new access token received.");
+
+          }
+ 
+          console.log("✅ Token refreshed successfully");
+ 
+          // 💾 Store new token
+
+          await AsyncStorage.setItem("userToken", accessToken);
+ 
+          // 🔔 Notify WebSocket (optional)
+
+          try {
+
+            await handleTokenRefresh(accessToken);
+
+            console.log("📡 WebSocket notified of token refresh");
+
+          } catch (wsError) {
+
+            console.warn("⚠️ WebSocket refresh notification failed:", wsError.message);
+
+          }
+ 
+          // ✅ Retry all queued requests
+
+          onRefreshed(accessToken);
+
+          isRefreshing = false;
+ 
+          // Update original request with new token
+
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+
+          return refreshApi.request(originalRequest);
+ 
+        } catch (refreshError) {
+
+          console.error("❌ Token refresh failed:", refreshError.message);
+
+          isRefreshing = false;
+ 
+          // 🧹 Clear stored data on failure
+
+          await AsyncStorage.multiRemove([
+
+            "userToken",
+
+            "refreshToken",
+
+            "sessionId",
+
+            "deviceId",
+
+            "userId",
+
+          ]);
+ 
+          refreshSubscribers = [];
+
+          return Promise.reject(refreshError);
+
         }
 
-        // Retry the original request
-        return api(originalRequest);
-      } catch (err) {
-        console.error('Token refresh failed:', err);
-        // Clear tokens and redirect to login
-        await AsyncStorage.removeItem("userToken");
-        await AsyncStorage.removeItem("refreshToken");
-        await AsyncStorage.removeItem("sessionId");
-        await AsyncStorage.removeItem("deviceId");
-        await AsyncStorage.removeItem("userId");
-        
-        return Promise.reject(err);
       }
+ 
+      // 🕐 If refresh is already in progress, wait until it completes
+
+      return new Promise((resolve) => {
+
+        subscribeTokenRefresh((token) => {
+
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+
+          resolve(refreshApi.request(originalRequest));
+
+        });
+
+      });
+
     }
-
+ 
     return Promise.reject(error);
-  }
-);
 
+  }
+
+);
+ 
 export default api;
+
+ 

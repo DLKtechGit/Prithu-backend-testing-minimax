@@ -15,25 +15,84 @@ const GenderScreen: React.FC = () => {
   const navigation = useNavigation<any>();
  
   const handleSave = async () => {
-    try {
-      const formData = new FormData();
-      formData.append("gender", gender!);
+    if (!gender) {
+      alert("Please select a gender first");
+      return;
+    }
 
+    try {
+      console.log('💾 GENDER SAVE: Starting save operation...', {
+        gender,
+        timestamp: new Date().toISOString()
+      });
+
+      // Method 1: Try JSON first (most common for profile updates)
       const response = await api.post(
         "/api/user/profile/detail/update",
-        formData
+        { gender: gender }
       );
+
+      console.log('💾 GENDER SAVE: JSON method successful', {
+        status: response.status,
+        data: response.data
+      });
 
       if (response.data) {
         alert("Gender updated successfully!");
         navigation.navigate('DrawerNavigation', { screen: 'Home' });
       } else {
-        alert("Update failed");
+        alert("Update failed - no data received");
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || "Something went wrong while saving";
-      alert(errorMessage);
-      console.error(err);
+      console.log('💾 GENDER SAVE: JSON method failed, trying FormData...', {
+        errorMessage: err.message,
+        status: err.response?.status,
+        timestamp: new Date().toISOString()
+      });
+
+      // Method 2: If JSON fails, try FormData
+      try {
+        const formData = new FormData();
+        formData.append("gender", gender);
+        // Remove content-type header to let React Native set it automatically
+        
+        console.log('💾 GENDER SAVE: Making FormData request...');
+        
+        const response = await api.post(
+          "/api/user/profile/detail/update",
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            }
+          }
+        );
+
+        console.log('💾 GENDER SAVE: FormData method successful', {
+          status: response.status,
+          data: response.data
+        });
+
+        if (response.data) {
+          alert("Gender updated successfully!");
+          navigation.navigate('DrawerNavigation', { screen: 'Home' });
+        } else {
+          alert("Update failed - no data received");
+        }
+      } catch (formDataError: any) {
+        console.log('💾 GENDER SAVE: Both methods failed', {
+          jsonError: err.message,
+          formDataError: formDataError.message,
+          timestamp: new Date().toISOString()
+        });
+
+        const errorMessage = formDataError.response?.data?.message || 
+                           err.response?.data?.message || 
+                           `Network Error: ${err.message} / ${formDataError.message}`;
+        
+        alert(`Gender update failed: ${errorMessage}`);
+        console.error('Gender Save Errors:', { jsonError: err, formDataError });
+      }
     }
   };
  

@@ -31,7 +31,7 @@ The React Native Expo project had **critical systemic issues** that caused the "
 **Impact:** This was the **primary cause** of the "works only once" issue
 
 ### 2. **Hardcoded API URLs Throughout Codebase** ⚠️ HIGH
-**Problem:** Multiple components used hardcoded `http://192.168.1.10:5000` URLs
+**Problem:** Multiple components used hardcoded `http://192.168.1.66:5000` URLs
 - Login.tsx (line 42)
 - PostList.tsx (lines 206, 207, 274)
 - Register.tsx (multiple locations)
@@ -115,8 +115,8 @@ api.interceptors.response.use(
 ```typescript
 // Created config/environment.ts
 export const EnvironmentConfig = {
-  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.10:5000',
-  WS_URL: process.env.EXPO_PUBLIC_WS_URL || 'http://192.168.1.10:5000',
+  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.66:5000',
+  WS_URL: process.env.EXPO_PUBLIC_WS_URL || 'http://192.168.1.66:5000',
   HEARTBEAT_INTERVAL: parseInt(process.env.EXPO_PUBLIC_HEARTBEAT_INTERVAL || '30000'),
   // ... more configuration options
 };
@@ -125,7 +125,7 @@ export const EnvironmentConfig = {
 ### 3. **Fixed PostList Data Fetching** ✅ FIXED
 ```typescript
 // Before: Direct axios calls with hardcoded URLs
-const res = await axios.get("http://192.168.1.10:5000/api/get/all/feeds/user", {
+const res = await axios.get("http://192.168.1.66:5000/api/get/all/feeds/user", {
   headers: { Authorization: `Bearer ${token}` }
 });
 
@@ -143,7 +143,7 @@ const fetchPosts = useCallback(async (catId: string | null = null) => {
 ### 4. **Enhanced WebSocket Management** ✅ FIXED
 ```typescript
 // Before: Basic connection with hardcoded URL
-socket = io("http://192.168.1.10:5000", { auth: { token } });
+socket = io("http://192.168.1.66:5000", { auth: { token } });
 
 // After: Configurable with reconnection logic
 socket = io(API_CONFIG.wsURL, {

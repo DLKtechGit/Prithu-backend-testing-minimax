@@ -21,7 +21,7 @@ import Followbtn from "../../components/button/Followbtn";
 import Sharebtn from "../../components/button/Sharebtn";
 import { useTheme, useRoute, useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api from "../../apiInterpretor/apiInterceptor";
+import api from "../../../apiInterpretor/apiInterceptor";
 
 const AnotherProfile = () => {
   const scrollRef = useRef<any>();

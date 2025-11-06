@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Dimensions, ScrollView
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
-import api from "../../../apiInterpretor/apiInterceptor";
+import api from "../../../../apiInterpretor/apiInterceptor";
 import * as Clipboard from "expo-clipboard"; // Import Clipboard for copy functionality
 
 const { width } = Dimensions.get("window");

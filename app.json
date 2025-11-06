@@ -6,7 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/p.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "experiments": {
+      "reactNativeNewArchitecture": false,
+      "fabricEnabled": false
+    },
     "splash": {
       "image": "./assets/p.png",
       "resizeMode": "contain",
@@ -16,22 +20,27 @@
       "supportsTablet": true
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/p.png",
-        "backgroundColor": "#ffffff"
-      },
       "package": "com.deepeshgour.meetflow",
+      "googleServicesFile": "./google-services.json",
+      "jsEngine": "jsc",
+      "enableEdgeToEdge": false,
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.ACCESS_MEDIA_LOCATION"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/p.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "owner": "rimababu",
     "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       "react-native-video",
       [
         "expo-media-library",
@@ -40,14 +49,22 @@
           "savePhotosPermission": "Allow Prithu to save photos to your gallery.",
           "isAccessMediaLocationEnabled": true
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "extra": {
       "eas": {
         "projectId": "a7661f0e-a27a-4065-bb87-96e0aae2d18b"
       },
-      "apiUrl": "http://192.168.1.10:5000",
-      "wsUrl": "http://192.168.1.10:5000",
+      "apiUrl": "http://192.168.1.66:5000",
+      "wsUrl": "http://192.168.1.66:5000",
       "enableNotifications": true,
       "enableWebSocket": true,
       "debugMode": true

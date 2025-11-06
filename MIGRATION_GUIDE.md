@@ -40,7 +40,7 @@ npm run env:prod   # For production
 
 **Old:** Hardcoded in `apiInterpretor/apiInterceptor.ts`
 ```typescript
-const baseURL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.10:5000";
+const baseURL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.66:5000";
 ```
 
 **New:** Automatically handled by configuration
@@ -68,7 +68,7 @@ const apiEndpoint = configHelpers.getAPIEndpoint('/api/devices/register');
 
 **Old:** Hardcoded in `webSocket/webScoket.ts`
 ```typescript
-socket = io("http://192.168.1.10:5000", {
+socket = io("http://192.168.1.66:5000", {
 ```
 
 **New:** Using configuration helper
@@ -116,13 +116,13 @@ npm start:dev
 **Old approach:**
 ```typescript
 // Had to manually change this in multiple files
-const API_BASE = "http://192.168.1.10:5000";
+const API_BASE = "http://192.168.1.66:5000";
 ```
 
 **New approach:**
 ```bash
 # In .env file
-EXPO_PUBLIC_API_URL=http://192.168.1.10:5000
+EXPO_PUBLIC_API_URL=http://192.168.1.66:5000
 ```
 
 ### Feature Flags
@@ -215,7 +215,7 @@ const notificationsEnabled = configHelpers.isFeatureEnabled('enableNotifications
 
 **Old way:**
 ```typescript
-const response = await fetch('http://192.168.1.10:5000/api/new-endpoint');
+const response = await fetch('http://192.168.1.66:5000/api/new-endpoint');
 ```
 
 **New way:**

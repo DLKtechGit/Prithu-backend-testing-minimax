@@ -167,7 +167,7 @@ import {
 import { useTheme } from "@react-navigation/native";
 import Header from "../../../layout/Header";
 import { GlobalStyleSheet } from "../../../constants/styleSheet";
-import api from '../../../apiInterpretor/apiInterceptor';
+import api from '../../../../apiInterpretor/apiInterceptor';
 
 const FeedCategoryFloating = ({ navigation }) => {
   const [categories, setCategories] = useState([]);

@@ -20,8 +20,8 @@ EXPO_PUBLIC_RECONNECT_DELAY=3000          # Delay between reconnection attempts 
 
 ### Default Configuration
 If no environment variables are set, the system falls back to:
-- API URL: `http://192.168.1.10:5000`
-- WebSocket URL: `http://192.168.1.10:5000`
+- API URL: `http://192.168.1.66:5000`
+- WebSocket URL: `http://192.168.1.66:5000`
 - Heartbeat Interval: 30 seconds
 - Max Reconnect Attempts: 5
 - Reconnect Delay: 3 seconds
@@ -403,8 +403,8 @@ The system has been updated to use configuration instead of hardcoded URLs:
 
 ### Before
 ```typescript
-socket = io("http://192.168.1.10:5000", { auth: { token } });
-await axios.post("http://192.168.1.10:5000/api/heartbeat", data);
+socket = io("http://192.168.1.66:5000", { auth: { token } });
+await axios.post("http://192.168.1.66:5000/api/heartbeat", data);
 ```
 
 ### After

@@ -5,7 +5,7 @@ import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from '@react-navigation/native';
-import api from '../../apiInterpretor/apiInterceptor';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 // Sample StoryItem component (replace with your actual StoryItem if different)
 const StoryItem = ({ title, image, storyItem, id }: { title: string; image: any; storyItem: any[]; id: string }) => {
