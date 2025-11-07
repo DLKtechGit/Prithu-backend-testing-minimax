@@ -16,9 +16,9 @@ const getAPIConfig = (): APIConfig => {
   return {
     baseURL: config.apiUrl,
     wsURL: config.wsUrl,
-    heartbeatInterval: 30000, // 30 seconds
+    heartbeatInterval: 45000, // 45 seconds (less frequent)
     maxReconnectAttempts: 5,
-    reconnectDelay: 3000, // 3 seconds
+    reconnectDelay: 5000, // 5 seconds (more conservative)
   };
 };
 

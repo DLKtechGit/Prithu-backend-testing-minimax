@@ -88,6 +88,7 @@ import SplashVideo from '../screens/auth/SplashScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import LanguageScreen from '../screens/auth/LanguageScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp, getInitializationStatus } from '../../services/appInitialization';
 import TermsOfUse from '../screens/auth/TermsOfUse';
 import SubscriptionScreen from '../screens/settings/Subscription/Subscription';
 import SubscriptionPlans from '../screens/settings/Subscription/OSubscription';
@@ -131,6 +132,13 @@ const StackNavigator = () => {
       try {
         const token = await AsyncStorage.getItem('userToken');
         setUserToken(token);
+        
+        // Initialize app services if user is authenticated
+        if (token) {
+          console.log('User authenticated, initializing app services...');
+          const result = await initializeApp();
+          console.log('App initialization result:', result);
+        }
       } catch (e) {
         console.error('Failed to load token', e);
       } finally {

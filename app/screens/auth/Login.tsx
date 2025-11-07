@@ -8,11 +8,10 @@ import Button from '../../components/button/Button';
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamList } from '../../Navigations/RootStackParamList';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {connectSocket, disconnectSocket} from '../../../webSocket/webScoket';
-import {startHeartbeat, stopHeartbeat} from "../../../webSocket/heartBeat";
 import CategoriesScreen from './CategoriesScreen';
 import api from '../../../apiInterpretor/apiInterceptor';
 import { getDeviceDetails } from "../../utils/getDeviceDetails";
+import { initializeApp } from '../../../services/appInitialization';
  
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
  
@@ -85,13 +84,11 @@ const Login = ({ navigation }: LoginScreenProps) => {
       ["userId", data.userId],
     ]);
  
-    // ✅ 5️⃣ Connect WebSocket with token & session
-    await connectSocket(data.accessToken, data.sessionId);
-    console.log("📡 Socket connected for session:", data.sessionId);
- 
-    // ✅ 6️⃣ Start heartbeat or presence tracking (if available)
+    // ✅ 5️⃣ Initialize app services (WebSocket, heartbeat, etc.)
     if (mountedRef.current) {
-      startHeartbeat?.();
+      console.log("🔄 Initializing app services after login...");
+      const initResult = await initializeApp();
+      console.log("✅ App services initialized:", initResult);
     }
  
     // ✅ 7️⃣ Handle onboarding navigation

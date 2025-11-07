@@ -86,7 +86,7 @@ const startTokenMonitoring = () => {
       const currentToken = await AsyncStorage.getItem("userToken");
       if (currentToken && 
           currentToken !== currentTokenInfo?.token && 
-          Date.now() - lastTokenCheck > 5000) { // Debounce updates (5 seconds)
+          Date.now() - lastTokenCheck > 15000) { // Debounce updates (15 seconds)
         
         console.log("Token change detected, notifying listeners...");
         lastTokenCheck = Date.now();
@@ -105,8 +105,8 @@ const startTokenMonitoring = () => {
     }
   };
 
-  // Check for token changes every 10 seconds
-  const interval = setInterval(checkTokenChanges, 10000);
+  // Check for token changes every 30 seconds (less frequent to avoid conflicts)
+  const interval = setInterval(checkTokenChanges, 30000);
   
   // Also check when the app comes back to foreground (if applicable)
   return () => clearInterval(interval);
@@ -200,7 +200,26 @@ export const reauthenticateSocket = async (): Promise<boolean> => {
 // Export token refresh handler for external use
 export { handleTokenRefresh };
 
-export const connectSocket = async (): Promise<Socket | null> => {
+// Reconnect with new credentials
+export const reconnectSocket = async (token?: string, sessionId?: string): Promise<Socket | null> => {
+  console.log("Reconnecting socket...");
+  
+  // Disconnect existing socket
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  
+  // Reset state
+  reconnectAttempts = 0;
+  isConnecting = false;
+  currentTokenInfo = null;
+  
+  // Connect with new credentials
+  return await connectSocket(token, sessionId);
+};
+
+export const connectSocket = async (token?: string, sessionId?: string): Promise<Socket | null> => {
   console.log("WebSocket connection attempt", { attempts: reconnectAttempts });
 
   // Prevent duplicate connections
@@ -215,16 +234,35 @@ export const connectSocket = async (): Promise<Socket | null> => {
     return null;
   }
 
-  // Get and validate token
-  const tokenInfo = await getTokenInfo();
-  if (!tokenInfo) {
-    console.error("Cannot connect: no valid authentication token");
-    return null;
+  // Get and validate token - either from parameters or storage
+  let tokenInfo = null;
+  let finalToken = token;
+  
+  if (token && sessionId) {
+    // Use provided token and session info
+    const isValid = await validateToken(token);
+    if (isValid) {
+      tokenInfo = {
+        token: token,
+        timestamp: Date.now()
+      };
+      finalToken = token;
+    } else {
+      console.error("Provided token is invalid");
+      return null;
+    }
+  } else {
+    // Get token from storage
+    tokenInfo = await getTokenInfo();
+    if (!tokenInfo) {
+      console.error("Cannot connect: no valid authentication token");
+      return null;
+    }
+    finalToken = tokenInfo.token;
   }
 
   // Update current token info
   currentTokenInfo = tokenInfo;
-  const token = tokenInfo.token;
 
   // Validate configuration
   const wsURL = getWebSocketURL();
@@ -245,7 +283,10 @@ export const connectSocket = async (): Promise<Socket | null> => {
     };
 
     socket = io(wsURL, {
-      auth: { token },
+      auth: { 
+        token: finalToken,
+        ...(sessionId && { sessionId })
+      },
       ...socketOptions,
     });
 

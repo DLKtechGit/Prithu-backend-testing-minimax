@@ -102,10 +102,12 @@ export const startHeartbeat = async (customInterval?: number) => {
   // Send initial heartbeat
   await sendHeartbeat();
 
-  // Set up recurring heartbeat
+  // Set up recurring heartbeat with jitter to avoid thundering herd
   const interval = customInterval || API_CONFIG.heartbeatInterval;
+  const jitter = Math.random() * 5000; // Add 0-5 seconds random delay
+  const actualInterval = interval + jitter;
   
-  heartbeatInterval = setInterval(sendHeartbeat, interval);
+  heartbeatInterval = setInterval(sendHeartbeat, actualInterval);
   
   console.log("Heartbeat service started with interval:", interval, "ms");
 };
