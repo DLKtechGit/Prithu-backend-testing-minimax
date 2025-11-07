@@ -50,16 +50,16 @@ const Login = ({ navigation }: LoginScreenProps) => {
  
   try {
     // ✅ 1️⃣ Get device details
-    // const { deviceId, deviceType, os, browser } = getDeviceDetails();
+    const { deviceId, deviceType, os, browser } = getDeviceDetails();
  
     // ✅ 2️⃣ Send login request with device info
     const response = await api.post("/api/auth/user/login", {
       identifier: email,
       password,
-      // deviceId,
-      // deviceType,
-      // os,
-      // browser,
+      deviceId,
+      deviceType,
+      os,
+      browser,
     });
  
     if (!mountedRef.current) return;
@@ -314,5 +314,4 @@ const Login = ({ navigation }: LoginScreenProps) => {
   );
 };
  
-export default Login;
 export default Login;

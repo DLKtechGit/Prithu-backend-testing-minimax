@@ -1,7 +1,8 @@
 import * as Device from "expo-device";
 import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { v4 as uuidv4 } from "uuid";
+import uuid from "react-native-uuid";
+
 
 export const getDeviceDetails = async () => {
   // Try to get a stable app-specific ID (same app reinstall = new ID)
@@ -10,7 +11,7 @@ export const getDeviceDetails = async () => {
   // ✅ Persistent custom deviceId fallback
   let deviceId = await AsyncStorage.getItem("deviceId");
   if (!deviceId) {
-    deviceId = uuidv4();
+    deviceId = uuid.v4();
     await AsyncStorage.setItem("deviceId", deviceId);
   }
 

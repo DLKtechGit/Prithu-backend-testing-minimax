@@ -98,7 +98,7 @@ api.interceptors.response.use(
  
           // 🔍 Get current device info
 
-          // const { os, browser, deviceType } = getDeviceDetails();
+          const { os, browser, deviceType } = getDeviceDetails();
  
           // 🔁 Request new access token
 
@@ -108,11 +108,11 @@ api.interceptors.response.use(
 
             deviceId,
 
-            // deviceType,
+            deviceType,
 
-            // os,
+            os,
 
-            // browser,
+            browser,
 
           });
  
