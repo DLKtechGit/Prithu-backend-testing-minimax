@@ -55,7 +55,6 @@
     "expo-image-picker": "~16.0.6",
     "expo-linear-gradient": "~14.0.2",
     "expo-media-library": "~17.0.6",
-    "expo-modules-core": "~2.2.3",
     "expo-notifications": "~0.29.14",
     "expo-sharing": "~13.0.1",
     "expo-status-bar": "~2.0.1",
@@ -113,5 +112,35 @@
   "engines": {
     "node": ">=20.19.4"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-razorpay",
+          "react-native-awesome-alerts",
+          "react-native-chart-kit",
+          "react-native-responsive-screen",
+          "react-native-keyboard-aware-scroll-view",
+          "react-native-material-ripple",
+          "react-native-modalize",
+          "react-native-swiper",
+          "@react-native-community/viewpager",
+          "@vibrant/core",
+          "lucide-react",
+          "native",
+          "node-vibrant",
+          "react-native-otp-textinput",
+          "react-native-raw-bottom-sheet",
+          "react-native-sweet-alert",
+          "react-native-vector-icons",
+          "shimmer",
+          "socket.io-client",
+          "tinycolor2",
+          "ua-parser-js"
+        ],
+        "listUnknownPackages": false
+      }
+    }
+  }
 }

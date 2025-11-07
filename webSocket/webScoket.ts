@@ -279,7 +279,11 @@ export const connectSocket = async (token?: string, sessionId?: string): Promise
       reconnection: true,
       reconnectionAttempts: API_CONFIG.maxReconnectAttempts,
       reconnectionDelay: API_CONFIG.reconnectDelay,
-      timeout: 10000, // 10 second timeout
+      timeout: 15000, // Increased timeout to 15 seconds
+      transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+      upgrade: true,
+      rememberUpgrade: true,
+      forceNew: false,
     };
 
     socket = io(wsURL, {
@@ -290,9 +294,14 @@ export const connectSocket = async (token?: string, sessionId?: string): Promise
       ...socketOptions,
     });
 
-    // Connection successful
+    // Add connection status logging
     socket.on("connect", () => {
       console.log("Socket connected successfully:", socket?.id);
+      console.log("Connection details:", {
+        transport: socket.io.engine?.transport?.name,
+        protocol: socket.io.engine?.protocol,
+        url: socket.io.engine?.uri
+      });
       reconnectAttempts = 0;
       isConnecting = false;
 
@@ -303,7 +312,7 @@ export const connectSocket = async (token?: string, sessionId?: string): Promise
       }
     });
 
-    // Handle connection errors
+    // Handle connection errors with detailed logging
     socket.on("connect_error", (error) => {
       console.error("Socket connection error:", {
         message: error.message,
@@ -311,7 +320,15 @@ export const connectSocket = async (token?: string, sessionId?: string): Promise
         context: error.context,
         attempts: reconnectAttempts,
         type: error.type,
+        code: error.code
       });
+      
+      // Log specific error types for debugging
+      if (error.message?.includes('Transport unknown')) {
+        console.error('Socket.io transport error - server may not be running or version mismatch');
+        console.error('Server URL:', wsURL);
+        console.error('Client trying to connect to:', socket?.io?.engine?.uri);
+      }
       
       isConnecting = false;
       reconnectAttempts++;
@@ -319,11 +336,20 @@ export const connectSocket = async (token?: string, sessionId?: string): Promise
       // Handle authentication errors
       if (error.message?.includes("Authentication") || 
           error.message?.includes("Unauthorized") || 
-          error.type === "AuthenticationError") {
+          error.type === "AuthenticationError" ||
+          error.code === "UNAUTHORIZED") {
         console.error("Authentication error detected, attempting token refresh...");
         
         // Force token refresh check
         reauthenticateSocket();
+      }
+
+      // Handle server connection errors
+      if (error.message?.includes('Transport unknown') || 
+          error.code === 'ERR_CONNECTION_REFUSED' ||
+          error.code === 'NETWORK_ERROR') {
+        console.error('Server connection issue detected - check if server is running');
+        console.error('Expected server at:', wsURL);
       }
 
       // Clean up socket on connection failure
@@ -399,13 +425,38 @@ export const connectSocket = async (token?: string, sessionId?: string): Promise
       reauthenticateSocket();
     });
 
-    // Set a connection timeout
+    // Set a connection timeout with better error handling
     setTimeout(() => {
       if (isConnecting && socket && !socket.connected) {
-        console.error("Socket connection timeout");
+        console.error("Socket connection timeout after 15 seconds");
+        console.error("Connection details at timeout:", {
+          url: wsURL,
+          hasToken: !!finalToken,
+          reconnectAttempts,
+          isConnecting
+        });
+        
         isConnecting = false;
-        socket.disconnect();
-        socket = null;
+        
+        // Disconnect and clean up
+        try {
+          socket.disconnect();
+          socket = null;
+        } catch (cleanupError) {
+          console.error("Error during socket cleanup:", cleanupError);
+        }
+        
+        // Log helpful information for debugging
+        console.error("\n=== CONNECTION DEBUG INFO ===");
+        console.error("Server URL:", wsURL);
+        console.error("Token available:", !!finalToken);
+        console.error("Network status: Check if server is running at the above URL");
+        console.error("Common fixes:");
+        console.error("1. Ensure backend server is running on port 5000");
+        console.error("2. Check Socket.io version compatibility");
+        console.error("3. Verify CORS settings on server");
+        console.error("4. Check firewall/network configuration");
+        console.error("==============================\n");
       }
     }, 15000);
 
@@ -498,9 +549,23 @@ export const checkAndRefreshToken = async (): Promise<boolean> => {
   return true;
 };
 
-// Initialize token refresh listener integration
+// Initialize token refresh listener integration with custom event support
 export const initializeTokenRefreshIntegration = () => {
   console.log("Initializing WebSocket token refresh integration...");
+  
+  // Listen for custom token refresh events from apiInterceptor
+  const handleTokenRefreshEvent = (event: CustomEvent) => {
+    const { newToken } = event.detail;
+    console.log("WebSocket: Token refresh event received:", newToken ? "Token present" : "No token");
+    if (newToken) {
+      handleTokenRefresh(newToken);
+    }
+  };
+  
+  // Add custom event listener
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('tokenRefreshed', handleTokenRefreshEvent as EventListener);
+  }
   
   // Set up automatic token refresh handling
   const unregister = registerTokenRefreshListener(async (newToken: string) => {
@@ -508,5 +573,11 @@ export const initializeTokenRefreshIntegration = () => {
     await handleTokenRefresh(newToken);
   });
   
-  return unregister;
+  // Return cleanup function
+  return () => {
+    unregister();
+    if (typeof window !== 'undefined' && window.removeEventListener) {
+      window.removeEventListener('tokenRefreshed', handleTokenRefreshEvent as EventListener);
+    }
+  };
 };

@@ -74,18 +74,8 @@ const performInitialization = async (): Promise<AppInitializationResult> => {
     console.log('✅ WebSocket connected successfully');
 
     // Start heartbeat service
-    console.log('❤️ Starting heartbeat service...');
-    try {
-      if (typeof startHeartbeat === 'function') {
-        await startHeartbeat();
-        console.log('✅ Heartbeat service started');
-      } else {
-        console.log('ℹ️ Heartbeat service not available');
-      }
-    } catch (heartbeatError) {
-      console.warn('⚠️ Heartbeat service failed to start:', heartbeatError);
-      // Don't fail the entire initialization for heartbeat issues
-    }
+    console.log('❤️ Heartbeat will start only after login — skipping here');
+
 
     // Start connection monitoring
     console.log('📊 Starting connection monitoring...');

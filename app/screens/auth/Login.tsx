@@ -12,6 +12,7 @@ import CategoriesScreen from './CategoriesScreen';
 import api from '../../../apiInterpretor/apiInterceptor';
 import { getDeviceDetails } from "../../utils/getDeviceDetails";
 import { initializeApp } from '../../../services/appInitialization';
+import { startHeartbeat, stopHeartbeat } from '../../../webSocket/heartBeat';
  
 type LoginScreenProps = StackScreenProps<RootStackParamList, 'Login'>;
  
@@ -85,11 +86,19 @@ const Login = ({ navigation }: LoginScreenProps) => {
     ]);
  
     // ✅ 5️⃣ Initialize app services (WebSocket, heartbeat, etc.)
-    if (mountedRef.current) {
-      console.log("🔄 Initializing app services after login...");
-      const initResult = await initializeApp();
-      console.log("✅ App services initialized:", initResult);
-    }
+    // ✅ 5️⃣ Initialize app services (WebSocket, heartbeat, etc.)
+if (mountedRef.current) {
+  console.log("🔄 Initializing app services after login...");
+  const initResult = await initializeApp();
+  console.log("✅ App services initialized:", initResult);
+
+  // ✅ Start Heartbeat Here (Only Once After Login)
+  await stopHeartbeat();        // Clear any previous interval
+  await startHeartbeat(45000);  // Start new heartbeat interval
+
+  console.log("❤️ Heartbeat started");
+}
+
  
     // ✅ 7️⃣ Handle onboarding navigation
     const { appLanguage, feedLanguage, category, gender } = data;

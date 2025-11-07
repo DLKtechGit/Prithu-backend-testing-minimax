@@ -4,15 +4,12 @@
     "slug": "meetflow",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/p.png",
+    "icon": "./assets/p1.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
-    "experiments": {
-      "reactNativeNewArchitecture": false,
-      "fabricEnabled": false
-    },
+    
     "splash": {
-      "image": "./assets/p.png",
+      "image": "./assets/p1.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -23,14 +20,13 @@
       "package": "com.deepeshgour.meetflow",
       "googleServicesFile": "./google-services.json",
       "jsEngine": "jsc",
-      "enableEdgeToEdge": false,
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.ACCESS_MEDIA_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/p.png",
+        "foregroundImage": "./assets/p1.png",
         "backgroundColor": "#ffffff"
       }
     },

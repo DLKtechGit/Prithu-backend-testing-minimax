@@ -1,173 +1,147 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AxiosError } from "axios";
 import api from "../apiInterpretor/apiInterceptor";
 import { API_CONFIG } from "../config/api.config";
 
 interface HeartbeatResponse {
-  success: boolean;
   message?: string;
+  error?: string;
 }
 
-let heartbeatInterval: NodeJS.Timeout | null = null;
-let isHeartbeatRunning = false;
-let consecutiveFailures = 0;
+/**
+ * ✅ Global Singleton Heartbeat State (survives across screen re-renders)
+ */
+globalThis.__HEARTBEAT_STATE__ = globalThis.__HEARTBEAT_STATE__ || {
+  interval: null as NodeJS.Timeout | null,
+  active: false,
+  failures: 0,
+};
+
+const getState = () => globalThis.__HEARTBEAT_STATE__;
+
 const MAX_CONSECUTIVE_FAILURES = 3;
 
-export const startHeartbeat = async (customInterval?: number) => {
-  console.log("Starting heartbeat service...");
-  
-  // Prevent multiple heartbeat services
-  if (isHeartbeatRunning) {
-    console.log("Heartbeat already running");
+// ✅ Use SAFE Minimum Interval (30 sec)
+const DEFAULT_HEARTBEAT_INTERVAL = API_CONFIG.heartbeatInterval || 30000;
+
+export const startHeartbeat = async (customInterval?: number, source: string = "UNKNOWN") => {
+  const state = getState();
+
+  // ✅ PROOF LOG — Show who is calling startHeartbeat()
+  console.log(`⚠️ startHeartbeat() CALLED from: ${source} at`, new Date().toISOString());
+
+  // ✅ Prevent Duplicate Starts (Proof Logging)
+  if (state.active) {
+    console.log("⛔ Heartbeat already running — DUPLICATE BLOCKED");
     return;
   }
 
-  isHeartbeatRunning = true;
-  consecutiveFailures = 0;
+  console.log("✅ No existing heartbeat, starting new one");
 
-  // Clear any existing interval
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
+  state.active = true;
+  state.failures = 0;
+
+  // ✅ Clear any old interval
+  if (state.interval) {
+    clearInterval(state.interval);
+    state.interval = null;
   }
 
   const sendHeartbeat = async () => {
     try {
       const sessionId = await AsyncStorage.getItem("sessionId");
-
       if (!sessionId) {
-        console.warn("Missing session ID");
+        console.warn("⚠️ No sessionId found — stopping heartbeat.");
+        stopHeartbeat();
         return;
       }
 
-      console.log("Sending heartbeat...", { sessionId });
+      // ✅ PROOF — Every heartbeat request
+      console.log("📡 Sending Heartbeat Now:", new Date().toISOString(), "session:", sessionId);
 
       const response = await api.post<HeartbeatResponse>(
-        '/api/heartbeat',
+        "/api/heartbeat",
         { sessionId },
-        {
-          timeout: 10000, // 10 second timeout
-        }
+        { timeout: 10000 }
       );
 
-      if (response.data.success) {
-        console.log("Heartbeat sent successfully");
-        consecutiveFailures = 0; // Reset failure count on success
-        
-        // Clear any existing failure timeout
-        if (heartbeatInterval) {
-          clearTimeout(heartbeatInterval as any);
-        }
-      } else {
-        throw new Error(response.data.message || "Heartbeat failed");
-      }
-
-    } catch (error: any) {
-      console.error("Heartbeat error:", {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        consecutiveFailures,
-      });
-
-      consecutiveFailures++;
-
-      // Handle different types of errors
-      if (error.response?.status === 401) {
-        console.error("Authentication failed - stopping heartbeat");
-        await stopHeartbeat();
+      if (response.status === 200 && response.data?.message) {
+        console.log("✅ Heartbeat success");
+        state.failures = 0;
         return;
       }
 
-      if (error.code === "ECONNABORTED" || error.code === "NETWORK_ERROR") {
-        console.error("Network error during heartbeat");
+      throw new Error(response.data?.error || "Unknown heartbeat failure");
+
+    } catch (err: any) {
+      console.error("❌ Heartbeat error:", err?.message);
+
+      state.failures++;
+
+      if (err.response?.status === 401) {
+        console.log("⛔ Auth failed — Stopping heartbeat");
+        stopHeartbeat();
+        return;
       }
 
-      // Stop heartbeat after too many consecutive failures
-      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-        console.error("Too many consecutive heartbeat failures - stopping service");
-        await stopHeartbeat();
-        
-        // Attempt to restart after a delay
+      if (state.failures >= MAX_CONSECUTIVE_FAILURES) {
+        console.log("🔻 Too many failures — Restarting heartbeat later");
+        stopHeartbeat();
+
         setTimeout(() => {
-          if (!isHeartbeatRunning) {
-            console.log("Attempting to restart heartbeat service...");
-            startHeartbeat(customInterval);
-          }
-        }, API_CONFIG.reconnectDelay * 2);
+          if (!getState().active) startHeartbeat(customInterval, "AUTO-RESTART");
+        }, API_CONFIG.reconnectDelay || 10000);
+
+        return;
       }
     }
   };
 
-  // Send initial heartbeat
+  // ✅ Immediate first call
   await sendHeartbeat();
 
-  // Set up recurring heartbeat with jitter to avoid thundering herd
-  const interval = customInterval || API_CONFIG.heartbeatInterval;
-  const jitter = Math.random() * 5000; // Add 0-5 seconds random delay
-  const actualInterval = interval + jitter;
-  
-  heartbeatInterval = setInterval(sendHeartbeat, actualInterval);
-  
-  console.log("Heartbeat service started with interval:", interval, "ms");
+  // ✅ Stable interval (no jitter!)
+  const interval = customInterval || DEFAULT_HEARTBEAT_INTERVAL;
+  state.interval = setInterval(sendHeartbeat, interval);
+
+  // ✅ PROOF — interval set
+  console.log(`⏱️ Heartbeat interval set to every ${interval} ms`);
 };
 
-export const stopHeartbeat = async () => {
-  console.log("Stopping heartbeat service...");
-  
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
+
+export const stopHeartbeat = () => {
+  const state = getState();
+  console.log("Stopping heartbeat...");
+
+  if (state.interval) {
+    clearInterval(state.interval);
+    state.interval = null;
   }
-  
-  isHeartbeatRunning = false;
-  consecutiveFailures = 0;
-  
-  console.log("Heartbeat service stopped");
+
+  state.active = false;
+  state.failures = 0;
+
+  console.log("🛑 Heartbeat stopped.");
 };
 
-// Utility functions
-export const getHeartbeatStatus = () => {
-  return {
-    isRunning: isHeartbeatRunning,
-    consecutiveFailures,
-    maxFailures: MAX_CONSECUTIVE_FAILURES,
-    interval: heartbeatInterval ? API_CONFIG.heartbeatInterval : null,
-  };
-};
+export const isHeartbeatActive = (): boolean => getState().active;
 
-export const isHeartbeatActive = (): boolean => {
-  return isHeartbeatRunning;
-};
+export const getHeartbeatStatus = () => ({
+  active: getState().active,
+  failures: getState().failures,
+  maxFailures: MAX_CONSECUTIVE_FAILURES,
+  interval: DEFAULT_HEARTBEAT_INTERVAL,
+});
 
+/**
+ * Optional Test Function
+ */
 export const testHeartbeatConnection = async (): Promise<boolean> => {
   try {
     const sessionId = await AsyncStorage.getItem("sessionId");
-
-    if (!sessionId) {
-      console.error("Missing session ID for heartbeat test");
-      return false;
-    }
-    
-    await api.post(
-      '/api/heartbeat',
-      { sessionId },
-      {
-        timeout: 5000, // 5 second timeout for test
-      }
-    );
-
-    console.log("Heartbeat connection test successful");
+    if (!sessionId) return false;
+    await api.post("/api/heartbeat", { sessionId }, { timeout: 5000 });
     return true;
-  } catch (error) {
-    console.error("Heartbeat connection test failed:", error);
+  } catch {
     return false;
   }
-};
-
-// Initialize heartbeat on app start (if needed)
-export const initializeHeartbeat = () => {
-  console.log("Initializing heartbeat system...");
-  // You can call startHeartbeat() here if you want automatic startup
-  // startHeartbeat();
 };

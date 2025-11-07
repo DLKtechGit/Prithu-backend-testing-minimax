@@ -378,21 +378,22 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
       fetchPosts(categoryId ?? null);
     }, [categoryId, fetchPosts]);
 
-    useEffect(() => {
-      const initSocket = async () => {
-        try {
-          const token = await AsyncStorage.getItem("userToken");
-          const sessionId = await AsyncStorage.getItem("sessionId");
-          if (token && sessionId) {
-            await connectSocket();
-            startHeartbeat();
-          }
-        } catch (err) {
-          console.debug("Socket initialization error:", err);
-        }
-      };
-      initSocket();
-    }, []);
+   useEffect(() => {
+  const initSocket = async () => {
+    try {
+      const token = await AsyncStorage.getItem("userToken");
+      const sessionId = await AsyncStorage.getItem("sessionId");
+      if (token && sessionId) {
+        await connectSocket(); // ✅ Only socket connect
+        console.log("✅ Socket connected from PostList page");
+      }
+    } catch (err) {
+      console.debug("Socket initialization error:", err);
+    }
+  };
+  initSocket();
+}, []);
+
 
     useEffect(() => {
       visibleBoxes.forEach(recordViewCount);
