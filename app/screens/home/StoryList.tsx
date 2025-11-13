@@ -38,18 +38,18 @@ const StoryItem = ({ title, image, storyItem, id }: { title: string; image: any;
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{
-              width: 66,
-              height: 66,
-              borderRadius: 34,
+              width: 76,
+              height: 76,
+              borderRadius: 50,
               justifyContent: 'center',
               alignItems: 'center',
             }}
           >
             <Image
               style={{
-                width: 60,
-                height: 60,
-                borderRadius: 30,
+                width: 70,
+                height: 70,
+                borderRadius: 50,
                 backgroundColor: colors.card,
               }}
               source={image}
@@ -147,19 +147,19 @@ const StoryList = () => {
         IMAGES.profilepic9,
       ],
     },
-    {
-      id: '4',
-      title: 'Mia Maven',
-      image: IMAGES.storypic4,
-      storyItem: [
-        IMAGES.profilepic16,
-        IMAGES.profilepic17,
-        IMAGES.profilepic18,
-        IMAGES.profilepic19,
-        IMAGES.profilepic20,
-        IMAGES.profilepic21,
-      ],
-    },
+    // {
+    //   id: '4',
+    //   title: 'Mia Maven',
+    //   image: IMAGES.storypic4,
+    //   storyItem: [
+    //     IMAGES.profilepic16,
+    //     IMAGES.profilepic17,
+    //     IMAGES.profilepic18,
+    //     IMAGES.profilepic19,
+    //     IMAGES.profilepic20,
+    //     IMAGES.profilepic21,
+    //   ],
+    // },
     {
       id: '5',
       title: 'Sophia Techie',

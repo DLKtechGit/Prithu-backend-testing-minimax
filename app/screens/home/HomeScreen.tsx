@@ -187,37 +187,29 @@ const Popup = () => (
       </View>
 
       <ScrollView
-        ref={scrollRef}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        snapToInterval={windowHeight}
-        snapToAlignment="start"
-        decelerationRate="fast"
-        contentContainerStyle={{
-          paddingTop: 65,
-          paddingRight: 10,
-          paddingLeft: 10,
-        }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#000']}
-          />
-        }
-        onScroll={(e) => internalPostListRef.current?.handleScroll?.(e)}
-        onScrollEndDrag={(e) => internalPostListRef.current?.handlePull?.(e)}
-      >
-        <View style={{ height: windowHeight * 0.2 }} />
-        <PostList
-          ref={internalPostListRef}
-          sheetRef={sheetRef}
-          optionSheet={moresheet}
-          commentSheet={commentSheetRef}
-          categoryId={selectedCategory}
-          scrollRef={scrollRef}
-        />
-      </ScrollView>
+  ref={scrollRef}
+  scrollEventThrottle={16}
+  showsVerticalScrollIndicator={false}
+  contentContainerStyle={{
+    paddingTop: 220, // space below header
+    paddingRight: 10,
+    paddingLeft: 10,
+  }}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+  onScroll={(e) => internalPostListRef.current?.handleScroll?.(e)}
+>
+  <PostList
+    ref={internalPostListRef}
+    sheetRef={sheetRef}
+    optionSheet={moresheet}
+    commentSheet={commentSheetRef}
+    categoryId={selectedCategory}
+    scrollRef={scrollRef}
+  />
+</ScrollView>
+
 
       <PostShareSheet ref={sheetRef} />
       <PostoptionSheet ref={moresheet} />

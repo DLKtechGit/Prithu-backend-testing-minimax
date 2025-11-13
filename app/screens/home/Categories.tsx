@@ -201,12 +201,10 @@ const Categories: React.FC<{ onSelectCategory: (id: string) => void }> = ({ onSe
 // --------------------------- Styles ----------------------------
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#fff",
-    paddingVertical: 12,
-    // alignItems: "center",
-    // justifyContent: "center",
-  },
+ container: {
+  backgroundColor: "#fff",
+  paddingVertical: 6,   // reduced
+},
   scrollContent: {
     flexDirection: "row",
     alignItems: "center",
@@ -218,13 +216,13 @@ const styles = StyleSheet.create({
     marginRight: SPACING,
     padding: 2,
   },
-  item: {
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
+ item: {
+  backgroundColor: "#fff",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: 5,  // reduced
+  borderRadius: 10,
+},
   text: {
     fontSize: 12,
     color: "#333",

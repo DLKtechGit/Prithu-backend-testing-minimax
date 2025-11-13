@@ -28,7 +28,7 @@ const EditProfile = () => {
   const { colors } = theme;
 
   const [imageUrl, setImageUrl] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  // const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -46,7 +46,7 @@ const EditProfile = () => {
   const fadeAnim = useState(new Animated.Value(0))[0]; // Animation value for fade and position
   const [showPhoneNumber, setShowPhoneNumber] = useState(true);
   const [showBio, setShowBio] = useState(true);
-   const [showName, setShowName] = useState(true);
+  const [showName, setShowName] = useState(true);
 
 
 
@@ -76,19 +76,20 @@ const EditProfile = () => {
     try {
       const response = await api.get('/api/get/profile/detail');
       const data = response.data;
-      
+
       if (data.profile) {
         const profile = data.profile;
-        console.log(data.profile)
 
-        setDisplayName(profile.displayName || '');
+        console.log("pp",phoneNumber)
+
+        // setDisplayName(profile.displayName || '');
         setUsername(profile.userName || '');
         setBio(profile.bio || '');
-        setPhoneNumber(profile.phoneNumber || '');
+        setPhoneNumber(profile.phoneNumber ? String(profile.phoneNumber) : ''); // ensure string
         setMaritalStatus(profile.maritalStatus === true || profile.maritalStatus === 'true');
         setLanguage(profile.language || 'en');
-      
-       
+
+
         if (profile.dateOfBirth) {
           const birthDate = new Date(profile.dateOfBirth);
           setDob(birthDate);
@@ -122,22 +123,22 @@ const EditProfile = () => {
 
   /* -------------------------- FETCH VISIBILITY -------------------------- */
   const fetchVisibility = async () => {
-  try {
-    const response = await api.get('/api/profile/visibility');
-    const data = response.data;
-    console.log("Visibility API response:", data);
+    try {
+      const response = await api.get('/api/profile/visibility');
+      const data = response.data;
+      console.log("Visibility API response:", data);
 
-    if (data.success && data.visibility) {
-      setShowBio(data.visibility.bio === true || data.visibility.bio === 'true');
-      setShowPhoneNumber(data.visibility.phoneNumber === true || data.visibility.phoneNumber === 'true');
-      setShowName(data.visibility.displayName === true || data.visibility.displayName === 'true');
-    } else {
-      console.log('Failed to load visibility settings:', data.message);
+      if (data.success && data.visibility) {
+        setShowBio(data.visibility.bio === "public");
+        setShowPhoneNumber(data.visibility.phoneNumber === "public");
+        setShowName(data.visibility.userName === "public");
+      } else {
+        console.log('Failed to load visibility settings:', data.message);
+      }
+    } catch (e) {
+      console.error('fetchVisibility error:', e);
     }
-  } catch (e) {
-    console.error('fetchVisibility error:', e);
-  }
-};
+  };
 
 
   useEffect(() => {
@@ -147,23 +148,21 @@ const EditProfile = () => {
 
 
   // ✅ Add this helper function to update toggle visibility to backend
- const handleToggleVisibility = async (fieldName, value) => {
-  try {
-    const response = await api.put('/api/profile/toggle-visibility', {
-      field: fieldName, // "bio" or "phoneNumber"
-      value: value,      // true or false
-    });
+  const handleToggleVisibility = async (fieldName, isVisible) => {
+    try {
+      const newValue = isVisible ? "public" : "private"; // convert switch to backend format
 
-    const data = response.data;
-    console.log('Visibility updated:', data);
-  } catch (err) {
-    console.error('Error updating visibility:', err);
-    // Revert UI on error
-    if (fieldName === 'bio') setShowBio(!value);
-    if (fieldName === 'phoneNumber') setShowPhoneNumber(!value);
-    if(fieldName === 'displayName') setShowName(!value);
-  }
-};
+      const response = await api.put('/api/profile/toggle-visibility', {
+        field: fieldName,
+        value: newValue,
+      });
+
+      console.log("Visibility updated:", response.data);
+    } catch (err) {
+      console.error("Visibility update error:", err);
+    }
+  };
+
 
 
   const handleImageSelect = async () => {
@@ -200,7 +199,7 @@ const EditProfile = () => {
       const formData = new FormData();
       if (userId) formData.append('userId', userId);
       if (accountId) formData.append('accountId', accountId);
-      formData.append('displayName', displayName);
+      // formData.append('displayName', displayName);
       formData.append('bio', bio);
       formData.append('phoneNumber', phoneNumber);
       formData.append('maritalStatus', maritalStatus ? 'true' : 'false');
@@ -218,7 +217,7 @@ const EditProfile = () => {
       formData.append('visibility', JSON.stringify({
         bio: showBio,
         phoneNumber: showPhoneNumber,
-        Name: showName,
+        Name: showName,  // Updated
       }));
 
       if (imageUrl) {
@@ -279,47 +278,47 @@ const EditProfile = () => {
     }
   };
 
-useEffect(() => {
-  if (showPopup) {
-    // Fade-in only (no slide)
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  } else {
-    // Fade-out only
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }
-}, [showPopup]);
+  useEffect(() => {
+    if (showPopup) {
+      // Fade-in only (no slide)
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      // Fade-out only
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showPopup]);
 
   // Custom Popup Component
- 
-const Popup = () => (
-  <Animated.View
-    style={[
-      styles.popupOverlay,               // <-- new style (center + overlay)
-      { opacity: fadeAnim },              // only fade animation
-    ]}
-  >
-    <View style={styles.popupContainer}>
-      <Image source={IMAGES.bugrepellent} style={styles.popupImage} />
-      <Text style={styles.popupTitle}>{popupMessage}</Text>
-      <Text style={styles.popupSubtitle}>{popupSubtitle}</Text>
 
-      <TouchableOpacity
-        style={styles.popupButton}
-        onPress={() => setShowPopup(false)}
-      >
-        <Text style={styles.popupButtonText}>Let's Go</Text>
-      </TouchableOpacity>
-    </View>
-  </Animated.View>
-);
+  const Popup = () => (
+    <Animated.View
+      style={[
+        styles.popupOverlay,               // <-- new style (center + overlay)
+        { opacity: fadeAnim },              // only fade animation
+      ]}
+    >
+      <View style={styles.popupContainer}>
+        <Image source={IMAGES.bugrepellent} style={styles.popupImage} />
+        <Text style={styles.popupTitle}>{popupMessage}</Text>
+        <Text style={styles.popupSubtitle}>{popupSubtitle}</Text>
+
+        <TouchableOpacity
+          style={styles.popupButton}
+          onPress={() => setShowPopup(false)}
+        >
+          <Text style={styles.popupButtonText}>Let's Go</Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  );
 
 
   return (
@@ -367,7 +366,7 @@ const Popup = () => (
         </View>
 
         <View style={[GlobalStyleSheet.container, { marginTop: 15 }]}>
-          <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
+          {/* <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Name
           </Text>
           <View
@@ -399,7 +398,7 @@ const Popup = () => (
               }}
               thumbColor={showName ? COLORS.primary : '#ccc'}
             />
-          </View>
+          </View> */}
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Username
@@ -407,21 +406,37 @@ const Popup = () => (
           <View
             style={[
               GlobalStyleSheet.inputBox,
-              { borderColor: colors.border, borderWidth: 1, paddingLeft: 20 },
+              { borderColor: colors.border, borderWidth: 1, paddingLeft: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, justifyContent: 'space-between' },
             ]}
           >
             <TextInput
-              style={[GlobalStyleSheet.input, { color: colors.title }]}
+              style={[GlobalStyleSheet.input, { color: colors.title, flex: 1 }]}
               value={username}
-              onChangeText={setUsername}
-              placeholder="Enter username"
-              placeholderTextColor={colors.placeholder}
               onChangeText={(text) => {
                 setUsername(text);
                 checkUsernameAvailability(text);
               }}
+              placeholder="Enter username"
+              placeholderTextColor={colors.placeholder}
             />
+
+            <Switch
+              value={showName}
+              onValueChange={(val) => {
+                setShowName(val);
+                handleToggleVisibility("userName", val);
+              }}
+              thumbColor={showName ? COLORS.primary : "#ccc"}
+            />
+
           </View>
+
+          {usernameError ? (
+            <Text style={{ ...FONTS.fontSm, color: COLORS.danger, marginTop: -10, marginLeft: 10, marginBottom: 15 }}>
+              {usernameError}
+            </Text>
+          ) : null}
+
           {usernameError ? (
             <Text style={{ ...FONTS.fontSm, color: COLORS.danger, marginTop: -10, marginLeft: 10, marginBottom: 15 }}>
               {usernameError}
@@ -464,14 +479,14 @@ const Popup = () => (
               placeholder="Enter your bio"
               placeholderTextColor={colors.placeholder}
             />
-            <Switch
+            {/* <Switch
               value={showBio}
               onValueChange={(val) => {
                 setShowBio(val);
                 handleToggleVisibility('bio', val); //  sync with backend
               }}
               thumbColor={showBio ? COLORS.primary : '#ccc'}
-            />
+            /> */}
 
 
           </View>
@@ -503,39 +518,40 @@ const Popup = () => (
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               placeholder="Enter phone number"
-              placeholderTextColor={colors.placeholder}
+            
 
             />
             <Switch
               value={showPhoneNumber}
               onValueChange={(val) => {
                 setShowPhoneNumber(val);
-                handleToggleVisibility('phoneNumber', val); //  sync with backend
+                handleToggleVisibility("phoneNumber", val);
               }}
-              thumbColor={showPhoneNumber ? COLORS.primary : '#ccc'}
+              thumbColor={showPhoneNumber ? COLORS.primary : "#ccc"}
             />
+
 
           </View>
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Marital Status
           </Text>
-      <View
-  style={[
-    GlobalStyleSheet.inputBox,
-    { borderColor: colors.border, borderWidth: 1, paddingLeft: 10 },
-  ]}
->
-  <Picker
-    selectedValue={maritalStatus ? 'married' : 'single'}
-    onValueChange={(val) => setMaritalStatus(val === 'married')}
-    style={{ color: colors.title, width: '100%' }}
-    dropdownIconColor={colors.title}
-  >
-    <Picker.Item label="Single" value="single" />
-    <Picker.Item label="Married" value="married" />
-  </Picker>
-</View>
+          <View
+            style={[
+              GlobalStyleSheet.inputBox,
+              { borderColor: colors.border, borderWidth: 1, paddingLeft: 10 },
+            ]}
+          >
+            <Picker
+              selectedValue={maritalStatus ? 'married' : 'single'}
+              onValueChange={(val) => setMaritalStatus(val === 'married')}
+              style={{ color: colors.title, width: '100%' }}
+              dropdownIconColor={colors.title}
+            >
+              <Picker.Item label="Single" value="single" />
+              <Picker.Item label="Married" value="married" />
+            </Picker>
+          </View>
 
           {maritalStatus && (
             <>
@@ -617,25 +633,25 @@ const Popup = () => (
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Language
           </Text>
-       <View
-  style={[
-    GlobalStyleSheet.inputBox,
-    { borderColor: colors.border, borderWidth: 1, paddingLeft: 10 },
-  ]}
->
-  <Picker
-    selectedValue={language}
-    onValueChange={(val) => setLanguage(val)}
-    style={{ color: colors.title, width: '100%' }}
-    dropdownIconColor={colors.title}
-  >
-    <Picker.Item label="English" value="en" />
-    <Picker.Item label="Tamil" value="ta" />
-    <Picker.Item label="Hindi" value="hi" />
-    <Picker.Item label="French" value="fr" />
-    <Picker.Item label="Spanish" value="es" />
-  </Picker>
-</View>
+          <View
+            style={[
+              GlobalStyleSheet.inputBox,
+              { borderColor: colors.border, borderWidth: 1, paddingLeft: 10 },
+            ]}
+          >
+            <Picker
+              selectedValue={language}
+              onValueChange={(val) => setLanguage(val)}
+              style={{ color: colors.title, width: '100%' }}
+              dropdownIconColor={colors.title}
+            >
+              <Picker.Item label="English" value="en" />
+              <Picker.Item label="Tamil" value="ta" />
+              <Picker.Item label="Hindi" value="hi" />
+              <Picker.Item label="French" value="fr" />
+              <Picker.Item label="Spanish" value="es" />
+            </Picker>
+          </View>
 
 
           <Button title="Save" onPress={handleSave} />
@@ -646,7 +662,7 @@ const Popup = () => (
   );
 };
 const styles = StyleSheet.create({
- popupOverlay: {
+  popupOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,

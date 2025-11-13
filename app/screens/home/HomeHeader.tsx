@@ -28,11 +28,11 @@ const HomeHeader = ({ theme }: any) => {
     }, []);
 
     return (
-        <View style={[GlobalStyleSheet.flexalingjust, { height: 50 }]}>
+        <View style={[GlobalStyleSheet.flexalingjust, { height: 60 }]}>
             {/* Logo */}
             <View>
                 <Image
-                    style={{ width: 110, height: 50, resizeMode: 'contain' }}
+                    style={{ width: 190, height: 50, resizeMode: 'contain', marginLeft:-30 }}
                     source={theme.dark ? IMAGES.logo3 : IMAGES.logo2}
                 />
             </View>

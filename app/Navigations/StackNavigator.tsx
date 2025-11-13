@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { CardStyleInterpolators, createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './RootStackParamList';
-import { SafeAreaView,View,ActivityIndicator } from 'react-native';
- 
+import { SafeAreaView, View, ActivityIndicator } from 'react-native';
+
 import Login from '../screens/auth/Login';
 import Register from '../screens/auth/Register';
 import Forgot from '../screens/auth/Forgot-password';
@@ -114,25 +114,25 @@ import SubscriptionPaymentScreen from '../screens/settings/Subscription/Subscrip
 import OtpMsg from '../Emails/OtpMsg';
 import CategoriesScreen from '../screens/auth/CategoriesScreen';
 import UserPostFeed from '../screens/settings/posts/UserPostFeed';
- 
+
 // import BottomSheetComments from '../components/bottomsheet/BottomSheetComments';
 // import { View } from 'react-native-reanimated/lib/typescript/Animated';
 // import { ActivityIndicator } from 'react-native-paper';
- 
+
 const Stack = createStackNavigator<RootStackParamList>();
- 
+
 const StackNavigator = () => {
-     const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [userToken, setUserToken] = useState<string | null>(null);
- 
- 
+
+
   // Check if user is logged in on app start
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('userToken');
         setUserToken(token);
-        
+
         // Initialize app services if user is authenticated
         if (token) {
           console.log('User authenticated, initializing app services...');
@@ -145,12 +145,12 @@ const StackNavigator = () => {
         setIsLoading(false);
       }
     };
- 
+
     checkLoginStatus();
   }, []);
- 
- 
-    // Show loading screen while checking auth status
+
+
+  // Show loading screen while checking auth status
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -158,132 +158,137 @@ const StackNavigator = () => {
       </View>
     );
   }
- 
-    return (
-        <SafeAreaView style={{width:'100%', flex: 1 }}>
-            <Stack.Navigator
-                initialRouteName={userToken ? "DrawerNavigation" : "splash"}
-                screenOptions={{
-                    headerShown: false,
-                    cardStyle: { backgroundColor: "transparent",flex:1  },
-                    cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-                }}
-            >
-                <Stack.Screen name="splash" component={SplashVideo} />
-                <Stack.Screen name="Onbording" component={OnboardingScreen} />
-                <Stack.Screen name="Login" component={Login} />
-                <Stack.Screen name="Register" component={Register} />
-                <Stack.Screen name="TermsOfUse" component={TermsOfUse} />
-                <Stack.Screen name="Subcribe" component={SubscriptionScreen} />
-                <Stack.Screen name="PlanSubcribe" component={SubscriptionPlans} />
-                <Stack.Screen name="Invite" component={InviteFriends} />
-                <Stack.Screen name="Forgot" component={Forgot} />
-                <Stack.Screen name="Otp" component={Otp} />
-                 <Stack.Screen name='LikeFeed' component={LikeFeed}/>
-                <Stack.Screen name="ChangePassword" component={ChangePassword} />
-                <Stack.Screen name="DrawerNavigation" component={DrawerNavigation} />
-                <Stack.Screen name="Comments" component={Comments} />
-                <Stack.Screen name="homescreen" component={HomeScreen} />
-                <Stack.Screen name="createpost" component={CreatePost} />
-                <Stack.Screen name="notification" component={Notification} />
-                <Stack.Screen name="like" component={Like} />
-                <Stack.Screen name="status" component={Status} />
-                <Stack.Screen name="AddStory" component={AddStory} />
-                <Stack.Screen name="SingleChat" component={SingleChat} />
-                <Stack.Screen name="Video" component={Video} />
-                <Stack.Screen name="Reels" component={Reels} />
-                <Stack.Screen name="Call" component={Call} />
-                <Stack.Screen name="NewChat" component={NewChat} />
-                <Stack.Screen name="ChatRooms" component={ChatRooms} />
-                <Stack.Screen name="AddMembers" component={AddMembers} />
-                <Stack.Screen name="SingleChatRoom" component={SingleChatRoom} />
-                <Stack.Screen name="ChatRoomCall" component={ChatRoomCall} />
-                <Stack.Screen name="ChatRoomCallON" component={ChatRoomCallON} />
-                <Stack.Screen name="ChatRoomVideoCall" component={ChatRoomVideoCall} />
-                <Stack.Screen name="ChatRoomVideoCallON" component={ChatRoomVideoCallON} />
-                <Stack.Screen name="Followers" component={Followers} />
-                <Stack.Screen name="Settings" component={Settings} />
-                <Stack.Screen name="SettingNotification" component={SettingNotification} />
-                <Stack.Screen name="Security" component={Security} />
-                <Stack.Screen name="LoginActivity" component={LoginActivity} />
-                <Stack.Screen name="SavedLogin" component={SavedLogin} />
-                <Stack.Screen name="Towfactor" component={Towfactor} />
-                <Stack.Screen name="Account" component={Account} />
-                <Stack.Screen name="PersonalInformation" component={PersonalInformation} />
-                <Stack.Screen name="Language" component={Language} />
-                <Stack.Screen name="Contacts" component={Contacts} />
-                <Stack.Screen name="About" component={About } />
-                <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy } />
-                <Stack.Screen name="Terms" component={Terms } />
-                 
-                <Stack.Screen name="Theme" component={Theme } />
-                <Stack.Screen name="Profile" component={Profile} />
-                <Stack.Screen name="EditProfile" component={EditProfile } />
-                <Stack.Screen name="Suggestions" component={Suggestions } />
-                <Stack.Screen name="ProfilePost" component={ProfilePost } />
-                <Stack.Screen name="ProfileReels" component={ProfileReels} />
-                <Stack.Screen name="AnotherProfile" component={AnotherProfile} />
-                <Stack.Screen name="Save" component={Save} />
-                <Stack.Screen name="Savepost" component={SavePost} />
-                <Stack.Screen name="SaveReels" component={SaveReels} />
-                 <Stack.Screen name="Friend" component={ReferralDashboard} />
- 
- 
-                <Stack.Screen name="Components" component={Components} />
-                <Stack.Screen name="Accordion" component={AccordionScreen} />
-                <Stack.Screen name="ActionSheet" component={ActionSheet} />
-                <Stack.Screen name="ActionModals" component={ActionModals} />
-                <Stack.Screen name="Buttons" component={Buttons} />
-                <Stack.Screen name="Badges" component={Badges} />
-                <Stack.Screen name="Datepicker" component={Datepicker} />
-                <Stack.Screen name="Search2" component={Search2} />
-                <Stack.Screen name="Charts" component={Charts} />
-                <Stack.Screen name="Headers" component={Headers} />
-                <Stack.Screen name="Footers" component={Footers} />
-                <Stack.Screen name="TabStyle1" component={TabStyle1} />
-                <Stack.Screen name="TabStyle2" component={TabStyle2} />
-                <Stack.Screen name="TabStyle3" component={TabStyle3} />
-                <Stack.Screen name="TabStyle4" component={TabStyle4} />
-                <Stack.Screen name="Inputs" component={Inputs} />
-                <Stack.Screen name="lists" component={ListScreen} />
-                <Stack.Screen name="Pricings" component={Pricings} />
-                <Stack.Screen name="Snackbars" component={Snackbars} />
-                <Stack.Screen name="DividerElements" component={DividerElements} />
-                <Stack.Screen name="Socials" component={Socials} />
-                <Stack.Screen name="Swipeable" component={SwipeableScreen} />
-                <Stack.Screen name="Tabs" component={Tabs} />
-                <Stack.Screen name="Tables" component={Tables} />
-                <Stack.Screen name="Toggles" component={Toggles} />
-                <Stack.Screen name="Nextpage" component={Nextpage} />
-                <Stack.Screen name="Music" component={Music} />
-                <Stack.Screen name="WriteCaption" component={WriteCaption} />
-                <Stack.Screen name="CreateStory" component={CreateStory} />
-                <Stack.Screen name="Music2" component={Music2} />
-                <Stack.Screen name="AllSong" component={AllSong} />
-                <Stack.Screen name="SavedMusic" component={SavedMusic} />
-                <Stack.Screen name="AccountType" component={AccountType} />
-                <Stack.Screen name="CreatorAccount" component={CreatorAccount} />
-                <Stack.Screen name='PersonalAccount' component={PersonalAccount} />
-                <Stack.Screen name='Categories' component={Categories} />
-                <Stack.Screen name='SwitchAccountLogin' component={SwitchAccountLogin} />
-                <Stack.Screen name='feed' component={feed}/>
-                <Stack.Screen name='AppLanguage' component={AppLanguage} />
-                <Stack.Screen name='FeedLanguage' component={FeedLanguage}/>
-                <Stack.Screen name='LanguageScreen' component={LanguageScreen}/>
-                <Stack.Screen name='FeedScreen' component={FeedScreen}/>
-                 <Stack.Screen name="gender" component={GenderScreen} />
-                <Stack.Screen name='CommentSheet' component={CommentSheet}/>
-                <Stack.Screen name="role" component={RoleScreen} />
-                <Stack.Screen name='HiddenPosts' component={HiddenPosts} />
-                <Stack.Screen name='NotInterestedCategories' component={NotInterestedCategories}/>
-                <Stack.Screen name='SubscriptionDetails' component={SubscriptionDetails}/>
-                <Stack.Screen name='SubscriptionPaymentScreen' component={SubscriptionPaymentScreen}/>
-                <Stack.Screen name='OtpMsg' component={OtpMsg}/>
-                <Stack.Screen name='CategoriesScreen' component={CategoriesScreen}/>
-                <Stack.Screen name='UserPostFeed' component={UserPostFeed}/>
-            </Stack.Navigator>
-        </SafeAreaView>
-    )
+
+  return (
+    <SafeAreaView style={{ width: '100%', flex: 1 }}>
+      <Stack.Navigator
+        initialRouteName={userToken ? "DrawerNavigation" : "splash"}
+        screenOptions={{
+          headerShown: false,
+          cardStyle: { backgroundColor: "transparent", flex: 1 },
+          cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+        }}
+      >
+        <Stack.Screen name="splash" component={SplashVideo} />
+        <Stack.Screen name="Onbording" component={OnboardingScreen} />
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="TermsOfUse" component={TermsOfUse} />
+        <Stack.Screen name="Subcribe" component={SubscriptionScreen} />
+        <Stack.Screen name="PlanSubcribe" component={SubscriptionPlans} />
+        <Stack.Screen name="Invite" component={InviteFriends} />
+        <Stack.Screen name="Forgot" component={Forgot} />
+        <Stack.Screen name="Otp" component={Otp} />
+        <Stack.Screen name='LikeFeed' component={LikeFeed} />
+        <Stack.Screen name="ChangePassword" component={ChangePassword} />
+        <Stack.Screen name="DrawerNavigation" component={DrawerNavigation} />
+        <Stack.Screen name="Comments" component={Comments} options={{
+          presentation: 'modal', // iOS-style modal
+          cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS, // 👈 this gives the bottom-to-top animation
+          gestureDirection: 'vertical', // swipe down to close
+          gestureEnabled: true,
+        }} />
+        <Stack.Screen name="homescreen" component={HomeScreen} />
+        <Stack.Screen name="createpost" component={CreatePost} />
+        <Stack.Screen name="notification" component={Notification} />
+        <Stack.Screen name="like" component={Like} />
+        <Stack.Screen name="status" component={Status} />
+        <Stack.Screen name="AddStory" component={AddStory} />
+        <Stack.Screen name="SingleChat" component={SingleChat} />
+        <Stack.Screen name="Video" component={Video} />
+        <Stack.Screen name="Reels" component={Reels} />
+        <Stack.Screen name="Call" component={Call} />
+        <Stack.Screen name="NewChat" component={NewChat} />
+        <Stack.Screen name="ChatRooms" component={ChatRooms} />
+        <Stack.Screen name="AddMembers" component={AddMembers} />
+        <Stack.Screen name="SingleChatRoom" component={SingleChatRoom} />
+        <Stack.Screen name="ChatRoomCall" component={ChatRoomCall} />
+        <Stack.Screen name="ChatRoomCallON" component={ChatRoomCallON} />
+        <Stack.Screen name="ChatRoomVideoCall" component={ChatRoomVideoCall} />
+        <Stack.Screen name="ChatRoomVideoCallON" component={ChatRoomVideoCallON} />
+        <Stack.Screen name="Followers" component={Followers} />
+        <Stack.Screen name="Settings" component={Settings} />
+        <Stack.Screen name="SettingNotification" component={SettingNotification} />
+        <Stack.Screen name="Security" component={Security} />
+        <Stack.Screen name="LoginActivity" component={LoginActivity} />
+        <Stack.Screen name="SavedLogin" component={SavedLogin} />
+        <Stack.Screen name="Towfactor" component={Towfactor} />
+        <Stack.Screen name="Account" component={Account} />
+        <Stack.Screen name="PersonalInformation" component={PersonalInformation} />
+        <Stack.Screen name="Language" component={Language} />
+        <Stack.Screen name="Contacts" component={Contacts} />
+        <Stack.Screen name="About" component={About} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
+        <Stack.Screen name="Terms" component={Terms} />
+
+        <Stack.Screen name="Theme" component={Theme} />
+        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="EditProfile" component={EditProfile} />
+        <Stack.Screen name="Suggestions" component={Suggestions} />
+        <Stack.Screen name="ProfilePost" component={ProfilePost} />
+        <Stack.Screen name="ProfileReels" component={ProfileReels} />
+        <Stack.Screen name="AnotherProfile" component={AnotherProfile} />
+        <Stack.Screen name="Save" component={Save} />
+        <Stack.Screen name="Savepost" component={SavePost} />
+        <Stack.Screen name="SaveReels" component={SaveReels} />
+        <Stack.Screen name="Friend" component={ReferralDashboard} />
+
+
+        <Stack.Screen name="Components" component={Components} />
+        <Stack.Screen name="Accordion" component={AccordionScreen} />
+        <Stack.Screen name="ActionSheet" component={ActionSheet} />
+        <Stack.Screen name="ActionModals" component={ActionModals} />
+        <Stack.Screen name="Buttons" component={Buttons} />
+        <Stack.Screen name="Badges" component={Badges} />
+        <Stack.Screen name="Datepicker" component={Datepicker} />
+        <Stack.Screen name="Search2" component={Search2} />
+        <Stack.Screen name="Charts" component={Charts} />
+        <Stack.Screen name="Headers" component={Headers} />
+        <Stack.Screen name="Footers" component={Footers} />
+        <Stack.Screen name="TabStyle1" component={TabStyle1} />
+        <Stack.Screen name="TabStyle2" component={TabStyle2} />
+        <Stack.Screen name="TabStyle3" component={TabStyle3} />
+        <Stack.Screen name="TabStyle4" component={TabStyle4} />
+        <Stack.Screen name="Inputs" component={Inputs} />
+        <Stack.Screen name="lists" component={ListScreen} />
+        <Stack.Screen name="Pricings" component={Pricings} />
+        <Stack.Screen name="Snackbars" component={Snackbars} />
+        <Stack.Screen name="DividerElements" component={DividerElements} />
+        <Stack.Screen name="Socials" component={Socials} />
+        <Stack.Screen name="Swipeable" component={SwipeableScreen} />
+        <Stack.Screen name="Tabs" component={Tabs} />
+        <Stack.Screen name="Tables" component={Tables} />
+        <Stack.Screen name="Toggles" component={Toggles} />
+        <Stack.Screen name="Nextpage" component={Nextpage} />
+        <Stack.Screen name="Music" component={Music} />
+        <Stack.Screen name="WriteCaption" component={WriteCaption} />
+        <Stack.Screen name="CreateStory" component={CreateStory} />
+        <Stack.Screen name="Music2" component={Music2} />
+        <Stack.Screen name="AllSong" component={AllSong} />
+        <Stack.Screen name="SavedMusic" component={SavedMusic} />
+        <Stack.Screen name="AccountType" component={AccountType} />
+        <Stack.Screen name="CreatorAccount" component={CreatorAccount} />
+        <Stack.Screen name='PersonalAccount' component={PersonalAccount} />
+        <Stack.Screen name='Categories' component={Categories} />
+        <Stack.Screen name='SwitchAccountLogin' component={SwitchAccountLogin} />
+        <Stack.Screen name='feed' component={feed} />
+        <Stack.Screen name='AppLanguage' component={AppLanguage} />
+        <Stack.Screen name='FeedLanguage' component={FeedLanguage} />
+        <Stack.Screen name='LanguageScreen' component={LanguageScreen} />
+        <Stack.Screen name='FeedScreen' component={FeedScreen} />
+        <Stack.Screen name="gender" component={GenderScreen} />
+        <Stack.Screen name='CommentSheet' component={CommentSheet} />
+        <Stack.Screen name="role" component={RoleScreen} />
+        <Stack.Screen name='HiddenPosts' component={HiddenPosts} />
+        <Stack.Screen name='NotInterestedCategories' component={NotInterestedCategories} />
+        <Stack.Screen name='SubscriptionDetails' component={SubscriptionDetails} />
+        <Stack.Screen name='SubscriptionPaymentScreen' component={SubscriptionPaymentScreen} />
+        <Stack.Screen name='OtpMsg' component={OtpMsg} />
+        <Stack.Screen name='CategoriesScreen' component={CategoriesScreen} />
+        <Stack.Screen name='UserPostFeed' component={UserPostFeed} />
+      </Stack.Navigator>
+    </SafeAreaView>
+  )
 }
- 
+
 export default StackNavigator;

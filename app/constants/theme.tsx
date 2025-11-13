@@ -3,9 +3,9 @@ import { red } from "react-native-reanimated/lib/typescript/Colors";
 const { width, height } = Dimensions.get('screen');
  
 export const COLORS = {
-    primary: "#2979F8",
+    primary: "#32CD32",
     primaryLight: "#7BAEFF",
-    secondary: "#002C72",
+    secondary: "#078407ff",
     success: "#0ecb81",
     danger: "#ff4a5cff",
     info: "#627EEA",
@@ -87,6 +87,7 @@ export const FONTS = {
 export const IMAGES = {
     
     dislike:require('../assets/images/icons/dislike.png'),
+    task:require('../assets/images/icons/task4.jpg'),
     thumbsUp:require('../assets/images/icons/thumbs-up.png'),
     thumbsDown:require('../assets/images/icons/thumbs-down.png'),
     post:require('../assets/images/icons/post.png'),
@@ -138,7 +139,7 @@ export const IMAGES = {
     bugrepellent: require('../assets/images/icons/bug-repellent.png'),
  
  
-    profile: require('../assets/images/profile/profile.jpg'),
+    profile: require('../assets/images/profile/profile1.jpg'),
     profile2: require('../assets/images/profile/profile-2.jpg'),
     profilepic1: require('../assets/images/profile/pic-1.jpg'),
     profilepic2: require('../assets/images/profile/pic-2.jpg'),
@@ -214,7 +215,7 @@ export const IMAGES = {
     music: require('../assets/images/icons/music.png'),
     datepicker: require('../assets/images/icons/datepicker.png'),
     calendar: require('../assets/images/icons/calendar.png'),
-    profilebackground: require('../assets/images/profile/profilebackground.jpg'),
+    profilebackground: require('../assets/images/profile/pb.png'),
     setting: require('../assets/images/icons/setting.png'),
     profilepic: require('../assets/images/icons/profilepic.png'),
     musicpic: require('../assets/images/profile/musicpic.jpg'),

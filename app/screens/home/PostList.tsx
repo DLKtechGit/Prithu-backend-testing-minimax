@@ -314,19 +314,31 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     // --------------------------- View Count ----------------------------
 
     const recordViewCount = useCallback(async (feedId: string) => {
-      try {
-        if (viewedPosts.current.has(feedId)) return;
+  try {
+    if (viewedPosts.current.has(feedId)) {
+      console.log("⏸ Already counted:", feedId);
+      return;
+    }
 
-        const token = await AsyncStorage.getItem("userToken");
-        if (!token) return;
+    console.log("📡 Sending view-count request for:", feedId);
 
-        await api.post("/api/user/image/view/count", { feedId });
-        viewedPosts.current.add(feedId);
-      } catch (err: any) {
-        // Don't log view recording errors to avoid console spam
-        console.debug("Error recording view:", err.response?.data || err.message);
-      }
-    }, []); // Memoize to prevent recreation
+    const token = await AsyncStorage.getItem("userToken");
+    if (!token) {
+      console.log("⚠️ No token, skipping view-count");
+      return;
+    }
+
+    await api.post("/api/user/image/view/count", { feedId });
+
+    viewedPosts.current.add(feedId);
+
+    console.log("✅ View recorded successfully:", feedId);
+
+  } catch (err: any) {
+    console.log("❌ View recording error:", err?.message);
+  }
+}, []);
+
 
     // --------------------------- Scroll Handlers ----------------------------
 
@@ -347,7 +359,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     const handlePull = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       const y = e.nativeEvent.contentOffset.y;
-      if (y < -50 && !refreshingTop) setRefreshingTop(true);
+      if (y < -120 && !refreshingTop) setRefreshingTop(true);
+
       if (y >= 0 && refreshingTop) setRefreshingTop(false);
     };
 
@@ -396,8 +409,16 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
 
     useEffect(() => {
-      visibleBoxes.forEach(recordViewCount);
-    }, [visibleBoxes, recordViewCount]);
+  if (visibleBoxes.length === 0) return;
+
+  const firstVisible = visibleBoxes[0];
+
+  // ✅ Console to verify view trigger
+  console.log("👀 First visible post changed:", firstVisible);
+
+  recordViewCount(firstVisible);
+}, [visibleBoxes, recordViewCount]);
+
 
     // Cleanup on unmount
     useEffect(() => {
@@ -479,10 +500,11 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
       <View>
         {posts.map((post) => (
           <View
-            key={post._id}
-            onLayout={handleBoxLayout(post._id)}
-            style={{ height: windowHeight, width: "100%" }}
-          >
+  key={post._id}
+  onLayout={handleBoxLayout(post._id)}
+  style={{ width: "100%",marginTop: 10 }}
+>
+
             <MemoPostCard
               id={post._id}
               themeColor={post.primary}

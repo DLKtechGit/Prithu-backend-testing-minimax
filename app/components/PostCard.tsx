@@ -81,7 +81,7 @@ const PostCard = ({
   const [popupSubtitle, setPopupSubtitle] = useState('');
   const [navigateOnClose, setNavigateOnClose] = useState(false);
   const [imageHeight, setImageHeight] = useState(SIZES.width * 1.4); // default
- 
+
   useEffect(() => {
     if (postimage?.length > 0) {
       Image.getSize(postimage[0].image, (width, height) => {
@@ -97,7 +97,7 @@ const PostCard = ({
   // Skeleton Loader Components
   const SkeletonAvatar = () => {
     const shimmer = useRef(new Animated.Value(0)).current;
-    
+
     useEffect(() => {
       const animation = Animated.loop(
         Animated.timing(shimmer, {
@@ -107,7 +107,7 @@ const PostCard = ({
         })
       );
       animation.start();
-      
+
       return () => {
         animation.stop();
       };
@@ -131,7 +131,7 @@ const PostCard = ({
 
   const SkeletonImage = () => {
     const shimmer = useRef(new Animated.Value(0)).current;
-    
+
     useEffect(() => {
       const animation = Animated.loop(
         Animated.timing(shimmer, {
@@ -141,7 +141,7 @@ const PostCard = ({
         })
       );
       animation.start();
-      
+
       return () => {
         animation.stop();
       };
@@ -281,10 +281,11 @@ const PostCard = ({
     try {
       const response = await api.get('/api/user/user/subscriptions');
       const data = response.data;
-      if (data.plan && data.plan.isActive) {
+      if (data.plan && data.plan.hasActive) {
         const trialCheckResponse = await api.get('/api/user/check/active/subcription');
         const trialData = trialCheckResponse.data;
-        if (trialData.isActive) {
+        console.log("sus", trialCheckResponse.data);
+        if (trialData.hasActive) {
           const hasPermission = await requestPermissions();
           if (!hasPermission) return;
           if (viewShotRef.current) {
@@ -374,7 +375,7 @@ const PostCard = ({
       const response = await api.post('/api/user/feed/dislike', { feedId: id });
       const data = response.data;
       console.log("data", data)
-      
+
       // Notify PostList of the update
       if (onDislikeUpdate) {
         onDislikeUpdate(newDislikeState, newDislikeCount);
@@ -398,7 +399,7 @@ const PostCard = ({
         const modifyAvatar = profileData.modifyAvatar;
         setProfile({
           displayName: profileData.displayName || '',
-          username: data.userName || '',
+          username: profileData.userName || '', // ✅ correct source
           bio: profileData.bio || '',
           balance: profileData.balance || '',
           profileAvatar: fixedAvatar,
@@ -408,10 +409,15 @@ const PostCard = ({
         // Fetch visibility settings after profile
         const visResponse = await api.get('/api/profile/visibility');
         const visData = visResponse.data;
+        console.log("switch", visData)
         if (visData.success) {
-          setIsPhoneVisible(visData.visibility?.phoneNumber ?? false);
-          setisNameVisible(visData.visibility?.displayName ?? false);
-        } else {
+          const v = visData.visibility;
+
+          // 👇 Match visibility fields with backend (same as EditProfile)
+          setIsPhoneVisible(v.phoneNumber === "public");
+          setisNameVisible(v.userName === "public");
+        }
+        else {
           console.log('Failed to get visibility settings', visData.message);
         }
       } else {
@@ -482,7 +488,7 @@ const PostCard = ({
             <TouchableOpacity
               onPress={() => {
                 hasStory == false
-                  ? navigation.navigate('AnotherProfile', { feedId: id, profileUserId: profileUserId, roleRef:roleRef  })
+                  ? navigation.navigate('AnotherProfile', { feedId: id, profileUserId: profileUserId, roleRef: roleRef })
                   : navigation.navigate('status', {
                     name: name,
                     image: profileimage,
@@ -490,7 +496,7 @@ const PostCard = ({
                   });
               }}
             >
-              
+
               {hasStory == true ? (
                 <View style={{ justifyContent: 'center', alignItems: 'center' }}>
                   {isImageLoading ? (
@@ -660,14 +666,19 @@ const PostCard = ({
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      
+
                     }}
                   >
                     {isNameVisible && (
-                      <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-                        {profile.displayName}
+                      <Text
+                        style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {profile.username}
                       </Text>
                     )}
+
                     {isPhoneVisible && (
                       <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
                         {profile.phoneNumber}
@@ -696,6 +707,7 @@ const PostCard = ({
                 }
               }}
             >
+
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Image
                   style={{ width: 22, height: 22, resizeMode: 'contain', tintColor: colors.title }}

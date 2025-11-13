@@ -1,79 +1,38 @@
-
-
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   SafeAreaView, 
   ActivityIndicator, 
   Dimensions, 
   View, 
-  StyleSheet,
-  FlatList
+  FlatList 
 } from 'react-native';
-import api from '../../../apiInterpretor/apiInterceptor';
-import Reelsitem from '../../components/Reelsitem';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../../layout/Header';
 import PostShareSheet from '../../components/bottomsheet/PostShareSheet';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Reelsitem from '../../components/Reelsitem';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const { height: windowHeight } = Dimensions.get('window');
-// Decrease the height by 10% (adjust the multiplier as needed)
-const REELS_CONTAINER_HEIGHT = 670; //810
 
-const Reels = ({
-  themeColor,
-  textColor,
-}:any) => {
+const Reels = ({ themeColor, textColor }: any) => {
   const sheetRef = useRef<any>();
   const flatListRef = useRef<any>();
-  const mountedRef = useRef(true);
   const [reelsData, setReelsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const viewedVideos = useRef<Set<string>>(new Set());
-  const watchedTimes = useRef<number[]>([]);
-  
-  const buildUrl = (path: string | undefined | null) => {
-    if (!path) return null;
-    return path.replace(/\\/g, '/');
-  };
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
 
   const fetchReels = useCallback(async () => {
     try {
       const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        console.warn('No token found, user might not be logged in');
-        return;
-      }
+      if (!token) return;
 
       const res = await api.get('/api/get/all/feeds/user');
-
-      if (!mountedRef.current) return;
-
-      const videoFeeds = res.data.feeds
-        .filter((feed: any) => feed.type === 'video')
-        .map((feed: any) => ({
-          ...feed,
-          duration: feed.duration || 0,
-        }));
-        
-      setReelsData(videoFeeds);
-      watchedTimes.current = new Array(videoFeeds.length).fill(0);
-    } catch (err) {
-      console.error('Error fetching reels:', err);
-      if (mountedRef.current) {
-        // Handle error state here if needed
-      }
+      const feeds = res.data.feeds?.filter((feed: any) => feed.type === 'video') || [];
+      setReelsData(feeds);
+    } catch (error) {
+      console.error('Error fetching reels:', error);
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, []);
 
@@ -81,151 +40,51 @@ const Reels = ({
     fetchReels();
   }, [fetchReels]);
 
-  const recordVideoView = async (feedId: string, watchedSeconds: number) => {
-    try {
-      if (viewedVideos.current.has(feedId)) {
-        console.log(`Video ${feedId} already viewed, skipping API call`);
-        return;
-      }
-
-      const userId = await AsyncStorage.getItem('userId'); // Fetch userId
-      if (!userId) {
-        console.warn('No userId found in AsyncStorage');
-        return;
-      }
-
-      console.log("Recording view for feedId:", feedId, "watchedSeconds:", watchedSeconds, "userId:", userId);
-      const response = await api.post(
-        '/api/user/watching/videos',
-        { feedId, userId, watchedSeconds }
-      );
-
-      if (response.data.watched) {
-        viewedVideos.current.add(feedId);
-        console.log(`View recorded for feedId: ${feedId}`);
-      }
-    } catch (error) {
-      console.error('Error recording video view:', error.response?.data || error.message);
+  const handleViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems && viewableItems.length > 0) {
+      setCurrentIndex(viewableItems[0].index);
     }
-  };
-
- const handleViewableItemsChanged = useRef(({ viewableItems }: any) => {
-  if (viewableItems.length > 0) {
-    const newIndex = viewableItems[0].index;
-    console.log('🟡 Viewable item changed to index:', newIndex);
-    setCurrentIndex(newIndex);
-  }
-}).current;
-
-useEffect(() => {
-  if (currentIndex > 0 && reelsData[currentIndex - 1]) {
-    const prevFeed = reelsData[currentIndex - 1];
-    const watchedSeconds = watchedTimes.current[currentIndex - 1] || 0;
-
-    // ✅ Correctly calculate required duration using prevFeed
-    const minRequired =
-      prevFeed.duration > 0
-        ? Math.floor(prevFeed.duration * 0.9)
-        : 0;
-
-    // console.log(
-    //   `🎯 Checking previous feedId: ${prevFeed.feedId}, watched: ${watchedSeconds}, minRequired: ${minRequired}, duration: ${prevFeed.duration}`
-    // );
-
-    if (
-      watchedSeconds >= minRequired &&
-      !viewedVideos.current.has(prevFeed.feedId) &&
-      prevFeed.duration > 0
-    ) {
-      console.log(`✅ Triggering record for feedId: ${prevFeed.feedId} before unmount`);
-      recordVideoView(prevFeed.feedId, watchedSeconds);
-    }
-  }
-}, [currentIndex, reelsData.length]);
-
-
-
-
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 80
   }).current;
 
-  const renderItem = ({ item, index }: { item: any; index: number }) => {
-    return (
-      <View style={{ height: REELS_CONTAINER_HEIGHT }}>
-        <Reelsitem
-          key={index}
-          id={item.feedId}
-          like={item.likesCount}
-          comment={item.commentsCount || 0}
-          save={item.downloadsCount}
-          send={0}
-          image={{ uri: item.profileAvatar }}
-          holder={item.userName || 'Ashik'}
-          text={item.caption || ''}
-          music={item.music || 'Prithu Music'}
-          sheetRef={sheetRef}
-          reelsvideo={{ uri: item.contentUrl }}
-          hasStory={false}
-          autoplay={currentIndex === index}
-     onProgress={(progress: any) => {
-  const seconds =
-    progress.currentTime || (progress.positionMillis / 1000) || 0;
-
-  // ✅ Always store progress, even if duration is 0
-  watchedTimes.current[index] = Math.max(watchedTimes.current[index] || 0, seconds);
-
-  const duration = item.duration > 0 ? item.duration : progress.seekableDuration || 0;
-  const minRequired = Math.floor(duration * 0.9) || 0;
-
-  console.log(
-    `Progress for feedId: ${item.feedId}, seconds: ${seconds}, minRequired: ${minRequired}, duration: ${duration}, viewed: ${viewedVideos.current.has(item.feedId)}`
-  );
-
-  // ✅ Trigger view only when duration exists and threshold reached
-  if (
-    duration > 0 &&
-    seconds >= minRequired &&
-    !viewedVideos.current.has(item.feedId)
-  ) {
-    recordVideoView(item.feedId, seconds);
-  }
-}}
-
-     onLoad={(data: any) => {
-  if (data?.duration && item.duration === 0) {
-    item.duration = data.duration;
-    console.log(`✅ Duration set for feedId: ${item.feedId}: ${data.duration}`);
-
-    setReelsData((prev) =>
-      prev.map((feed, i) =>
-        i === index ? { ...feed, duration: data.duration } : feed
-      )
-    );
-  } else {
-    console.log(`onLoad fired but no valid duration for ${item.feedId}`);
-  }
-}}
-
-
-        />
-      </View>
-    );
-  };
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 80,
+  }).current;
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#000" />
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+        <ActivityIndicator size="large" color="#fff" />
       </SafeAreaView>
     );
   }
 
+  const renderItem = ({ item, index }: any) => (
+    <View style={{ height: windowHeight }}>
+      <Reelsitem
+        key={item.feedId || index}
+        id={item.feedId}
+        like={item.likesCount || 0}
+        comment={item.commentsCount || 0}
+        save={item.downloadsCount || 0}
+        send={0}
+        image={{ uri: item.profileAvatar }}
+        holder={item.userName || 'User'}
+        text={item.caption || ''}
+        music={item.music || 'Reel Music'}
+        sheetRef={sheetRef}
+        reelsvideo={{ uri: item.contentUrl }}
+        hasStory={false}
+        autoplay={currentIndex === index}
+        themeColor={themeColor}
+        textColor={textColor}
+      />
+    </View>
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
       <Header title="Reels" transparent={true} />
-      
+
       <FlatList
         ref={flatListRef}
         data={reelsData}
@@ -233,14 +92,14 @@ useEffect(() => {
         renderItem={renderItem}
         pagingEnabled
         showsVerticalScrollIndicator={false}
+        snapToInterval={windowHeight} // ensures one reel per screen
+        snapToAlignment="start"
+        decelerationRate="fast"
         onViewableItemsChanged={handleViewableItemsChanged}
         viewabilityConfig={viewabilityConfig}
-        decelerationRate="fast"
-        snapToInterval={REELS_CONTAINER_HEIGHT}
-        snapToAlignment="start"
         getItemLayout={(data, index) => ({
-          length: REELS_CONTAINER_HEIGHT,
-          offset: REELS_CONTAINER_HEIGHT * index,
+          length: windowHeight,
+          offset: windowHeight * index,
           index,
         })}
       />

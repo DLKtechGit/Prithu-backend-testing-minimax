@@ -25,7 +25,7 @@ export const Button = (props : any) => {
               <LinearGradient
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  colors={color ? [color , color] : ['#7BAEFF', '#156CF7'] }
+                  colors={color ? [color , color] : ["#FFD700", "#32CD32"] }
                   style={[
                       GlobalStyleSheet.btn,
                       size === 'sm' && {
