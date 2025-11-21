@@ -43,56 +43,58 @@ const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
     try {
       setLoading(true);
       const token = await AsyncStorage.getItem('userToken');
-       console.log(token)
+      console.log('Token:', token ? 'Found' : 'Not found');
+
       if (!token) {
         console.log('❌ No token found in AsyncStorage');
         setLoading(false);
         return;
       }
 
-      // CORRECTED API ENDPOINT
-      const res = await api.get(
-        '/api/get/user/hide/post' // Updated endpoint
-      );
-      
+      const res = await api.get('/api/get/user/hide/post');
+
       console.log('✅ Hidden Posts API Response:', res.data);
 
-      // Check if the response structure matches your backend
-      const allHiddenPosts = res.data.data || res.data.hiddenPosts || [];
+      // Get the data array from response
+      const allHiddenPosts = res.data.data || [];
 
-      // Separate images & videos by contentUrl extension or type field if available
+      console.log('Total hidden posts:', allHiddenPosts.length);
+
+      // Filter by type field from backend
       const images = allHiddenPosts.filter((post: any) => {
-        const url = post.contentUrl || post.url || '';
-        return url.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i);
+        return post.type === 'image';
       });
-      
+
       const videos = allHiddenPosts.filter((post: any) => {
-        const url = post.contentUrl || post.url || '';
-        return url.match(/\.(mp4|mov|avi|wmv|flv|mkv|webm)$/i);
+        return post.type === 'video';
       });
+
+      console.log('Images:', images.length, 'Videos:', videos.length);
 
       // Map with correct structure
       setProfilePosts(
         images.map((post: any) => ({
           id: post._id,
-          image: post.contentUrl || post.url,
-        //   likeCount: post.likesCount || post.totalLikes || 0,
+          image: post.contentUrl,
           title: post.title || '',
           createdAt: post.createdAt,
-          createdBy: post.createdByAccount || post.createdBy,
+          createdBy: post.createdByAccount,
         }))
       );
 
       setReelsPosts(
         videos.map((post: any) => ({
           id: post._id,
-          thumbnail: post.contentUrl || post.url,
-          views: post.views || post.totalViews || 0,
+          thumbnail: post.contentUrl,
+          views: 0, // Views not included in hidden posts response
           title: post.title || '',
           createdAt: post.createdAt,
-          createdBy: post.createdByAccount || post.createdBy,
+          createdBy: post.createdByAccount,
         }))
       );
+
+      console.log('Profile Posts set:', images.length);
+      console.log('Reels Posts set:', videos.length);
     } catch (err: any) {
       console.log(
         '❌ Error fetching hidden posts:',

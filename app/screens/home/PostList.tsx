@@ -19,6 +19,7 @@ import {
   Animated,
   Text,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -42,14 +43,14 @@ interface Post {
   likesCount: number;
   type: string;
   profileUserId: string;
-  roleRef:string;
+  roleRef: string;
   isLiked: boolean;
   isSaved: boolean;
   isDisliked?: boolean; // Add isDisliked to the Post interface
   dislikesCount?: number; // Add dislikeCount (optional, if backend supports it)
-  primary:string;
-  accent:string;
-  avatorToUse:string;
+  primary: string;
+  accent: string;
+  avatorToUse: string;
 }
 
 interface PostListProps {
@@ -73,7 +74,10 @@ const { height: windowHeight } = Dimensions.get("window");
 const MemoPostCard = memo(PostCard, (prev, next) =>
   prev.visibleBoxes === next.visibleBoxes &&
   prev.postimage?.[0]?.image === next.postimage?.[0]?.image &&
-  prev.caption === next.caption
+  prev.caption === next.caption &&
+  prev.like === next.like &&
+  prev.isLiked === next.isLiked &&
+  prev.commentsCount === next.commentsCount
 );
 
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -191,6 +195,9 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     const [refreshingTop, setRefreshingTop] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
 
     const boxRefs = useRef<Record<string, { y: number; height: number }>>({});
     const viewedPosts = useRef<Set<string>>(new Set());
@@ -199,10 +206,10 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     // --------------------------- Fetch Posts ----------------------------
 
-    const fetchPosts = useCallback(async (catId: string | null = null) => {
+    const fetchPosts = useCallback(async (catId: string | null = null, pageNum: number = 1) => {
       // Create unique request ID
       const requestId = ++latestRequestIdRef.current;
-      
+
       // Abort previous request if exists
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -213,7 +220,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
       try {
         setError(null);
-        
+
         // Check if user is authenticated
         const token = await AsyncStorage.getItem("userToken");
         if (!token) {
@@ -223,13 +230,16 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         }
 
         // Set loading state
-        if (!catId) {
+        if (pageNum === 1 && !catId) {
           setLoading(true);
+        } else if (pageNum > 1) {
+          setIsFetchingMore(true);
         }
 
+        const limit = 10;
         const endpoint = catId
-          ? `/api/user/get/feed/with/cat/${catId}`
-          : `/api/get/all/feeds/user`;
+          ? `/api/user/get/feed/with/cat/${catId}?page=${pageNum}&limit=${limit}`
+          : `/api/get/all/feeds/user?page=${pageNum}&limit=${limit}`;
 
         console.log("Fetching posts from:", endpoint);
 
@@ -238,7 +248,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           timeout: 10000, // 10 second timeout
         });
 
-        console.log("ashik",response.data.feeds)
+        console.log("ashik", response.data.feeds)
 
         // Only update if this is still the latest request
         if (requestId !== latestRequestIdRef.current) {
@@ -247,10 +257,14 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         }
 
         const feeds = response.data?.feeds ?? [];
+        const pagination = response.data?.pagination;
+
         if (!Array.isArray(feeds)) {
           console.warn("Invalid feeds data received");
-          setError("Invalid data format received");
-          setPosts([]);
+          if (pageNum === 1) {
+            setError("Invalid data format received");
+            setPosts([]);
+          }
           return;
         }
 
@@ -281,8 +295,17 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           }))
           .filter((item) => item.type === "image");
 
-        setPosts(mapped);
-        console.log("Ashiking",mapped)
+        if (pageNum === 1) {
+          setPosts(mapped);
+        } else {
+          setPosts((prev) => [...prev, ...mapped]);
+        }
+
+        // Use backend's hasMore flag if available, otherwise fallback to local calculation
+        setHasMore(pagination?.hasMore ?? (mapped.length >= limit));
+        setPage(pageNum);
+        console.log("Ashiking", mapped);
+        console.log("📊 Pagination:", pagination);
         setLastFetchTime(Date.now());
       } catch (err: any) {
         // Check if request was cancelled (axios cancellation)
@@ -292,9 +315,9 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         }
 
         console.error("Error fetching posts:", err.response?.data || err.message);
-        
+
         let errorMessage = "Failed to load posts. Please try again.";
-        
+
         if (err.response?.status === 401) {
           errorMessage = "Session expired. Please log in again.";
         } else if (err.response?.status === 404) {
@@ -303,10 +326,13 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           errorMessage = "Request timed out. Please check your connection.";
         }
 
-        setError(errorMessage);
-        setPosts([]);
+        if (pageNum === 1) {
+          setError(errorMessage);
+          setPosts([]);
+        }
       } finally {
         setLoading(false);
+        setIsFetchingMore(false);
       }
     }, []); // Memoize to prevent recreation
 
@@ -314,36 +340,38 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     // --------------------------- View Count ----------------------------
 
     const recordViewCount = useCallback(async (feedId: string) => {
-  try {
-    if (viewedPosts.current.has(feedId)) {
-      console.log("⏸ Already counted:", feedId);
-      return;
-    }
+      try {
+        if (viewedPosts.current.has(feedId)) {
+          console.log("⏸ Already counted:", feedId);
+          return;
+        }
 
-    console.log("📡 Sending view-count request for:", feedId);
+        console.log("📡 Sending view-count request for:", feedId);
 
-    const token = await AsyncStorage.getItem("userToken");
-    if (!token) {
-      console.log("⚠️ No token, skipping view-count");
-      return;
-    }
+        const token = await AsyncStorage.getItem("userToken");
+        if (!token) {
+          console.log("⚠️ No token, skipping view-count");
+          return;
+        }
 
-    await api.post("/api/user/image/view/count", { feedId });
+        await api.post("/api/user/image/view/count", { feedId });
 
-    viewedPosts.current.add(feedId);
+        viewedPosts.current.add(feedId);
 
-    console.log("✅ View recorded successfully:", feedId);
+        console.log("✅ View recorded successfully:", feedId);
 
-  } catch (err: any) {
-    console.log("❌ View recording error:", err?.message);
-  }
-}, []);
+      } catch (err: any) {
+        console.log("❌ View recording error:", err?.message);
+      }
+    }, []);
 
 
     // --------------------------- Scroll Handlers ----------------------------
 
     const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const scrollY = e.nativeEvent.contentOffset.y;
+      const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+      const scrollY = contentOffset.y;
+
       const visible = posts
         .map((p) => {
           const ref = boxRefs.current[p._id];
@@ -355,6 +383,13 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         })
         .filter((id): id is string => !!id);
       setVisibleBoxes(visible);
+
+      // Pagination Logic
+      const isCloseToBottom = layoutMeasurement.height + scrollY >= contentSize.height - windowHeight * 1.5;
+      if (isCloseToBottom && hasMore && !isFetchingMore && !loading) {
+        console.log("Fetching more posts... Page:", page + 1);
+        fetchPosts(categoryId ?? null, page + 1);
+      }
     };
 
     const handlePull = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -371,14 +406,14 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
 
 
-    
+
     // --------------------------- Dislike Update Handler ----------------------------
 
     const handleDislikeUpdate = (postId: string, newIsDisliked: boolean, newDislikeCount: number) => {
       setPosts((prevPosts) =>
         prevPosts.map((p) =>
           p._id === postId
-            ? { ...p, isDisliked: newIsDisliked, dislikeCount: newDislikeCount }
+            ? { ...p, isDisliked: newIsDisliked, dislikesCount: newDislikeCount }
             : p
         )
       );
@@ -388,36 +423,39 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     // --------------------------- Lifecycle ----------------------------
 
     useEffect(() => {
-      fetchPosts(categoryId ?? null);
+      setPage(1);
+      setHasMore(true);
+      setPosts([]);
+      fetchPosts(categoryId ?? null, 1);
     }, [categoryId, fetchPosts]);
 
-   useEffect(() => {
-  const initSocket = async () => {
-    try {
-      const token = await AsyncStorage.getItem("userToken");
-      const sessionId = await AsyncStorage.getItem("sessionId");
-      if (token && sessionId) {
-        await connectSocket(); // ✅ Only socket connect
-        console.log("✅ Socket connected from PostList page");
-      }
-    } catch (err) {
-      console.debug("Socket initialization error:", err);
-    }
-  };
-  initSocket();
-}, []);
+    useEffect(() => {
+      const initSocket = async () => {
+        try {
+          const token = await AsyncStorage.getItem("userToken");
+          const sessionId = await AsyncStorage.getItem("sessionId");
+          if (token && sessionId) {
+            await connectSocket(); // ✅ Only socket connect
+            console.log("✅ Socket connected from PostList page");
+          }
+        } catch (err) {
+          console.debug("Socket initialization error:", err);
+        }
+      };
+      initSocket();
+    }, []);
 
 
     useEffect(() => {
-  if (visibleBoxes.length === 0) return;
+      if (visibleBoxes.length === 0) return;
 
-  const firstVisible = visibleBoxes[0];
+      const firstVisible = visibleBoxes[0];
 
-  // ✅ Console to verify view trigger
-  console.log("👀 First visible post changed:", firstVisible);
+      // ✅ Console to verify view trigger
+      console.log("👀 First visible post changed:", firstVisible);
 
-  recordViewCount(firstVisible);
-}, [visibleBoxes, recordViewCount]);
+      recordViewCount(firstVisible);
+    }, [visibleBoxes, recordViewCount]);
 
 
     // Cleanup on unmount
@@ -436,7 +474,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         setRefreshingTop(true);
         setPosts([]);
         try {
-          await fetchPosts(null);
+          await fetchPosts(null, 1);
           setPosts((prev) => shuffleArray(prev));
         } catch (err) {
           console.error("Error refreshing posts:", err);
@@ -472,7 +510,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
       return (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <Text 
+          <Text
             style={styles.retryText}
             onPress={() => {
               setError(null);
@@ -500,10 +538,10 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
       <View>
         {posts.map((post) => (
           <View
-  key={post._id}
-  onLayout={handleBoxLayout(post._id)}
-  style={{ width: "100%",marginTop: 10 }}
->
+            key={post._id}
+            onLayout={handleBoxLayout(post._id)}
+            style={{ width: "100%", marginTop: 10 }}
+          >
 
             <MemoPostCard
               id={post._id}
@@ -534,7 +572,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
               isDisliked={post.isDisliked || false}
               dislikesCount={post.dislikesCount || 0}
               onDislikeUpdate={(newIsDisliked, newDislikeCount) =>
-              handleDislikeUpdate(post._id, newIsDisliked, newDislikeCount)
+                handleDislikeUpdate(post._id, newIsDisliked, newDislikeCount)
               }
               onLikeUpdate={(newIsLiked, newLikeCount) =>
                 setPosts((prevPosts) =>
@@ -546,6 +584,11 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             />
           </View>
         ))}
+        {isFetchingMore && (
+          <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#000" />
+          </View>
+        )}
       </View>
     );
   }

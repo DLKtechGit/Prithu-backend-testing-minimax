@@ -492,47 +492,51 @@ const EditProfile = () => {
           </View>
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
-            Phone Number
-          </Text>
-          <View
-            style={[
-              GlobalStyleSheet.inputBox,
-              {
-                borderColor: colors.border,
-                borderWidth: 1,
-                paddingLeft: 20,
-                flexDirection: 'row', // row layout
-                alignItems: 'center', // vertically center 
-                paddingHorizontal: 15,
-                justifyContent: 'space-between',
+  Phone Number
+</Text>
 
-              },
-            ]}
-          >
-            <View>
+<View
+  style={[
+    GlobalStyleSheet.inputBox,
+    {
+      borderColor: colors.border,
+      borderWidth: 1,
+      paddingLeft: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 15,
+      justifyContent: "space-between",
+    },
+  ]}
+>
+  <TextInput
+    style={[
+      GlobalStyleSheet.input,
+      { color: colors.title, flex: 1 },
+    ]}
+    value={phoneNumber}
+    keyboardType="phone-pad"
+    placeholder="Enter phone number"
+    placeholderTextColor={colors.placeholder}
+    onChangeText={(text) => {
+      // If user deletes everything → restore +91
+      if (text.trim() === "") {
+        setPhoneNumber("+91");
+        return;
+      }
+      setPhoneNumber(text);
+    }}
+  />
 
-            </View>
-            <TextInput
-              style={[GlobalStyleSheet.input, { color: colors.title, flex: 1 }]}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              keyboardType="phone-pad"
-              placeholder="Enter phone number"
-            
-
-            />
-            <Switch
-              value={showPhoneNumber}
-              onValueChange={(val) => {
-                setShowPhoneNumber(val);
-                handleToggleVisibility("phoneNumber", val);
-              }}
-              thumbColor={showPhoneNumber ? COLORS.primary : "#ccc"}
-            />
-
-
-          </View>
-
+  <Switch
+    value={showPhoneNumber}
+    onValueChange={(val) => {
+      setShowPhoneNumber(val);
+      handleToggleVisibility("phoneNumber", val);
+    }}
+    thumbColor={showPhoneNumber ? COLORS.primary : "#ccc"}
+  />
+</View>
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Marital Status
           </Text>

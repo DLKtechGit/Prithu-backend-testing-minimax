@@ -16,13 +16,16 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Haptics from 'expo-haptics';
+import api from '../../../apiInterpretor/apiInterceptor';
 
 const ProfilePost = ({
-      themeColor,
-      textColor,
-      }: any) => {
+    themeColor,
+    textColor,
+    route,
+}: any) => {
     const sheetRef = useRef<any>();
     const moresheet = useRef<any>();
+    const scrollViewRef = useRef<any>();
     const theme = useTheme();
     const { colors }: { colors: any } = theme;
     const navigation = useNavigation<any>();
@@ -38,35 +41,76 @@ const ProfilePost = ({
         profileAvatar: '',
     });
 
+    // Get route params
+    const initialPostId = route?.params?.initialPostId;
+    const allPostsData = route?.params?.allPostsData;
+
     const fetchPosts = async () => {
         try {
             setLoading(true);
 
-            const res = await axios.get('/get/all/feeds/user');
+            // If we have allPostsData from Search, use it
+            if (allPostsData && allPostsData.length > 0) {
+                const mappedFeeds = allPostsData
+                    .filter((item: any) => item.type === 'image')
+                    .map((item: any) => ({
+                        id: item.feedId || item._id,
+                        name: item.userName || 'Unknown',
+                        image: item.profileAvatar !== 'Unknown'
+                            ? { uri: item.profileAvatar }
+                            : IMAGES.profile,
+                        date: item.timeAgo || 'Unknown',
+                        postimage: [{ image: { uri: item.contentUrl } }],
+                        like: item.likesCount || 0,
+                        comment: item.commentsCount || 0,
+                        posttitle: item.caption || '',
+                        posttag: item.tags?.join(' ') || '',
+                        hasStory: false,
+                        isLiked: item.isLiked || false,
+                        isSaved: item.isSaved || false,
+                    }));
 
-            const feeds = res.data.feeds || [];
-            const mappedFeeds = feeds
-                .filter((item: any) => item.type === 'image')
-                .map((item: any) => ({
-                    id: item._id,
-                    name: item.userName || 'Unknown',
-                    image: item.profileAvatar !== 'Unknown'
-                        ? { uri: item.profileAvatar }
-                        : IMAGES.profile,
-                    date: item.timeAgo || 'Unknown',
-                    postimage: [{ image: { uri: item.contentUrl } }],
-                    like: item.likesCount || 0,
-                    comment: item.commentsCount|| 0, // Ensure comment count is mapped
-                    posttitle: item.caption || '',
-                    posttag: item.tags?.join(' ') || '',
-                    hasStory: false,
-                    isLiked: item.isLiked || false,
-                    isSaved: item.isSaved || false,
-                }));
+                // If we have an initialPostId, reorder posts to show it first
+                if (initialPostId) {
+                    const initialIndex = mappedFeeds.findIndex((post: any) => post.id === initialPostId);
+                    if (initialIndex !== -1) {
+                        const initialPost = mappedFeeds[initialIndex];
+                        const otherPosts = mappedFeeds.filter((_: any, index: number) => index !== initialIndex);
+                        setPosts([initialPost, ...otherPosts]);
+                    } else {
+                        setPosts(mappedFeeds);
+                    }
+                } else {
+                    setPosts(mappedFeeds);
+                }
+            } else {
+                // Fetch all posts normally
+                const res = await api.get('/api/get/all/feeds/user');
 
-            setPosts(mappedFeeds);
+                const feeds = res.data.feeds || [];
+                const mappedFeeds = feeds
+                    .filter((item: any) => item.type === 'image')
+                    .map((item: any) => ({
+                        id: item.feedId || item._id,
+                        name: item.userName || 'Unknown',
+                        image: item.profileAvatar !== 'Unknown'
+                            ? { uri: item.profileAvatar }
+                            : IMAGES.profile,
+                        date: item.timeAgo || 'Unknown',
+                        postimage: [{ image: { uri: item.contentUrl } }],
+                        like: item.likesCount || 0,
+                        comment: item.commentsCount || 0,
+                        posttitle: item.caption || '',
+                        posttag: item.tags?.join(' ') || '',
+                        hasStory: false,
+                        isLiked: item.isLiked || false,
+                        isSaved: item.isSaved || false,
+                    }));
+
+                setPosts(mappedFeeds);
+            }
         } catch (error) {
-            console.error('Error fetching posts:', error.response?.data || error.message);
+            console.error('Error fetching posts:', error);
             setPosts([]);
         } finally {
             setLoading(false);
@@ -75,8 +119,8 @@ const ProfilePost = ({
 
     const fetchProfile = async () => {
         try {
-            const response = await axios.get('/get/profile/detail');
-            
+            const response = await api.get('/api/get/profile/detail');
+
             if (response.data.profile) {
                 const profileData = response.data.profile;
                 const fixedAvatar = profileData.profileAvatar;
@@ -97,15 +141,6 @@ const ProfilePost = ({
     };
 
     useEffect(() => {
-        // const fetchAccountType = async () => {
-        //     try {
-        //         const storedType = await AsyncStorage.getItem('activeAccountType');
-        //         if (storedType) setActiveAccountType(storedType);
-        //     } catch (err) {
-        //         console.log('Error fetching account type:', err);
-        //     }
-        // };
-        // fetchAccountType();
         fetchPosts();
         fetchProfile();
     }, [isFocused]); // Refetch posts when screen is focused
@@ -289,27 +324,27 @@ const ProfilePost = ({
                                                             // borderColor: '#fff',
                                                         }}
                                                     />
-                                                 <View
-                                                                style={{
-                                                                  position: 'absolute',
-                                                                  bottom: 0,
-                                                                  left: 0,
-                                                                  width: '100%',
-                                                                  backgroundColor: '#d2a904ff',
-                                                                  paddingVertical: 5,
-                                                                  paddingHorizontal: 20,
-                                                                  flexDirection: 'row',
-                                                                  justifyContent: 'space-between',
-                                                                  alignItems: 'center',
-                                                                }}
-                                                              >
-                                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-                                                                  {profile.displayName}
-                                                                </Text>
-                                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-                                                                  {profile.phoneNumber}
-                                                                </Text>
-                                                              </View>
+                                                    <View
+                                                        style={{
+                                                            position: 'absolute',
+                                                            bottom: 0,
+                                                            left: 0,
+                                                            width: '100%',
+                                                            backgroundColor: '#d2a904ff',
+                                                            paddingVertical: 5,
+                                                            paddingHorizontal: 20,
+                                                            flexDirection: 'row',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center',
+                                                        }}
+                                                    >
+                                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                                                            {profile.displayName}
+                                                        </Text>
+                                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
+                                                            {profile.phoneNumber}
+                                                        </Text>
+                                                    </View>
                                                 </View>
                                             ))}
                                         </Swiper>

@@ -47,14 +47,15 @@ const PostCard = ({
   isDisliked: initialIsDisliked = false, // Default to false if not provided
   dislikeCount: initialDislikeCount = 0, // Default to 0 if not provided
   onDislikeUpdate, // Callback to update PostList
+  onLikeUpdate, // Callback to update PostList for likes
   themeColor,
   textColor,
 }: any) => {
   const navigation = useNavigation<any>();
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(initialIsLiked || false);
-  const [isDisliked, setIsDisliked] = useState(initialIsDisliked || false); // Use initial value from props
-  const [dislikeCount, setDislikeCount] = useState(like || 0);
+  const [isDisliked, setIsDisliked] = useState(initialIsDisliked || false);
+  const [dislikesCount, setDislikesCount] = useState(initialDislikeCount || 0); // Fixed: use initialDislikeCount
   const [isSaved, setIsSaved] = useState(initialIsSaved || false);
   const [likeCount, setLikeCount] = useState(like || 0);
   const [commentCount, setCommentCount] = useState(commentsCount || 0);
@@ -81,6 +82,16 @@ const PostCard = ({
   const [popupSubtitle, setPopupSubtitle] = useState('');
   const [navigateOnClose, setNavigateOnClose] = useState(false);
   const [imageHeight, setImageHeight] = useState(SIZES.width * 1.4); // default
+
+  // Double-tap animation states
+  const [showHeart, setShowHeart] = useState(false);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(1)).current;
+  const lastTap = useRef(0);
+
+  // Track if we're currently processing a like/dislike action
+  const isLikingRef = useRef(false);
+  const isDislikingRef = useRef(false);
 
   useEffect(() => {
     if (postimage?.length > 0) {
@@ -359,7 +370,7 @@ const PostCard = ({
             style={{ width: 24, height: 23, tintColor: isDisliked ? COLORS.red : colors.title }}
             source={IMAGES.dislike}
           />
-          <Text style={{ marginLeft: 6, color: colors.title, fontSize: 14 }}>{dislikeCount}</Text>
+          <Text style={{ marginLeft: 6, color: colors.title, fontSize: 14 }}>{dislikesCount}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -367,25 +378,56 @@ const PostCard = ({
 
   const handleDislike = async () => {
     try {
+      isDislikingRef.current = true; // Mark as actively disliking
+
+      // Optimistic UI update
       const newDislikeState = !isDisliked;
-      const newDislikeCount = isDisliked ? dislikeCount - 1 : dislikeCount + 1; // Local increment/decrement
-      setIsDisliked(newDislikeState); // Optimistic update
-      setDislikeCount(newDislikeCount); // Optimistic update
+      setIsDisliked(newDislikeState);
+      setDislikesCount(newDislikeState ? dislikesCount + 1 : dislikesCount - 1);
 
       const response = await api.post('/api/user/feed/dislike', { feedId: id });
       const data = response.data;
-      console.log("data", data)
 
-      // Notify PostList of the update
-      if (onDislikeUpdate) {
-        onDislikeUpdate(newDislikeState, newDislikeCount);
+      if (data.success) {
+        // ✅ Use actual count from backend
+        const actualDislikeCount = data.dislikeCount || 0;
+        const actualIsDisliked = data.isDisliked;
+
+        console.log('✅ Dislike success:', { actualIsDisliked, actualDislikeCount });
+
+        setIsDisliked(actualIsDisliked);
+        setDislikesCount(actualDislikeCount);
+
+        // Notify parent component with actual backend values
+        if (onDislikeUpdate) {
+          onDislikeUpdate(actualIsDisliked, actualDislikeCount);
+        }
+      } else {
+        console.log('❌ Dislike API failed:', data);
+        // Rollback on error
+        setIsDisliked(!newDislikeState);
+        setDislikesCount(dislikesCount);
+        if (onDislikeUpdate) {
+          onDislikeUpdate(!newDislikeState, dislikesCount);
+        }
       }
-      Alert.alert('Success', data.message);
+
+      // Clear flag after a delay
+      setTimeout(() => {
+        isDislikingRef.current = false;
+      }, 500);
     } catch (error) {
-      console.error('Dislike error:', error);
-      setIsDisliked(!isDisliked); // Revert on error
-      setDislikeCount(isDisliked ? dislikeCount : dislikeCount - 1); // Revert count
-      Alert.alert('Error', 'Something went wrong while toggling dislike');
+      console.error('❌ Dislike error:', error);
+      // Rollback on error
+      setIsDisliked(isDisliked);
+      setDislikesCount(dislikesCount);
+      if (onDislikeUpdate) {
+        onDislikeUpdate(isDisliked, dislikesCount);
+      }
+
+      setTimeout(() => {
+        isDislikingRef.current = false;
+      }, 500);
     }
   };
 
@@ -432,26 +474,176 @@ const PostCard = ({
     fetchProfile();
   }, []);
 
+  // Sync with props, but don't overwrite during active like/dislike operations
   useEffect(() => {
-    setIsLiked(initialIsLiked || false);
     setIsSaved(initialIsSaved || false);
-    setIsDisliked(initialIsDisliked || false); // Sync with initial prop
-    setDislikeCount(initialDislikeCount || 0); // Sync with initial prop
-  }, [initialIsLiked, initialIsSaved, initialIsDisliked, initialDislikeCount]);
+
+    // Only update dislike state if we're not currently processing a dislike action
+    if (!isDislikingRef.current) {
+      setIsDisliked(initialIsDisliked || false);
+      setDislikesCount(initialDislikeCount || 0);
+    }
+
+    // Only update like state if we're not currently processing a like action
+    // This prevents the prop update from overwriting the user's immediate action
+    if (!isLikingRef.current) {
+      setIsLiked(initialIsLiked || false);
+      setLikeCount(like || 0);
+    }
+  }, [initialIsLiked, initialIsSaved, initialIsDisliked, initialDislikeCount, like]);
 
   const handleLike = async () => {
     try {
+      isLikingRef.current = true; // Mark as actively liking
+
+      // Optimistic UI update
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
-      setLikeCount((prev) => (newLikeState ? prev + 1 : prev - 1));
+      setLikeCount(newLikeState ? likeCount + 1 : likeCount - 1);
+
       const response = await api.post('/api/user/feed/like', { feedId: id });
       const data = response.data;
+
+      if (data.success) {
+        // ✅ Use actual count from backend
+        const actualLikeCount = data.likeCount || 0;
+        const actualIsLiked = data.isLiked;
+
+        console.log('✅ Like success:', { actualIsLiked, actualLikeCount });
+
+        setIsLiked(actualIsLiked);
+        setLikeCount(actualLikeCount);
+
+        // Notify parent component with actual backend values
+        if (onLikeUpdate) {
+          onLikeUpdate(actualIsLiked, actualLikeCount);
+        }
+      } else {
+        console.log('❌ Like API failed:', data);
+        // Rollback on error
+        setIsLiked(!newLikeState);
+        setLikeCount(likeCount);
+        if (onLikeUpdate) {
+          onLikeUpdate(!newLikeState, likeCount);
+        }
+      }
+
+      // Clear flag after a delay
+      setTimeout(() => {
+        isLikingRef.current = false;
+      }, 500);
     } catch (error) {
-      console.error('Like error:', error);
-      setIsLiked(!isLiked);
-      setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
-      Alert.alert('Error', 'Something went wrong while liking post');
+      console.error('❌ Like error:', error);
+      // Rollback on error
+      setIsLiked(isLiked);
+      setLikeCount(likeCount);
+      if (onLikeUpdate) {
+        onLikeUpdate(isLiked, likeCount);
+      }
+
+      setTimeout(() => {
+        isLikingRef.current = false;
+      }, 500);
     }
+  };
+
+  // Handle double-tap to like
+  const handleDoubleTapLike = async () => {
+    try {
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // Show heart animation (always show, even if already liked)
+      setShowHeart(true);
+      heartScale.setValue(0);
+      heartOpacity.setValue(1);
+
+      // Animate heart
+      Animated.parallel([
+        Animated.spring(heartScale, {
+          toValue: 1,
+          friction: 3,
+          useNativeDriver: true,
+        }),
+        Animated.timing(heartOpacity, {
+          toValue: 0,
+          duration: 1000,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowHeart(false);
+      });
+
+      // If not already liked, like it
+      if (!isLiked) {
+        isLikingRef.current = true; // Set flag before liking
+
+        // Optimistic UI update
+        setIsLiked(true);
+        setLikeCount(likeCount + 1);
+
+        try {
+          const response = await api.post('/api/user/feed/like', { feedId: id });
+          const data = response.data;
+
+          if (data.success) {
+            // ✅ Use actual count from backend
+            const actualLikeCount = data.likeCount || 0;
+            const actualIsLiked = data.isLiked;
+
+            console.log('✅ Double-tap like success:', { actualIsLiked, actualLikeCount });
+
+            setIsLiked(actualIsLiked);
+            setLikeCount(actualLikeCount);
+
+            // Notify parent component with actual backend values
+            if (onLikeUpdate) {
+              onLikeUpdate(actualIsLiked, actualLikeCount);
+            }
+          } else {
+            console.log('❌ Double-tap like API failed:', data);
+            // Rollback on error
+            setIsLiked(false);
+            setLikeCount(likeCount);
+            if (onLikeUpdate) {
+              onLikeUpdate(false, likeCount);
+            }
+          }
+
+          // Clear flag after a delay
+          setTimeout(() => {
+            isLikingRef.current = false;
+          }, 500);
+        } catch (error) {
+          console.error('❌ Double-tap like API error:', error);
+          // Rollback on error
+          setIsLiked(false);
+          setLikeCount(likeCount);
+          if (onLikeUpdate) {
+            onLikeUpdate(false, likeCount);
+          }
+          setTimeout(() => {
+            isLikingRef.current = false;
+          }, 500);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Double-tap like error:', error);
+    }
+  };
+
+  // Handle tap on image (for double-tap detection)
+  const handleImageTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // milliseconds
+
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected - like the post
+      handleDoubleTapLike();
+    }
+
+    lastTap.current = now;
   };
 
   if (!postimage && !reelsvideo && !caption) {
@@ -627,7 +819,12 @@ const PostCard = ({
               activeDotStyle={{ width: 6, height: 6, backgroundColor: '#fff' }}
             >
               {postimage.map((data: any, index: any) => (
-                <View key={index} style={{ width: '100%', height: '100%', position: 'relative' }}>
+                <TouchableOpacity
+                  key={index}
+                  style={{ width: '100%', height: '100%', position: 'relative' }}
+                  activeOpacity={1}
+                  onPress={handleImageTap}
+                >
                   {isImageLoading ? (
                     <SkeletonImage />
                   ) : (
@@ -639,6 +836,29 @@ const PostCard = ({
                       onLoadEnd={() => setIsImageLoading(false)}
                     />
                   )}
+
+                  {/* Double-tap Like Heart Animation */}
+                  {showHeart && (
+                    <Animated.View
+                      style={{
+                        position: 'absolute',
+                        alignSelf: 'center',
+                        top: '40%',
+                        transform: [{ scale: heartScale }],
+                        opacity: heartOpacity,
+                      }}
+                    >
+                      <Image
+                        source={IMAGES.like}
+                        style={{
+                          width: 120,
+                          height: 120,
+                          tintColor: '#ff0050',
+                        }}
+                      />
+                    </Animated.View>
+                  )}
+
                   <Image
                     style={{
                       position: 'absolute',
@@ -686,7 +906,7 @@ const PostCard = ({
                     )}
 
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </Swiper>
           </View>

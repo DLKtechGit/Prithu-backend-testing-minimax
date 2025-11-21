@@ -18,12 +18,12 @@ const Comments = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const moresheet = useRef(null);
-    const [comments, setComments] = useState([]);
+    const [comments, setComments] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [commentText, setCommentText] = useState('');
-    const [feedId, setFeedId] = useState(null);
-    const [accountType, setAccountType] = useState(null);
-    const [activeAccountType, setActiveAccountType] = useState(null);
+    const [feedId, setFeedId] = useState<string | null>(null);
+    const [accountType, setAccountType] = useState<string | null>(null);
+    const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
     const [likeColor, SetlikeColor] = useState([]);
 
     useEffect(() => {
@@ -40,11 +40,11 @@ const Comments = () => {
     }, []);
 
     useEffect(() => {
-        if (route.params?.feedId) {
-            setFeedId(route.params.feedId);
-            fetchComments(route.params.feedId);
+        if (route.params && 'feedId' in route.params && route.params.feedId) {
+            setFeedId(route.params.feedId as string);
+            fetchComments(route.params.feedId as string);
         }
-    }, [route.params?.feedId]);
+    }, [route.params]);
 
     useEffect(() => {
         const initialize = async () => {
@@ -84,7 +84,7 @@ const Comments = () => {
             }));
             setComments(commentsWithReplies || []);
             setLoading(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching comments:', error.response?.data || error.message);
             setLoading(false);
             Alert.alert('Error', 'Failed to load comments');
@@ -92,9 +92,15 @@ const Comments = () => {
     };
 
     const fetchReplies = async (commentId) => {
+        // Safety check: don't fetch if commentId is undefined or null
+        if (!commentId) {
+            console.warn('fetchReplies called with undefined/null commentId');
+            return [];
+        }
+
         try {
             const response = await api.post(
-                '/api/get/comments/reply/for/feed',
+                '/api/get/comments/relpy/for/feed', // Fixed: backend has typo 'relpy' instead of 'reply'
                 { parentCommentId: commentId }
             );
             console.log(`Fetched replies for comment ${commentId}:`, response.data);
@@ -108,8 +114,8 @@ const Comments = () => {
                 like: reply.likeCount || 0,
                 hasStory: false,
             }));
-        } catch (error) {
-            // console.error(`Error fetching replies for comment ${commentId}:`, error.response?.data || error.message);
+        } catch (error: any) {
+            console.error(`Error fetching replies for comment ${commentId}:`, error.response?.data || error.message);
             Alert.alert('Error', 'Failed to load replies');
             return [];
         }
@@ -124,10 +130,19 @@ const Comments = () => {
                 { feedId, commentText }
             );
 
-            setComments([{ ...response.data.comment, replies: [], isLiked: false, likeCount: 0 }, ...comments]);
+            // Ensure commentId is set for the new comment
+            const newComment = {
+                ...response.data.comment,
+                commentId: response.data.comment.commentId || response.data.comment._id,
+                replies: [],
+                isLiked: false,
+                likeCount: 0
+            };
+
+            setComments([newComment, ...comments]);
             setCommentText('');
             Keyboard.dismiss();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error posting comment:', error.response?.data);
             Alert.alert('Error', 'Failed to post comment');
         }
@@ -156,7 +171,7 @@ const Comments = () => {
                 )
             );
             Keyboard.dismiss();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error posting reply:', error.response?.data || error.message);
             Alert.alert('Error', 'Failed to post reply');
         }
@@ -168,7 +183,7 @@ const Comments = () => {
             // const userId = await AsyncStorage.getItem('userId');
             console.log('handleLike inputs:', { commentId });
 
-            const endpoint =  '/api/user/comment/like';
+            const endpoint = '/api/user/comment/like';
             // console.log('Calling endpoint:', endpoint);
             const res = await api.post(
                 endpoint,
@@ -369,8 +384,8 @@ const Comments = () => {
                                             </TouchableOpacity>
 
                                             {/* <TouchableOpacity style={{ marginLeft: 10 }} onPress={handleCancelReply}> */}
-                                                {/* <Text style={{ color: colors.text, opacity: 0.8, ...FONTS.fontMedium }}>Clear</Text> */}
-                                                {/* <Image
+                                            {/* <Text style={{ color: colors.text, opacity: 0.8, ...FONTS.fontMedium }}>Clear</Text> */}
+                                            {/* <Image
                                                     source={IMAGES.close} // Replace with your close icon from IMAGES constants
                                                     style={{
                                                         width: 20,
@@ -385,8 +400,8 @@ const Comments = () => {
                                         </View>
                                         <View style={{ marginTop: 10, paddingLeft: 10 }}>
                                             {replies && replies.length > 0 ? (
-                                                replies.map((data, index) => (
-                                                    <View style={{ flexDirection: 'row', marginBottom: 10 }} key={index}>
+                                                replies.map((data) => (
+                                                    <View style={{ flexDirection: 'row', marginBottom: 10 }} key={data.replyId || data._id}>
                                                         <View>
                                                             <TouchableOpacity
                                                                 onPress={() => {
@@ -491,8 +506,8 @@ const Comments = () => {
                                 <Collapsible collapsed={show}>
                                     <View style={{ marginTop: 10, paddingLeft: 10 }}>
                                         {replies && replies.length > 0 ? (
-                                            replies.map((data, index) => (
-                                                <View style={{ flexDirection: 'row', marginBottom: 10 }} key={index}>
+                                            replies.map((data) => (
+                                                <View style={{ flexDirection: 'row', marginBottom: 10 }} key={data.replyId || data._id}>
                                                     <View>
                                                         <TouchableOpacity
                                                             onPress={() => {

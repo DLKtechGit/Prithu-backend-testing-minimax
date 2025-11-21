@@ -1,11 +1,11 @@
 import { NavigatorScreenParams } from "@react-navigation/native";
 import { BottomTabParamList } from "./BottomTabParamList";
- 
+
 export type RootStackParamList = {
     DrawerNavigation: NavigatorScreenParams<BottomTabParamList>;
     Damo: undefined;
     splash: undefined;
-    ChooseLanguage:{ data?: any };
+    ChooseLanguage: { data?: any };
     SignUp: undefined;
     SignIn: undefined;
     Onbording: undefined;
@@ -21,10 +21,24 @@ export type RootStackParamList = {
     homescreen: undefined;
     createpost: undefined;
     notification: undefined;
-    status: undefined;
+    status: {
+        name?: string;
+        image?: any;
+        statusData?: any[];
+        type?: string;
+        contentUrl?: string;
+        isVideo?: boolean;
+        profileAvatar?: string;
+        feedId?: string;
+        caption?: string;
+        totalLikes?: number;
+        totalShares?: number;
+        totalViews?: number;
+        totalDownloads?: number;
+    } | undefined;
     like: undefined;
     BottomNavigation: undefined;
-    SingleChat:undefined;
+    SingleChat: undefined;
     AddStory: undefined;
     Video: undefined;
     NewChat: undefined;
@@ -56,7 +70,7 @@ export type RootStackParamList = {
     ProfilePost: undefined;
     ProfileReels: undefined;
     AnotherProfile: undefined;
-    JobDetails:{ data?: any };
+    JobDetails: { data?: any };
     Save: undefined;
     Savepost: undefined;
     SaveReels: undefined;
@@ -113,10 +127,10 @@ export type RootStackParamList = {
     SavedMusic: undefined;
     Call: undefined;
     Reels: undefined;
-    TermsOfUse:undefined;
-    Subcribe:undefined;
-    PlanSubcribe:undefined;
-    Invite:undefined;
+    TermsOfUse: undefined;
+    Subcribe: undefined;
+    PlanSubcribe: undefined;
+    Invite: undefined;
     AccountType: undefined;
     BottomSheetComments: undefined;
     CreatorAccount: undefined;
@@ -128,11 +142,11 @@ export type RootStackParamList = {
     FeedLanguage: undefined;
     LanguageScreen: undefined;
     FeedScreen: undefined;
-    Friend:undefined;
+    Friend: undefined;
     CommentSheet: undefined;
     LikeFeed: undefined;
-    gender:undefined;
-    role:undefined;
+    gender: undefined;
+    role: undefined;
     HiddenPosts: undefined;
     NotInterestedCategories: undefined;
     SubscriptionDetails: undefined;

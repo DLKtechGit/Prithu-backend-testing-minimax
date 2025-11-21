@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { IMAGES, SIZES } from '../../constants/theme';
@@ -25,14 +26,20 @@ const Search = ({ navigation }: any) => {
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
   const mountedRef = useRef(true);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [posts, setPosts] = useState<any[]>([]);
+  const [allPostsData, setAllPostsData] = useState<any[]>([]); // Store full post data
   const [loading, setLoading] = useState<boolean>(true);
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
   const [catLoading, setCatLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -58,31 +65,60 @@ const Search = ({ navigation }: any) => {
     return shuffled;
   };
 
-  // Fetch all posts initially or on refresh
-  const fetchPosts = async () => {
+  // Fetch all posts initially or on refresh (with pagination)
+  const fetchPosts = async (pageNum: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
-      const res = await api.get('/api/get/all/feeds/user');
+      if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const limit = 20; // Fetch 20 items per page
+      const res = await api.get(`/api/get/all/feeds/user?page=${pageNum}&limit=${limit}`);
 
       const feeds = res.data.feeds || [];
-      const imageFeeds = feeds
-        .filter((item: any) => item.type === 'image')
-        .map((item: any) => ({
-          id: item._id,
-          image: { uri: item.contentUrl },
-          like: item.likesCount || 0,
-        }));
-      // Shuffle the posts before setting state
-      setPosts(shuffleArray(imageFeeds));
+      const pagination = res.data.pagination;
+
+      // Store full feed data for navigation
+      if (pageNum === 1) {
+        setAllPostsData(feeds);
+      } else {
+        setAllPostsData((prev) => [...prev, ...feeds]);
+      }
+
+      // Include BOTH images and videos (reels)
+      const mixedFeeds = feeds.map((item: any) => ({
+        id: item.feedId || item._id,
+        image: { uri: item.contentUrl },
+        like: item.likesCount || 0,
+        type: item.type, // 'image' or 'video'
+        contentUrl: item.contentUrl,
+      }));
+
+      if (pageNum === 1) {
+        // Shuffle only on initial load or refresh
+        setPosts(shuffleArray(mixedFeeds));
+      } else {
+        // Append for pagination
+        setPosts((prev) => [...prev, ...mixedFeeds]);
+      }
+
+      // Update pagination state
+      setHasMore(pagination?.hasMore ?? false);
+      setPage(pageNum);
 
       // Clear search and categories when refresh
-      setQuery('');
-      setCategories([]);
+      if (pageNum === 1) {
+        setQuery('');
+        setCategories([]);
+      }
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
@@ -104,21 +140,29 @@ const Search = ({ navigation }: any) => {
     }
   };
 
-  // Fetch posts for a category
+  // Fetch posts for a category (include both images and videos)
   const fetchCategoryPosts = async (categoryId: string) => {
     try {
       setLoading(true);
       const res = await api.get(`/api/user/get/feed/with/search/cat/${categoryId}`);
-    console.log("categry",res.data.feeds)
-     const feeds = res.data?.feeds || [];
-      const imageFeeds = feeds
-        .filter((item: any) => item.type === 'image')
-        .map((item: any) => ({
-          id: item._id,
-          image: { uri: item.contentUrl },
-          like: item.likesCount || 0,
-        }));
-      setPosts(imageFeeds);
+      console.log("category", res.data.feeds);
+
+      const feeds = res.data?.feeds || [];
+
+      // Store full feed data
+      setAllPostsData(feeds);
+
+      // Include BOTH images and videos
+      const mixedFeeds = feeds.map((item: any) => ({
+        id: item.feedId || item._id,
+        image: { uri: item.contentUrl },
+        like: item.likesCount || 0,
+        type: item.type, // 'image' or 'video'
+        contentUrl: item.contentUrl,
+      }));
+
+      // Shuffle category results
+      setPosts(shuffleArray(mixedFeeds));
 
       // Hide category list
       setCategories([]);
@@ -201,13 +245,29 @@ const Search = ({ navigation }: any) => {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          ref={scrollViewRef}
           showsVerticalScrollIndicator={false}
+          onScroll={({ nativeEvent }) => {
+            const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+            const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
+
+            // Update scroll position for video autoplay
+            setScrollY(contentOffset.y);
+
+            if (isCloseToBottom && hasMore && !loadingMore && !loading) {
+              console.log('Loading more posts... Page:', page + 1);
+              fetchPosts(page + 1);
+            }
+          }}
+          scrollEventThrottle={200}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => {
                 setRefreshing(true);
-                fetchPosts();
+                setPage(1);
+                setHasMore(true);
+                fetchPosts(1);
               }}
               colors={[colors.primary || colors.title]}
             />
@@ -234,7 +294,7 @@ const Search = ({ navigation }: any) => {
                 },
               ]}
             >
-              Public Posts
+              Explore Posts & Reels
             </Text>
             {loading ? (
               <ActivityIndicator
@@ -243,7 +303,21 @@ const Search = ({ navigation }: any) => {
                 style={{ marginTop: 20 }}
               />
             ) : (
-              <ProfilePostData navigation={navigation} ProfilepicData={posts} />
+              <>
+                <ProfilePostData
+                  navigation={navigation}
+                  ProfilepicData={posts}
+                  allPostsData={allPostsData}
+                  scrollY={scrollY}
+                />
+                {loadingMore && (
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.primary || colors.title}
+                    style={{ marginVertical: 20 }}
+                  />
+                )}
+              </>
             )}
           </View>
         </ScrollView>

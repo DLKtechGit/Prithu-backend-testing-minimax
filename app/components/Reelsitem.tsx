@@ -407,7 +407,7 @@
 
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Alert, Dimensions, Animated } from 'react-native';
 import { Video } from 'expo-av';
 import { COLORS, FONTS, IMAGES } from '../constants/theme';
 import LikeBtn from './likebtn/LikeBtn';
@@ -438,8 +438,10 @@ const Reelsitem = ({
   isLiked: initialIsLiked,
   themeColor,
   textColor,
+  profileUserId,
+  roleRef,
 }: any) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const isFocused = useIsFocused();
   const video = useRef(null);
   const [isPlaying, setIsPlaying] = useState(autoplay);
@@ -455,6 +457,12 @@ const Reelsitem = ({
     phoneNumber: '',
   });
   const [hasViewed, setHasViewed] = useState(false);
+
+  // Double-tap animation states
+  const [showHeart, setShowHeart] = useState(false);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(1)).current;
+  const lastTap = useRef(0);
 
 
   useEffect(() => {
@@ -555,14 +563,72 @@ const Reelsitem = ({
 
   // Tap handler for play/pause
   const handleTap = async () => {
-    if (video.current) {
-      if (isPlaying) {
-        await video.current.pauseAsync();
-        setIsPlaying(false);
-      } else {
-        await video.current.playAsync();
-        setIsPlaying(true);
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // milliseconds
+
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected - like the reel
+      handleDoubleTapLike();
+    } else {
+      // Single tap - play/pause
+      if (video.current) {
+        if (isPlaying) {
+          await video.current.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await video.current.playAsync();
+          setIsPlaying(true);
+        }
       }
+    }
+
+    lastTap.current = now;
+  };
+
+  // Handle double-tap to like
+  const handleDoubleTapLike = async () => {
+    try {
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      // If not already liked, like it
+      if (!isLiked) {
+        setIsLiked(true);
+        setLikeCount(prev => prev + 1);
+
+        // Call API to like
+        const response = await api.post('/api/user/feed/like', { feedId: id });
+
+        if (!response.data.success) {
+          // Rollback on error
+          setIsLiked(false);
+          setLikeCount(prev => prev - 1);
+        }
+      }
+
+      // Show heart animation
+      setShowHeart(true);
+      heartScale.setValue(0);
+      heartOpacity.setValue(1);
+
+      // Animate heart
+      Animated.parallel([
+        Animated.spring(heartScale, {
+          toValue: 1,
+          friction: 3,
+          useNativeDriver: true,
+        }),
+        Animated.timing(heartOpacity, {
+          toValue: 0,
+          duration: 1000,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowHeart(false);
+      });
+    } catch (error) {
+      console.error('Double-tap like error:', error);
     }
   };
 
@@ -606,7 +672,7 @@ const Reelsitem = ({
       const newSaveState = !isSaved;
       setIsSaved(newSaveState);
       const response = await api.post('/api/user/feed/save', { feedId: id });
-      
+
       if (!response.data.success) {
         setIsSaved(!newSaveState);
         Alert.alert('Error', response.data.message || 'Failed to save reel');
@@ -670,6 +736,28 @@ const Reelsitem = ({
             }}
           />
         )}
+
+        {/* Double-tap Like Heart Animation */}
+        {showHeart && (
+          <Animated.View
+            style={{
+              position: 'absolute',
+              alignSelf: 'center',
+              top: '40%',
+              transform: [{ scale: heartScale }],
+              opacity: heartOpacity,
+            }}
+          >
+            <Image
+              source={IMAGES.like}
+              style={{
+                width: 120,
+                height: 120,
+                tintColor: '#ff0050',
+              }}
+            />
+          </Animated.View>
+        )}
       </TouchableOpacity>
 
       {/* Bottom Overlay */}
@@ -677,15 +765,15 @@ const Reelsitem = ({
         <View style={GlobalStyleSheet.flexaling}>
           {/* Profile Image */}
           <TouchableOpacity
-            // onPress={() =>
-            //   hasStory
-            //     ? navigation.navigate('status', {
-            //         name: holder,
-            //         image: image,
-            //         statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
-            //       })
-            //     : navigation.navigate('AnotherProfile', { feedId: id })
-            // }
+            onPress={() => {
+              hasStory
+                ? navigation.navigate('status', {
+                  name: holder,
+                  image: image,
+                  statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
+                })
+                : navigation.navigate('AnotherProfile', { feedId: id, profileUserId: profileUserId, roleRef: roleRef });
+            }}
             style={{ marginRight: 20 }}
           >
             <View style={{ justifyContent: 'center', alignItems: 'center' }}>
@@ -698,7 +786,7 @@ const Reelsitem = ({
 
           {/* Creator Name */}
           <TouchableOpacity
-          // onPress={() => navigation.navigate('AnotherProfile', { feedId: id })}
+            onPress={() => navigation.navigate('AnotherProfile', { feedId: id, profileUserId: profileUserId, roleRef: roleRef })}
           >
             <Text style={{ ...FONTS.font, ...FONTS.fontMedium, color: COLORS.white }}>{holder}</Text>
           </TouchableOpacity>

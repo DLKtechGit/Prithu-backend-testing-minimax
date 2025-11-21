@@ -13,8 +13,10 @@ import {
     SafeAreaView,
     StatusBar,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    ActivityIndicator
 } from 'react-native';
+import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
 import LikeBtn from '../../components/likebtn/LikeBtn';
 import { useTheme } from '@react-navigation/native';
@@ -25,34 +27,74 @@ const width = Dimensions.get('screen').width;
 const height = Dimensions.get('screen').height;
 
 
-const Status = ({route, navigation } : any)  => {
+const Status = ({ route, navigation }: any) => {
 
-    const { name, image, statusData } = route.params;
+    const { name, image, statusData, type, isVideo, contentUrl } = route.params;
 
     const moresheet = useRef<any>();
+    const videoRef = useRef<Video>(null);
 
     const [current, setCurrent] = useState({ data: statusData[0], index: 0 });
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [videoLoading, setVideoLoading] = useState(false);
 
-    const [isPlaying, setIsPlaying] = useState(false);
+    // Determine if current item is a video
+    const currentIsVideo = isVideo || type === 'video';
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (current.index === statusData.length - 1) {
-                return navigation.goBack();
+        let timer: NodeJS.Timeout;
+
+        // For images, auto-advance after 3 seconds
+        // For videos, let the video control the timing
+        if (!currentIsVideo) {
+            timer = setTimeout(() => {
+                if (current.index === statusData.length - 1) {
+                    return navigation.goBack();
+                }
+                setCurrent({
+                    ...current,
+                    index: current.index + 1,
+                    data: statusData[current.index + 1]
+                });
+            }, 3000);
+        }
+
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [current, currentIsVideo]);
+
+    // Handle video playback status
+    const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+        if (status.isLoaded) {
+            setVideoLoading(false);
+            setIsPlaying(status.isPlaying);
+
+            // Auto-advance when video ends
+            if (status.didJustFinish) {
+                if (current.index === statusData.length - 1) {
+                    navigation.goBack();
+                } else {
+                    setCurrent({
+                        ...current,
+                        index: current.index + 1,
+                        data: statusData[current.index + 1]
+                    });
+                }
             }
-            setCurrent({
-                ...current,
-                index: current.index + 1,
-                data: statusData[current.index + 1]
-            });
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, [current]);
+        }
+    };
+
+    // Replay video when current changes
+    useEffect(() => {
+        if (currentIsVideo && videoRef.current) {
+            videoRef.current.playAsync();
+        }
+    }, [current, currentIsVideo]);
 
 
-    
-    const ProgressView = (props : any) => {
-        
+    const ProgressView = (props: any) => {
+
         const progressAnim = useRef(new Animated.Value(0)).current
 
         useEffect(() => {
@@ -76,31 +118,31 @@ const Status = ({route, navigation } : any)  => {
     const handlePressIn = () => {
         console.log('erawr');
     }
-    
+
     const handlePressOut = () => {
         console.log('0000');
     }
 
     const theme = useTheme();
-    const { colors } : {colors : any} = theme;
+    const { colors }: { colors: any } = theme;
 
     return (
-        <SafeAreaView style={[GlobalStyleSheet.container,{padding:0, flex: 1, backgroundColor:'#000' }]}>
+        <SafeAreaView style={[GlobalStyleSheet.container, { padding: 0, flex: 1, backgroundColor: '#000' }]}>
             <StatusBar
                 barStyle="light-content"
                 backgroundColor={'#000'}
             />
             <KeyboardAvoidingView
-                style={{flex: 1}}
-                //behavior={Platform.OS === 'ios' ? 'padding' : ''}
+                style={{ flex: 1 }}
+            //behavior={Platform.OS === 'ios' ? 'padding' : ''}
             >
                 <ScrollView
                     //flexglow={1}
-                    contentContainerStyle={{flexGrow:1}}
+                    contentContainerStyle={{ flexGrow: 1 }}
                     showsHorizontalScrollIndicator={false}
                 >
                     <View style={styles.statusTabContainer}>
-                        {statusData.map((item:any, index:any) => (
+                        {statusData.map((item: any, index: any) => (
                             <View
                                 key={index}
                                 style={[
@@ -166,11 +208,33 @@ const Status = ({route, navigation } : any)  => {
 
 
                     <View style={styles.imageContainer}>
-                        <Image
-                            source={current.data}
-                            resizeMode="contain"
-                            style={styles.imageStyle}
-                        />
+                        {currentIsVideo ? (
+                            <>
+                                <Video
+                                    ref={videoRef}
+                                    source={{ uri: contentUrl || current.data.uri }}
+                                    style={styles.imageStyle}
+                                    resizeMode={ResizeMode.CONTAIN}
+                                    shouldPlay={true}
+                                    isLooping={false}
+                                    onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+                                    onLoadStart={() => setVideoLoading(true)}
+                                    onLoad={() => setVideoLoading(false)}
+                                    useNativeControls={false}
+                                />
+                                {videoLoading && (
+                                    <View style={styles.loadingContainer}>
+                                        <ActivityIndicator size="large" color="#fff" />
+                                    </View>
+                                )}
+                            </>
+                        ) : (
+                            <Image
+                                source={current.data}
+                                resizeMode="contain"
+                                style={styles.imageStyle}
+                            />
+                        )}
                     </View>
 
                     <Pressable
@@ -201,7 +265,7 @@ const Status = ({route, navigation } : any)  => {
                         }}
                         style={[styles.controller, { right: 0 }]}>
                     </TouchableOpacity>
-                    
+
                     <View style={{ flexDirection: 'row', padding: 15, alignItems: 'center', position: 'absolute', bottom: 0, backgroundColor: '#000' }}>
                         <TextInput
                             style={{
@@ -221,7 +285,14 @@ const Status = ({route, navigation } : any)  => {
                             placeholderTextColor={COLORS.white}
                         />
 
-                        <LikeBtn/>
+
+                        <LikeBtn
+                            color="#fff"
+                            sizes="sm"
+                            onPress={() => { }}
+                            liked={false}
+                            COLORS={COLORS}
+                        />
 
                         <TouchableOpacity
                             style={{
@@ -281,6 +352,16 @@ const styles = StyleSheet.create({
         width: '100%',
         height: height / 1.2,
         maxHeight: height / 1.2,
+    },
+    loadingContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.3)',
     }
 });
 

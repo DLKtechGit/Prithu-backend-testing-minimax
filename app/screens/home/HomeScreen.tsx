@@ -191,7 +191,7 @@ const Popup = () => (
   scrollEventThrottle={16}
   showsVerticalScrollIndicator={false}
   contentContainerStyle={{
-    paddingTop: 220, // space below header
+    paddingTop: 250, // space below header
     paddingRight: 10,
     paddingLeft: 10,
   }}
