@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Image, Platform, TouchableOpacity, View, Dimensions, ActivityIndicator,Animated } from 'react-native';
+import { Image, Platform, TouchableOpacity, View, Dimensions, ActivityIndicator, Animated } from 'react-native';
 import { COLORS, SIZES, IMAGES } from '../constants/theme';
 import { useTheme } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +8,7 @@ import {
 } from 'react-native-responsive-screen';
 import { GlobalStyleSheet } from '../constants/styleSheet';
 import api from '../../apiInterpretor/apiInterceptor';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 type Props = {
   state: any,
@@ -15,9 +16,6 @@ type Props = {
   descriptors: any,
   postListRef: any;
 };
-
-
-
 
 // --------------------------- Skeleton Loader Component ----------------------------
 
@@ -63,7 +61,7 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
   const [tabWidth, setWidth] = useState(wp('100%'));
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
-  const [isProfileImageLoading, setIsProfileImageLoading] = useState(true); // Loading state for profile image
+  const [isProfileImageLoading, setIsProfileImageLoading] = useState(true);
 
   const lastTap = useRef<number>(0);
 
@@ -87,7 +85,7 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
 
     if (lastTap.current && now - lastTap.current < DOUBLE_PRESS_DELAY) {
       if (postListRef.current) {
-        postListRef.current.scrollToTop(); // Only scroll to top on double-tap
+        postListRef.current.scrollToTop();
       }
     } else {
       navigation.navigate('Home');
@@ -116,7 +114,7 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
       }
     } catch (err) {
       console.error("Error fetching profile picture:", err);
-      setIsProfileImageLoading(false); // Reset loading state on error
+      setIsProfileImageLoading(false);
     }
   };
 
@@ -129,17 +127,34 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
     if (label === 'Home') return 'Home';
     if (label === 'Search') return 'Search';
     if (label === 'Profile') return 'Profile';
-    
-    // Handle different navigation for Creator vs Regular accounts
+
     if (!isCreator) {
       if (label === 'Reels') return 'Reels';
-      if (label === 'Chat') return 'AddStory';  //addstory
+      if (label === 'Chat') return 'AddStory';
     } else {
       if (label === 'Reels') return 'AddStory';
       if (label === 'Chat') return 'Reels';
     }
-    
-    return label; // fallback
+
+    return label;
+  };
+
+  // Get icon name based on label and account type
+  const getIconName = (label: string, isCreator: boolean) => {
+    switch (label) {
+      case 'Home':
+        return 'home';
+      case 'Search':
+        return 'search';
+      case 'Reels':
+        return isCreator ? 'add' : 'ondemand-video';
+      case 'Chat':
+        return isCreator ? 'ondemand-video' : 'emoji-events';
+      case 'Profile':
+        return 'person';
+      default:
+        return 'circle';
+    }
   };
 
   return (
@@ -180,8 +195,8 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
               options.tabBarLabel !== undefined
                 ? options.tabBarLabel
                 : options.title !== undefined
-                ? options.title
-                : route.name;
+                  ? options.title
+                  : route.name;
 
             const isFocused = state.index === index;
             const isCreator = activeAccountType === 'Creator';
@@ -206,18 +221,10 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
               navigation.navigate(target);
             };
 
-            let iconSource: any = null;
-            if (label === 'Home') {
-              iconSource = IMAGES.home;
-            } else if (label === 'Search') {
-              iconSource = IMAGES.search;
-            } else if (label === 'Reels') {
-              iconSource = isCreator ? IMAGES.plus : IMAGES.reels;
-            } else if (label === 'Chat') {
-              iconSource = isCreator ? IMAGES.reels : IMAGES.tabs;
-            } else if (label === 'Profile') {
-              iconSource =  { uri: profilePic } ;
-            }
+            const iconName = getIconName(label, isCreator);
+            
+            // Set icon color: green when active, black when inactive
+            const iconColor = isFocused ? '#32CD32' : '#000000';
 
             return (
               <TouchableOpacity
@@ -231,7 +238,6 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
                 style={{ flex: 1, alignItems: 'center', height: '100%', justifyContent: 'center', marginTop: 5 }}
               >
                 {label === 'Profile' ? (
-                    
                   <View style={{ position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
                     {isProfileImageLoading && (
                       <ActivityIndicator
@@ -242,14 +248,14 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
                     )}
                     <Image
                       style={{
-                        width: 34,
-                        height: 34,
+                        width: 37,
+                        height: 37,
                         borderRadius: 50,
-                        borderWidth: 2, // Always show border
-                        // borderColor: COLORS.primary, // Always primary color
-                        opacity: isProfileImageLoading ? 0.2 : 1, // Reduced opacity during loading
+                        borderWidth: 2,
+                        borderColor: isFocused ? '#32CD32' : COLORS.primary, // Green border when active
+                        opacity: isProfileImageLoading ? 0.2 : 1,
                       }}
-                      source={iconSource}
+                      source={{ uri: profilePic }}
                       onLoadStart={() => setIsProfileImageLoading(true)}
                       onLoadEnd={() => setIsProfileImageLoading(false)}
                       onError={(error) => {
@@ -259,13 +265,10 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
                     />
                   </View>
                 ) : (
-                  <Image
-                    style={{
-                      width: 22,
-                      height: 22,
-                      // tintColor: COLORS.primary, // Always primary color
-                    }}
-                    source={iconSource}
+                  <Icon
+                    name={iconName}
+                    size={32}
+                    color={iconColor} // Green when active, black when inactive
                   />
                 )}
               </TouchableOpacity>

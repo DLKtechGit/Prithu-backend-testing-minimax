@@ -7,6 +7,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   TouchableOpacity,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Video } from 'expo-av';
 import { useTheme } from '@react-navigation/native';
@@ -37,10 +39,11 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
   const [categoryId, setCategoryId] = useState<string>(''); // store ID
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [language, setLanguage] = useState('');
+  const [isPosting, setIsPosting] = useState(false); // Loading state during upload
   const [showPopup, setShowPopup] = useState(false); // State for popup visibility
   const [popupMessage, setPopupMessage] = useState(''); // Popup title
   const [popupSubtitle, setPopupSubtitle] = useState(''); // Popup subtitle
+  const [isSuccess, setIsSuccess] = useState(false); // Track success/error state
 
   // Fetch categories from backend
   useEffect(() => {
@@ -68,21 +71,20 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
     if (!mediaUrl) {
       setPopupMessage('Error!');
       setPopupSubtitle('No media selected');
+      setIsSuccess(false);
       setShowPopup(true);
       return;
     }
     if (!categoryId) {
       setPopupMessage('Error!');
       setPopupSubtitle('Please select a category');
+      setIsSuccess(false);
       setShowPopup(true);
       return;
     }
-    if (!language) {
-      setPopupMessage('Error!');
-      setPopupSubtitle('Please select a language');
-      setShowPopup(true);
-      return;
-    }
+
+    // Show loading state
+    setIsPosting(true);
 
     try {
       const formData = new FormData();
@@ -95,7 +97,6 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
       } as any);
 
       // Fields
-      formData.append('language', language);
       formData.append('categoryId', categoryId);
       formData.append('type', mediaType);
 
@@ -117,87 +118,118 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
       );
 
       if (res.status === 201) {
-        setPopupMessage('Success');
-        setPopupSubtitle('Post uploaded successfully');
+        setIsSuccess(true);
+        setPopupMessage('Post Shared');
+        setPopupSubtitle('Your post has been shared successfully');
         setShowPopup(true);
       } else {
-        setPopupMessage('Error!');
-        setPopupSubtitle(res.data?.message || 'Upload failed');
+        setIsSuccess(false);
+        setPopupMessage('Upload Failed');
+        setPopupSubtitle(res.data?.message || 'Something went wrong');
         setShowPopup(true);
       }
     } catch (error: any) {
       console.error('Upload error:', error.response?.data || error.message);
-      setPopupMessage('Error!');
-      setPopupSubtitle(error.response?.data?.message || 'Upload failed');
+      setIsSuccess(false);
+      setPopupMessage('Upload Failed');
+      setPopupSubtitle(error.response?.data?.message || 'Something went wrong');
       setShowPopup(true);
+    } finally {
+      setIsPosting(false);
     }
   };
 
-  // Custom Popup Component
+  // Instagram-like Popup Component
   const Popup = () => (
-    <View style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
-    }}>
+    <Modal
+      transparent={true}
+      visible={showPopup}
+      animationType="fade"
+      onRequestClose={() => setShowPopup(false)}
+    >
       <View style={{
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        padding: 20,
+        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        width: '90%',
-        elevation: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
       }}>
-        <Image
-          style={{
+        <View style={{
+          backgroundColor: colors.card,
+          borderRadius: 20,
+          padding: 30,
+          alignItems: 'center',
+          width: '85%',
+          maxWidth: 400,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 15,
+        }}>
+          {/* Success/Error Icon */}
+          <View style={{
             width: 80,
             height: 80,
             borderRadius: 40,
-            marginBottom: 15,
-          }}
-          source={IMAGES.bugrepellent}
-        />
-        <Text style={{
-          fontSize: 20,
-          fontWeight: 'bold',
-          color: '#333',
-          textAlign: 'center',
-        }}>{popupMessage}</Text>
-        <Text style={{
-          fontSize: 14,
-          color: '#666',
-          textAlign: 'center',
-          marginVertical: 10,
-        }}>{popupSubtitle}</Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#28A745',
-            paddingVertical: 10,
-            paddingHorizontal: 20,
-            borderRadius: 8,
-            marginTop: 15,
-          }}
-          onPress={() => {
-            setShowPopup(false);
-            if (popupMessage === 'Success') {
-              navigation.navigate('DrawerNavigation', { screen: 'Home' });
-            }
-          }}
-        >
+            backgroundColor: isSuccess ? '#E8F5E9' : '#FFEBEE',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 20,
+          }}>
+            <Text style={{
+              fontSize: 40,
+            }}>{isSuccess ? '✓' : '✕'}</Text>
+          </View>
+
+          {/* Title */}
           <Text style={{
-            color: '#fff',
-            fontSize: 16,
+            fontSize: 22,
             fontWeight: 'bold',
+            color: colors.title,
             textAlign: 'center',
-          }}>Let's Go</Text>
-        </TouchableOpacity>
+            marginBottom: 10,
+          }}>{popupMessage}</Text>
+
+          {/* Subtitle */}
+          <Text style={{
+            fontSize: 15,
+            color: colors.text,
+            textAlign: 'center',
+            marginBottom: 25,
+            opacity: 0.8,
+          }}>{popupSubtitle}</Text>
+
+          {/* Action Button */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: isSuccess ? '#4CAF50' : '#FF5252',
+              paddingVertical: 14,
+              paddingHorizontal: 40,
+              borderRadius: 25,
+              width: '100%',
+              shadowColor: isSuccess ? '#4CAF50' : '#FF5252',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 5,
+            }}
+            onPress={() => {
+              setShowPopup(false);
+              if (isSuccess) {
+                navigation.navigate('DrawerNavigation', { screen: 'Home' });
+              }
+            }}
+          >
+            <Text style={{
+              color: '#fff',
+              fontSize: 16,
+              fontWeight: '600',
+              textAlign: 'center',
+            }}>{isSuccess ? 'View Post' : 'Try Again'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 
   return (
@@ -251,7 +283,9 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
               </View>
             </View>
 
-            {/* Language Picker */}
+
+
+            {/* Category Picker */}
             <View style={[GlobalStyleSheet.container]}>
               <Text
                 style={[
@@ -259,7 +293,7 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
                   { color: colors.title, fontWeight: 'bold', fontSize: 15 },
                 ]}
               >
-                Select Language
+                Select Category
               </Text>
               <View
                 style={[
@@ -267,49 +301,72 @@ const Nextpage = ({ route, navigation }: NextpageScreenProps) => {
                   { borderColor: colors.border, borderWidth: 1, paddingHorizontal: 10 },
                 ]}
               >
-                <Picker
-                  selectedValue={language}
-                  onValueChange={(itemValue) => setLanguage(itemValue)}
-                  style={{ color: colors.title }}
-                >
-                  <Picker.Item label="Choose Language" value="" />
-                  <Picker.Item label="Tamil" value="Tamil" />
-                  <Picker.Item label="English" value="English" />
-                  <Picker.Item label="Malayalam" value="Malayalam" />
-                  <Picker.Item label="French" value="French" />
-                </Picker>
+                {loadingCategories ? (
+                  <Text style={{ color: colors.text }}>Loading categories...</Text>
+                ) : (
+                  <Picker
+                    selectedValue={categoryId}
+                    onValueChange={(itemValue) => setCategoryId(itemValue)}
+                    style={{ color: colors.title }}
+                  >
+                    <Picker.Item label="Choose Category" value="" />
+                    {categories.map((cat) => (
+                      <Picker.Item
+                        key={cat.categoryId}
+                        label={cat.categoryName}
+                        value={cat.categoryId}
+                      />
+                    ))}
+                  </Picker>
+                )}
               </View>
-            </View>
-
-            {/* Category Picker */}
-            <View
-              style={[
-                GlobalStyleSheet.inputBox,
-                { borderColor: colors.border, borderWidth: 1, paddingHorizontal: 10 },
-              ]}
-            >
-              {loadingCategories ? (
-                <Text style={{ color: colors.text }}>Loading categories...</Text>
-              ) : (
-                <Picker
-                  selectedValue={categoryId}
-                  onValueChange={(itemValue) => setCategoryId(itemValue)}
-                  style={{ color: colors.title }}
-                >
-                  <Picker.Item label="Choose Category" value="" />
-                  {categories.map((cat) => (
-                    <Picker.Item
-                      key={cat.categoryId}
-                      label={cat.categoryName}
-                      value={cat.categoryId}
-                    />
-                  ))}
-                </Picker>
-              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-        {showPopup && <Popup />}
+
+        {/* Loading Overlay */}
+        {isPosting && (
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 999,
+          }}>
+            <View style={{
+              backgroundColor: colors.card,
+              borderRadius: 20,
+              padding: 30,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.3,
+              shadowRadius: 20,
+              elevation: 15,
+            }}>
+              <ActivityIndicator size="large" color="#4CAF50" />
+              <Text style={{
+                marginTop: 15,
+                fontSize: 16,
+                fontWeight: '600',
+                color: colors.title,
+              }}>Posting...</Text>
+              <Text style={{
+                marginTop: 5,
+                fontSize: 13,
+                color: colors.text,
+                opacity: 0.7,
+              }}>Please wait</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Success/Error Popup */}
+        <Popup />
       </SafeAreaView>
     </ScrollView>
   );

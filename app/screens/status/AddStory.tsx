@@ -1,9 +1,9 @@
 
 
 
-import React, { useState, useEffect ,useCallback} from 'react';
-import { View, Text, SafeAreaView, Image, TouchableOpacity, FlatList, Alert } from 'react-native';
-import { useTheme,useFocusEffect } from '@react-navigation/native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, SafeAreaView, Image, TouchableOpacity, FlatList, Modal, ActivityIndicator } from 'react-native';
+import { useTheme, useFocusEffect } from '@react-navigation/native';
 import Header from '../../layout/Header';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -17,7 +17,7 @@ type AddStoryScreenProps = StackScreenProps<RootStackParamList, 'AddStory'>;
 
 const StoryData = [
   { id: '1', backgroundColor: '#00abc5', image: IMAGES.profilepic, text: 'Images', navigate: 'Music2' },
-  { id: '2', backgroundColor: '#8c55e2', image: IMAGES.reels,      text: 'Reels' },
+  { id: '2', backgroundColor: '#8c55e2', image: IMAGES.reels, text: 'Reels' },
   // { id: '3', backgroundColor: '#f151a7', image: IMAGES.text,       text: 'Text',   navigate: 'WriteCaption' },
 ];
 
@@ -29,6 +29,12 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<'image' | 'video' | null>(null); // from gallery item
   const [selectedCategory, setSelectedCategory] = useState<'image' | 'video' | 'text' | null>(null); // top grid choice
+
+  // Popup states
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState('');
+  const [popupSubtitle, setPopupSubtitle] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Pick media manually
   const pickMedia = async () => {
@@ -50,7 +56,7 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
     }
   };
 
-   // ✅ Load device gallery after navigation finishes
+  // ✅ Load device gallery after navigation finishes
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -92,20 +98,20 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
 
 
   const openCamera = async () => {
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.All,
-    allowsEditing: false,
-    quality: 1,
-  });
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      quality: 1,
+    });
 
-  if (!result.canceled) {
-    const uri = result.assets[0].uri;
-    const type = result.assets[0].type === 'video' ? 'video' : 'image';
-    setSelectedMedia(uri);
-    setSelectedType(type);
-    setGallery(prev => [{ uri, type }, ...prev]);
-  }
-};
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      const type = result.assets[0].type === 'video' ? 'video' : 'image';
+      setSelectedMedia(uri);
+      setSelectedType(type);
+      setGallery(prev => [{ uri, type }, ...prev]);
+    }
+  };
 
 
   // Helper: is selection valid & matching?
@@ -119,35 +125,134 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
 
   const handleNext = () => {
     if (!selectedMedia) {
-      Alert.alert('Select media', 'Please pick an image or video from your gallery.');
+      setIsSuccess(false);
+      setPopupMessage('Select Media');
+      setPopupSubtitle('Please pick an image or video from your gallery.');
+      setShowPopup(true);
       return;
     }
     if (!selectedCategory) {
-      Alert.alert('Choose a type', 'Please select Images or Reels at the top.');
+      setIsSuccess(false);
+      setPopupMessage('Choose a Type');
+      setPopupSubtitle('Please select Images or Reels at the top.');
+      setShowPopup(true);
       return;
     }
     if (selectedCategory === 'text') {
-      Alert.alert('Invalid choice', 'Top selection “Text” can’t be used with gallery media.');
+      setIsSuccess(false);
+      setPopupMessage('Invalid Choice');
+      setPopupSubtitle('Top selection "Text" can\'t be used with gallery media.');
+      setShowPopup(true);
       return;
     }
     if (!isMatch) {
-      Alert.alert(
-        'Type mismatch',
+      setIsSuccess(false);
+      setPopupMessage('Type Mismatch');
+      setPopupSubtitle(
         selectedType === 'image'
-          ? 'You selected an image; please choose the “Images” grid.'
-          : 'You selected a video; please choose the “Reels” grid.'
+          ? 'You selected an image; please choose the "Images" grid.'
+          : 'You selected a video; please choose the "Reels" grid.'
       );
+      setShowPopup(true);
       return;
     }
 
     // Pass along to Nextpage (upload logic remains in Nextpage.handlePost)
-     console.log("Navigating with:", selectedMedia, selectedType);
-     navigation.navigate('Nextpage', {
+    console.log("Navigating with:", selectedMedia, selectedType);
+    navigation.navigate('Nextpage', {
       mediaUrl: selectedMedia,
       mediaType: selectedType, // 'image' | 'video'
     }
-  );
+    );
   };
+
+  // Instagram-like Popup Component
+  const Popup = () => (
+    <Modal
+      transparent={true}
+      visible={showPopup}
+      animationType="fade"
+      onRequestClose={() => setShowPopup(false)}
+    >
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      }}>
+        <View style={{
+          backgroundColor: colors.card,
+          borderRadius: 20,
+          padding: 30,
+          alignItems: 'center',
+          width: '85%',
+          maxWidth: 400,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 15,
+        }}>
+          {/* Success/Error Icon */}
+          <View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: isSuccess ? '#E8F5E9' : '#FFEBEE',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 20,
+          }}>
+            <Text style={{
+              fontSize: 40,
+            }}>{isSuccess ? '✓' : '⚠'}</Text>
+          </View>
+
+          {/* Title */}
+          <Text style={{
+            fontSize: 22,
+            fontWeight: 'bold',
+            color: colors.title,
+            textAlign: 'center',
+            marginBottom: 10,
+          }}>{popupMessage}</Text>
+
+          {/* Subtitle */}
+          <Text style={{
+            fontSize: 15,
+            color: colors.text,
+            textAlign: 'center',
+            marginBottom: 25,
+            opacity: 0.8,
+          }}>{popupSubtitle}</Text>
+
+          {/* Action Button */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: isSuccess ? '#4CAF50' : '#FF9800',
+              paddingVertical: 14,
+              paddingHorizontal: 40,
+              borderRadius: 25,
+              width: '100%',
+              shadowColor: isSuccess ? '#4CAF50' : '#FF9800',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 5,
+            }}
+            onPress={() => setShowPopup(false)}
+          >
+            <Text style={{
+              color: '#fff',
+              fontSize: 16,
+              fontWeight: '600',
+              textAlign: 'center',
+            }}>Got It</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <SafeAreaView style={[GlobalStyleSheet.container, { padding: 0, backgroundColor: colors.card, flex: 1 }]}>
@@ -156,8 +261,8 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
         title="Create story"
         next={true}
         onPress={handleNext}
-        // If your Header supports a disabled style, you can pass a flag via props.
-        // Otherwise we still hard-guard in handleNext above.
+      // If your Header supports a disabled style, you can pass a flag via props.
+      // Otherwise we still hard-guard in handleNext above.
       />
 
       {/* Top Story Options */}
@@ -165,7 +270,7 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
         {StoryData.map((data: any) => {
           const cat: 'image' | 'video' | 'text' =
             data.text.toLowerCase() === 'images' ? 'image' :
-            data.text.toLowerCase() === 'reels'  ? 'video' : 'text';
+              data.text.toLowerCase() === 'reels' ? 'video' : 'text';
 
           const isSelectedTop = selectedCategory === cat;
 
@@ -198,31 +303,31 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
                 <Text style={[GlobalStyleSheet.textfont, { color: COLORS.white }]}>{data.text}</Text>
 
                 {/* Optional small tick on selected top tile (mirrors gallery tick) */}
-              {isSelectedTop && (
-  <View
-    style={{
-      position: 'absolute',
-      top: 6,
-      right: 6,
-      width: 22, // ✅ fixed size for circular shape
-      height: 22,
-      borderRadius: 11, // ✅ perfect circle
-      backgroundColor: '#41c124', // ✅ bright green background
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}
-  >
-    <Image
-      source={IMAGES.check}
-      style={{
-        width: 12,
-        height: 12,
-        tintColor: '#fff', // ✅ white tick
-        resizeMode: 'contain',
-      }}
-    />
-  </View>
-)}
+                {isSelectedTop && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      width: 22, // ✅ fixed size for circular shape
+                      height: 22,
+                      borderRadius: 11, // ✅ perfect circle
+                      backgroundColor: '#41c124', // ✅ bright green background
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Image
+                      source={IMAGES.check}
+                      style={{
+                        width: 12,
+                        height: 12,
+                        tintColor: '#fff', // ✅ white tick
+                        resizeMode: 'contain',
+                      }}
+                    />
+                  </View>
+                )}
 
               </TouchableOpacity>
 
@@ -238,19 +343,19 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
       </View>
 
       {/* Gallery Header */}
-     <View style={[GlobalStyleSheet.flexaling, { paddingHorizontal: 15, marginTop: 30 }]}>
-  <Text style={{ flex: 1, ...FONTS.fontMedium, ...FONTS.h5, color: colors.title }}>Gallery</Text>
+      <View style={[GlobalStyleSheet.flexaling, { paddingHorizontal: 15, marginTop: 30 }]}>
+        <Text style={{ flex: 1, ...FONTS.fontMedium, ...FONTS.h5, color: colors.title }}>Gallery</Text>
 
-  {/* Camera button */}
-  <TouchableOpacity style={{ padding: 10 }} onPress={openCamera}>
-    <Image style={{ height: 24, width: 24, tintColor: colors.title }} source={IMAGES.camera} />
-  </TouchableOpacity>
+        {/* Camera button */}
+        <TouchableOpacity style={{ padding: 10 }} onPress={openCamera}>
+          <Image style={{ height: 24, width: 24, tintColor: colors.title }} source={IMAGES.camera} />
+        </TouchableOpacity>
 
-  {/* File button (opens gallery picker) */}
-  <TouchableOpacity style={{ padding: 10 }} onPress={pickMedia}>
-    <Image style={{ height: 24, width: 24, tintColor: colors.title }} source={IMAGES.profilepic} />
-  </TouchableOpacity>
-</View>
+        {/* File button (opens gallery picker) */}
+        <TouchableOpacity style={{ padding: 10 }} onPress={pickMedia}>
+          <Image style={{ height: 24, width: 24, tintColor: colors.title }} source={IMAGES.profilepic} />
+        </TouchableOpacity>
+      </View>
 
 
       {/* Gallery Grid */}
@@ -317,6 +422,9 @@ const AddStory = ({ navigation }: AddStoryScreenProps) => {
           </Text> */}
         </View>
       )}
+
+      {/* Popup Modal */}
+      <Popup />
     </SafeAreaView>
   );
 };

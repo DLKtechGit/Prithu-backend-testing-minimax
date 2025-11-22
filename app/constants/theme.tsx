@@ -85,7 +85,9 @@ export const FONTS = {
 }
  
 export const IMAGES = {
-    
+    love:require('../assets/images/icons/love.png'),
+    check1:require('../assets/images/icons/check1.png'),
+    edit:require('../assets/images/icons/edit.png'),
     dislike:require('../assets/images/icons/dislike.png'),
     task:require('../assets/images/icons/task4.jpg'),
     thumbsUp:require('../assets/images/icons/thumbs-up.png'),
@@ -104,6 +106,7 @@ export const IMAGES = {
     google: require('../assets/images/icons/google.png'),
     usename: require('../assets/images/icons/usename.png'),
     home: require('../assets/images/icons/home.png'),
+    homes: require('../assets/images/icons/homes.png'),
     search: require('../assets/images/icons/search.png'),
     reels: require('../assets/images/icons/reels.png'),
     chat: require('../assets/images/icons/mic.png'),

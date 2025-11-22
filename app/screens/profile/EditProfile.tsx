@@ -28,14 +28,15 @@ const EditProfile = () => {
   const { colors } = theme;
 
   const [imageUrl, setImageUrl] = useState('');
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState('');
   // const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [maritalStatus, setMaritalStatus] = useState(false);
   const [language, setLanguage] = useState('en');
-  const [dob, setDob] = useState(null);
-  const [maritalDate, setMaritalDate] = useState(null);
+  const [dob, setDob] = useState<Date | null>(null);
+  const [maritalDate, setMaritalDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMaritalDatePicker, setShowMaritalDatePicker] = useState(false);
   const [age, setAge] = useState('');
@@ -72,6 +73,45 @@ const EditProfile = () => {
     return age.toString();
   };
 
+  // Format phone number as +91 XXXXX XXXXX (for display)
+  // Also provides unformatted version for storage
+  const formatPhoneNumber = (text: string) => {
+    // Remove all non-digit characters except +
+    let cleaned = text.replace(/[^\d+]/g, '');
+
+    // Ensure it starts with +91
+    if (!cleaned.startsWith('+91')) {
+      // If user is typing and has some digits, prepend +91
+      if (cleaned.length > 0) {
+        // Remove any existing + or 91 at the start to avoid duplication
+        cleaned = cleaned.replace(/^\+?91?/, '');
+        cleaned = '+91' + cleaned;
+      } else {
+        cleaned = '+91';
+      }
+    }
+
+    // Extract the digits after +91
+    const digitsAfter91 = cleaned.substring(3);
+
+    // Format as +91 XXXXX XXXXX (max 10 digits after +91)
+    if (digitsAfter91.length === 0) {
+      return '+91';
+    } else if (digitsAfter91.length <= 5) {
+      return `+91 ${digitsAfter91}`;
+    } else {
+      // Split into two groups: first 5 digits and remaining (up to 5 more)
+      const firstPart = digitsAfter91.substring(0, 5);
+      const secondPart = digitsAfter91.substring(5, 10); // Max 10 digits total
+      return `+91 ${firstPart}${secondPart ? ' ' + secondPart : ''}`;
+    }
+  };
+
+  // Get unformatted phone number for storage (removes spaces)
+  const getUnformattedPhone = (formattedPhone: string) => {
+    return formattedPhone.replace(/\s/g, ''); // Remove all spaces
+  };
+
   const fetchProfileDetail = async () => {
     try {
       const response = await api.get('/api/get/profile/detail');
@@ -80,12 +120,16 @@ const EditProfile = () => {
       if (data.profile) {
         const profile = data.profile;
 
-        console.log("pp",phoneNumber)
+        console.log("pp", profile)
 
         // setDisplayName(profile.displayName || '');
         setUsername(profile.userName || '');
         setBio(profile.bio || '');
-        setPhoneNumber(profile.phoneNumber ? String(profile.phoneNumber) : ''); // ensure string
+
+        // Format phone number or default to +91
+        const rawPhone = profile.phoneNumber ? String(profile.phoneNumber) : '';
+        setPhoneNumber(rawPhone ? formatPhoneNumber(rawPhone) : '+91');
+
         setMaritalStatus(profile.maritalStatus === true || profile.maritalStatus === 'true');
         setLanguage(profile.language || 'en');
 
@@ -110,6 +154,12 @@ const EditProfile = () => {
           setImageUrl(profile.profileAvatar);
         } else {
           setImageUrl('');
+        }
+
+        if (profile.coverPhoto) {
+          setCoverPhotoUrl(profile.coverPhoto);
+        } else {
+          setCoverPhotoUrl('');
         }
 
         console.log("md", profile.dateOfBirth)
@@ -188,6 +238,30 @@ const EditProfile = () => {
     }
   };
 
+  const handleCoverPhotoSelect = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access media library is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9], // Wide aspect ratio for cover photo
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setCoverPhotoUrl(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.error('Error selecting cover photo:', e);
+    }
+  };
+
+
   const handleSave = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
@@ -196,12 +270,38 @@ const EditProfile = () => {
       console.log("userId", userId);
       console.log("accountId", accountId);
 
+      // First, upload cover photo if it's been changed (and is a local URI)
+      if (coverPhotoUrl && coverPhotoUrl.startsWith('file://')) {
+        try {
+          const coverFormData = new FormData();
+          const coverFilename = coverPhotoUrl.split('/').pop();
+          const coverFileType = coverFilename?.split('.').pop();
+          coverFormData.append('coverPhoto', {
+            uri: coverPhotoUrl,
+            name: coverFilename || 'cover.jpg',
+            type: `image/${coverFileType || 'jpg'}`,
+          } as any);
+
+          await api.post('/api/user/profile/cover/update', coverFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          console.log('Cover photo uploaded successfully');
+        } catch (coverErr) {
+          console.error('Cover photo upload error:', coverErr);
+          // Continue with profile update even if cover photo fails
+        }
+      }
+
+      // Then, update the rest of the profile
       const formData = new FormData();
       if (userId) formData.append('userId', userId);
       if (accountId) formData.append('accountId', accountId);
       // formData.append('displayName', displayName);
       formData.append('bio', bio);
-      formData.append('phoneNumber', phoneNumber);
+      // Send unformatted phone number to backend (without spaces)
+      formData.append('phoneNumber', getUnformattedPhone(phoneNumber));
       formData.append('maritalStatus', maritalStatus ? 'true' : 'false');
       formData.append('language', language);
       formData.append('role', 'Creator');
@@ -220,7 +320,7 @@ const EditProfile = () => {
         Name: showName,  // Updated
       }));
 
-      if (imageUrl) {
+      if (imageUrl && imageUrl.startsWith('file://')) {
         const filename = imageUrl.split('/').pop();
         const fileType = filename?.split('.').pop();
         formData.append('file', {
@@ -229,9 +329,6 @@ const EditProfile = () => {
           type: `image/${fileType || 'jpg'}`,
         } as any);
       }
-
-      // Debug: Log FormData entries
-      console.log("FormData entries:", [...formData.entries()]);
 
       const response = await api.post('/api/user/profile/detail/update', formData, {
         headers: {
@@ -325,10 +422,51 @@ const EditProfile = () => {
     <SafeAreaView style={{ backgroundColor: colors.card, flex: 1 }}>
       <Header title="Edit profile" />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 50 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 20 }}>
+        {/* Cover Photo Section */}
+        <View style={{ position: 'relative', width: '100%', height: 170, backgroundColor: colors.background }}>
+          <Image
+            style={{ width: '100%', height: '100%' }}
+            source={coverPhotoUrl ? { uri: coverPhotoUrl } : IMAGES.profile}
+            resizeMode="cover"
+          />
+          <TouchableOpacity
+            onPress={handleCoverPhotoSelect}
+            style={{ position: 'absolute', bottom: 10, right: 10 }}
+          >
+            <View
+              style={{
+                backgroundColor: theme.dark ? '#112036' : '#fff',
+                width: 36,
+                height: 36,
+                borderRadius: 50,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: '#32CD32',
+                  width: 30,
+                  height: 30,
+                  borderRadius: 50,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Image
+                  style={{ width: 18, height: 18, resizeMode: 'contain' }}
+                  source={IMAGES.edit}
+                />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile Picture Section - Overlapping Cover Photo */}
+        <View style={{ flexDirection: 'row', justifyContent: 'left', marginTop: -100, marginLeft: 20, }}>
           <View>
             <Image
-              style={{ width: 100, height: 100, borderRadius: 100 }}
+              style={{ width: 100, height: 100, borderRadius: 100, borderWidth: 4, borderColor: colors.card }}
               source={imageUrl ? { uri: imageUrl } : IMAGES.profile}
             />
             <TouchableOpacity
@@ -347,7 +485,7 @@ const EditProfile = () => {
               >
                 <View
                   style={{
-                    backgroundColor: '#2979F8',
+                    backgroundColor: '#32CD32',
                     width: 30,
                     height: 30,
                     borderRadius: 50,
@@ -357,11 +495,12 @@ const EditProfile = () => {
                 >
                   <Image
                     style={{ width: 18, height: 18, resizeMode: 'contain' }}
-                    source={IMAGES.edit2}
+                    source={IMAGES.edit}
                   />
                 </View>
               </View>
             </TouchableOpacity>
+
           </View>
         </View>
 
@@ -492,51 +631,49 @@ const EditProfile = () => {
           </View>
 
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
-  Phone Number
-</Text>
+            Phone Number
+          </Text>
 
-<View
-  style={[
-    GlobalStyleSheet.inputBox,
-    {
-      borderColor: colors.border,
-      borderWidth: 1,
-      paddingLeft: 20,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 15,
-      justifyContent: "space-between",
-    },
-  ]}
->
-  <TextInput
-    style={[
-      GlobalStyleSheet.input,
-      { color: colors.title, flex: 1 },
-    ]}
-    value={phoneNumber}
-    keyboardType="phone-pad"
-    placeholder="Enter phone number"
-    placeholderTextColor={colors.placeholder}
-    onChangeText={(text) => {
-      // If user deletes everything → restore +91
-      if (text.trim() === "") {
-        setPhoneNumber("+91");
-        return;
-      }
-      setPhoneNumber(text);
-    }}
-  />
+          <View
+            style={[
+              GlobalStyleSheet.inputBox,
+              {
+                borderColor: colors.border,
+                borderWidth: 1,
+                paddingLeft: 20,
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 15,
+                justifyContent: "space-between",
+              },
+            ]}
+          >
+            <TextInput
+              style={[
+                GlobalStyleSheet.input,
+                { color: colors.title, flex: 1 },
+              ]}
+              value={phoneNumber}
+              keyboardType="phone-pad"
+              placeholder="Enter phone number"
+              placeholderTextColor={colors.placeholder}
+              onChangeText={(text) => {
+                // Format the phone number as user types
+                const formatted = formatPhoneNumber(text);
+                setPhoneNumber(formatted);
+              }}
+              maxLength={17} // +91 XXXXX XXXXX = 17 characters max
+            />
 
-  <Switch
-    value={showPhoneNumber}
-    onValueChange={(val) => {
-      setShowPhoneNumber(val);
-      handleToggleVisibility("phoneNumber", val);
-    }}
-    thumbColor={showPhoneNumber ? COLORS.primary : "#ccc"}
-  />
-</View>
+            <Switch
+              value={showPhoneNumber}
+              onValueChange={(val) => {
+                setShowPhoneNumber(val);
+                handleToggleVisibility("phoneNumber", val);
+              }}
+              thumbColor={showPhoneNumber ? COLORS.primary : "#ccc"}
+            />
+          </View>
           <Text style={[GlobalStyleSheet.inputlable, { color: colors.title, opacity: 0.6 }]}>
             Marital Status
           </Text>

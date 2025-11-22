@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, Image, TouchableOpacity, Alert, ActivityIndicator, Linking, Animated } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Alert, ActivityIndicator, Linking, Animated, Share } from 'react-native';
 import { COLORS, FONTS, IMAGES, SIZES } from '../constants/theme';
 import Swiper from 'react-native-swiper';
 import { useNavigation } from '@react-navigation/native';
@@ -16,8 +16,6 @@ import * as Haptics from 'expo-haptics';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../../apiInterpretor/apiInterceptor';
-
-
 
 const PostCard = ({
   id,
@@ -44,10 +42,10 @@ const PostCard = ({
   roleRef,
   isLiked: initialIsLiked,
   isSaved: initialIsSaved,
-  isDisliked: initialIsDisliked = false, // Default to false if not provided
-  dislikeCount: initialDislikeCount = 0, // Default to 0 if not provided
-  onDislikeUpdate, // Callback to update PostList
-  onLikeUpdate, // Callback to update PostList for likes
+  isDisliked: initialIsDisliked = false,
+  dislikeCount: initialDislikeCount = 0,
+  onDislikeUpdate,
+  onLikeUpdate,
   themeColor,
   textColor,
 }: any) => {
@@ -55,7 +53,7 @@ const PostCard = ({
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(initialIsLiked || false);
   const [isDisliked, setIsDisliked] = useState(initialIsDisliked || false);
-  const [dislikesCount, setDislikesCount] = useState(initialDislikeCount || 0); // Fixed: use initialDislikeCount
+  const [dislikesCount, setDislikesCount] = useState(initialDislikeCount || 0);
   const [isSaved, setIsSaved] = useState(initialIsSaved || false);
   const [likeCount, setLikeCount] = useState(like || 0);
   const [commentCount, setCommentCount] = useState(commentsCount || 0);
@@ -81,7 +79,8 @@ const PostCard = ({
   const [popupMessage, setPopupMessage] = useState('');
   const [popupSubtitle, setPopupSubtitle] = useState('');
   const [navigateOnClose, setNavigateOnClose] = useState(false);
-  const [imageHeight, setImageHeight] = useState(SIZES.width * 1.4); // default
+  const [imageHeight, setImageHeight] = useState(SIZES.width * 1.4);
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   // Double-tap animation states
   const [showHeart, setShowHeart] = useState(false);
@@ -99,16 +98,26 @@ const PostCard = ({
         const aspectRatio = height / width;
         const newHeight = Math.min(SIZES.width * aspectRatio, SIZES.width * 1.4);
         setImageHeight(newHeight);
-
       }, (error) => console.log(error));
     }
   }, [postimage]);
 
+  const formatPhoneNumber = (num: any) => {
+    if (!num) return '';
+    const str = String(num);
+    const cleaned = str.replace(/\D/g, '');
+    if (cleaned.length === 12 && cleaned.startsWith('91')) {
+      return `+91 ${cleaned.slice(2, 7)} ${cleaned.slice(7, 12)}`;
+    }
+    if (cleaned.length === 10) {
+      return `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5, 10)}`;
+    }
+    return str;
+  };
 
   // Skeleton Loader Components
   const SkeletonAvatar = () => {
     const shimmer = useRef(new Animated.Value(0)).current;
-
     useEffect(() => {
       const animation = Animated.loop(
         Animated.timing(shimmer, {
@@ -118,7 +127,6 @@ const PostCard = ({
         })
       );
       animation.start();
-
       return () => {
         animation.stop();
       };
@@ -142,7 +150,6 @@ const PostCard = ({
 
   const SkeletonImage = () => {
     const shimmer = useRef(new Animated.Value(0)).current;
-
     useEffect(() => {
       const animation = Animated.loop(
         Animated.timing(shimmer, {
@@ -152,7 +159,6 @@ const PostCard = ({
         })
       );
       animation.start();
-
       return () => {
         animation.stop();
       };
@@ -204,7 +210,7 @@ const PostCard = ({
             borderRadius: 40,
             marginBottom: 15,
           }}
-          source={IMAGES.bugrepellent}
+          source={IMAGES.check1}
         />
         <Text
           style={{
@@ -255,6 +261,154 @@ const PostCard = ({
       </View>
     </View>
   );
+
+  // Share Menu Component
+  const ShareMenu = () => (
+    <View
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 1000,
+      }}
+    >
+      <View
+        style={{
+          backgroundColor: colors.card,
+          borderRadius: 16,
+          padding: 20,
+          width: '80%',
+          elevation: 10,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 18,
+            fontWeight: 'bold',
+            color: colors.title,
+            textAlign: 'center',
+            marginBottom: 20,
+          }}
+        >
+          Share Post
+        </Text>
+        
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 15,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+          }}
+          onPress={handleShareImage}
+        >
+          <Image
+            style={{ width: 24, height: 24, tintColor: colors.primary, marginRight: 15 }}
+            source={IMAGES.share}
+          />
+          <Text style={{ fontSize: 16, color: colors.title, flex: 1 }}>
+            Share Image
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 15,
+          }}
+          onPress={handleCopyLink}
+        >
+          <Image
+            style={{ width: 24, height: 24, tintColor: colors.primary, marginRight: 15 }}
+            source={IMAGES.link}
+          />
+          <Text style={{ fontSize: 16, color: colors.title, flex: 1 }}>
+            Copy Link
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={{
+            marginTop: 20,
+            paddingVertical: 12,
+            backgroundColor: colors.border,
+            borderRadius: 8,
+          }}
+          onPress={() => setShowShareMenu(false)}
+        >
+          <Text style={{ fontSize: 16, color: colors.title, textAlign: 'center', fontWeight: '600' }}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Generate post link
+  const generatePostLink = () => {
+    return `https://prithu.app/post/${id}`;
+  };
+
+  // Copy link to clipboard
+  const handleCopyLink = async () => {
+    try {
+      const link = generatePostLink();
+      await Share.share({
+        message: link,
+      });
+      
+      setShowShareMenu(false);
+      setPopupMessage('Link Copied!');
+      setPopupSubtitle('Post link has been shared');
+      setShowPopup(true);
+      setNavigateOnClose(false);
+    } catch (error) {
+      console.log('Error copying link:', error);
+      Alert.alert('Error', 'Failed to copy link');
+    }
+  };
+
+  // Share image function
+  const handleShareImage = async () => {
+    try {
+      if (postimage && postimage.length > 0) {
+        const imageUrl = postimage[0].image;
+        const fileUri = FileSystem.cacheDirectory + 'sharedImage.jpg';
+        const { uri } = await FileSystem.downloadAsync(imageUrl, fileUri);
+        
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'image/jpeg',
+            dialogTitle: `Share ${name}'s post`,
+            UTI: 'public.jpeg',
+          });
+        } else {
+          await Share.share({
+            message: `Check out this post from ${name}`,
+            url: uri,
+          });
+        }
+      } else {
+        alert('No image to share');
+      }
+      setShowShareMenu(false);
+    } catch (error) {
+      console.log('Error sharing image:', error);
+      Alert.alert('Error', 'Failed to share image');
+    }
+  };
+
+  // Open share menu
+  const openShareMenu = () => {
+    setShowShareMenu(true);
+  };
 
   // Request media library permissions
   const requestPermissions = async () => {
@@ -328,7 +482,6 @@ const PostCard = ({
       }
     } catch (error) {
       // console.error('Download error:', error);
-      // Alert.alert('Error', 'Something went wrong while downloading the PostCard');
     }
   };
 
@@ -378,9 +531,7 @@ const PostCard = ({
 
   const handleDislike = async () => {
     try {
-      isDislikingRef.current = true; // Mark as actively disliking
-
-      // Optimistic UI update
+      isDislikingRef.current = true;
       const newDislikeState = !isDisliked;
       setIsDisliked(newDislikeState);
       setDislikesCount(newDislikeState ? dislikesCount + 1 : dislikesCount - 1);
@@ -389,22 +540,14 @@ const PostCard = ({
       const data = response.data;
 
       if (data.success) {
-        // ✅ Use actual count from backend
         const actualDislikeCount = data.dislikeCount || 0;
         const actualIsDisliked = data.isDisliked;
-
-        console.log('✅ Dislike success:', { actualIsDisliked, actualDislikeCount });
-
         setIsDisliked(actualIsDisliked);
         setDislikesCount(actualDislikeCount);
-
-        // Notify parent component with actual backend values
         if (onDislikeUpdate) {
           onDislikeUpdate(actualIsDisliked, actualDislikeCount);
         }
       } else {
-        console.log('❌ Dislike API failed:', data);
-        // Rollback on error
         setIsDisliked(!newDislikeState);
         setDislikesCount(dislikesCount);
         if (onDislikeUpdate) {
@@ -412,22 +555,19 @@ const PostCard = ({
         }
       }
 
-      // Clear flag after a delay
       setTimeout(() => {
         isDislikingRef.current = false;
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error('❌ Dislike error:', error);
-      // Rollback on error
       setIsDisliked(isDisliked);
       setDislikesCount(dislikesCount);
       if (onDislikeUpdate) {
         onDislikeUpdate(isDisliked, dislikesCount);
       }
-
       setTimeout(() => {
         isDislikingRef.current = false;
-      }, 500);
+      }, 1000);
     }
   };
 
@@ -441,25 +581,21 @@ const PostCard = ({
         const modifyAvatar = profileData.modifyAvatar;
         setProfile({
           displayName: profileData.displayName || '',
-          username: profileData.userName || '', // ✅ correct source
+          username: profileData.userName || '',
           bio: profileData.bio || '',
           balance: profileData.balance || '',
           profileAvatar: fixedAvatar,
           modifyAvatar: modifyAvatar,
           phoneNumber: profileData.phoneNumber || '',
         });
-        // Fetch visibility settings after profile
         const visResponse = await api.get('/api/profile/visibility');
         const visData = visResponse.data;
         console.log("switch", visData)
         if (visData.success) {
           const v = visData.visibility;
-
-          // 👇 Match visibility fields with backend (same as EditProfile)
           setIsPhoneVisible(v.phoneNumber === "public");
           setisNameVisible(v.userName === "public");
-        }
-        else {
+        } else {
           console.log('Failed to get visibility settings', visData.message);
         }
       } else {
@@ -474,18 +610,12 @@ const PostCard = ({
     fetchProfile();
   }, []);
 
-  // Sync with props, but don't overwrite during active like/dislike operations
   useEffect(() => {
     setIsSaved(initialIsSaved || false);
-
-    // Only update dislike state if we're not currently processing a dislike action
     if (!isDislikingRef.current) {
       setIsDisliked(initialIsDisliked || false);
       setDislikesCount(initialDislikeCount || 0);
     }
-
-    // Only update like state if we're not currently processing a like action
-    // This prevents the prop update from overwriting the user's immediate action
     if (!isLikingRef.current) {
       setIsLiked(initialIsLiked || false);
       setLikeCount(like || 0);
@@ -494,9 +624,7 @@ const PostCard = ({
 
   const handleLike = async () => {
     try {
-      isLikingRef.current = true; // Mark as actively liking
-
-      // Optimistic UI update
+      isLikingRef.current = true;
       const newLikeState = !isLiked;
       setIsLiked(newLikeState);
       setLikeCount(newLikeState ? likeCount + 1 : likeCount - 1);
@@ -505,22 +633,14 @@ const PostCard = ({
       const data = response.data;
 
       if (data.success) {
-        // ✅ Use actual count from backend
         const actualLikeCount = data.likeCount || 0;
         const actualIsLiked = data.isLiked;
-
-        console.log('✅ Like success:', { actualIsLiked, actualLikeCount });
-
         setIsLiked(actualIsLiked);
         setLikeCount(actualLikeCount);
-
-        // Notify parent component with actual backend values
         if (onLikeUpdate) {
           onLikeUpdate(actualIsLiked, actualLikeCount);
         }
       } else {
-        console.log('❌ Like API failed:', data);
-        // Rollback on error
         setIsLiked(!newLikeState);
         setLikeCount(likeCount);
         if (onLikeUpdate) {
@@ -528,37 +648,29 @@ const PostCard = ({
         }
       }
 
-      // Clear flag after a delay
       setTimeout(() => {
         isLikingRef.current = false;
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error('❌ Like error:', error);
-      // Rollback on error
       setIsLiked(isLiked);
       setLikeCount(likeCount);
       if (onLikeUpdate) {
         onLikeUpdate(isLiked, likeCount);
       }
-
       setTimeout(() => {
         isLikingRef.current = false;
-      }, 500);
+      }, 1000);
     }
   };
 
-  // Handle double-tap to like
   const handleDoubleTapLike = async () => {
     try {
-      // Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-      // Show heart animation (always show, even if already liked)
       setShowHeart(true);
       heartScale.setValue(0);
       heartOpacity.setValue(1);
 
-      // Animate heart
       Animated.parallel([
         Animated.spring(heartScale, {
           toValue: 1,
@@ -575,11 +687,8 @@ const PostCard = ({
         setShowHeart(false);
       });
 
-      // If not already liked, like it
       if (!isLiked) {
-        isLikingRef.current = true; // Set flag before liking
-
-        // Optimistic UI update
+        isLikingRef.current = true;
         setIsLiked(true);
         setLikeCount(likeCount + 1);
 
@@ -588,22 +697,14 @@ const PostCard = ({
           const data = response.data;
 
           if (data.success) {
-            // ✅ Use actual count from backend
             const actualLikeCount = data.likeCount || 0;
             const actualIsLiked = data.isLiked;
-
-            console.log('✅ Double-tap like success:', { actualIsLiked, actualLikeCount });
-
             setIsLiked(actualIsLiked);
             setLikeCount(actualLikeCount);
-
-            // Notify parent component with actual backend values
             if (onLikeUpdate) {
               onLikeUpdate(actualIsLiked, actualLikeCount);
             }
           } else {
-            console.log('❌ Double-tap like API failed:', data);
-            // Rollback on error
             setIsLiked(false);
             setLikeCount(likeCount);
             if (onLikeUpdate) {
@@ -611,13 +712,11 @@ const PostCard = ({
             }
           }
 
-          // Clear flag after a delay
           setTimeout(() => {
             isLikingRef.current = false;
-          }, 500);
+          }, 1000);
         } catch (error) {
           console.error('❌ Double-tap like API error:', error);
-          // Rollback on error
           setIsLiked(false);
           setLikeCount(likeCount);
           if (onLikeUpdate) {
@@ -625,7 +724,7 @@ const PostCard = ({
           }
           setTimeout(() => {
             isLikingRef.current = false;
-          }, 500);
+          }, 1000);
         }
       }
     } catch (error) {
@@ -633,16 +732,12 @@ const PostCard = ({
     }
   };
 
-  // Handle tap on image (for double-tap detection)
   const handleImageTap = () => {
     const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300; // milliseconds
-
+    const DOUBLE_TAP_DELAY = 300;
     if (now - lastTap.current < DOUBLE_TAP_DELAY) {
-      // Double tap detected - like the post
       handleDoubleTapLike();
     }
-
     lastTap.current = now;
   };
 
@@ -683,7 +778,7 @@ const PostCard = ({
                   ? navigation.navigate('AnotherProfile', { feedId: id, profileUserId: profileUserId, roleRef: roleRef })
                   : navigation.navigate('status', {
                     name: name,
-                    image: profileimage,
+                    image: avatarToUse || profileimage,
                     statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
                   });
               }}
@@ -697,9 +792,11 @@ const PostCard = ({
                     <Image
                       style={{ width: 40, height: 40, borderRadius: 50, opacity: isImageLoading ? 0.5 : 1 }}
                       source={
-                        profileimage
-                          ? { uri: profileimage }
-                          : { uri: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }
+                        avatarToUse
+                          ? { uri: avatarToUse }
+                          : profileimage
+                            ? { uri: profileimage }
+                            : { uri: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }
                       }
                       onLoadStart={() => setIsImageLoading(true)}
                       onLoadEnd={() => setIsImageLoading(false)}
@@ -718,9 +815,11 @@ const PostCard = ({
                     <Image
                       style={{ width: 40, height: 40, borderRadius: 50, opacity: isImageLoading ? 0.5 : 1 }}
                       source={
-                        profileimage
-                          ? { uri: profileimage }
-                          : { uri: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }
+                        avatarToUse
+                          ? { uri: avatarToUse }
+                          : profileimage
+                            ? { uri: profileimage }
+                            : { uri: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png' }
                       }
                       onLoadStart={() => setIsImageLoading(true)}
                       onLoadEnd={() => setIsImageLoading(false)}
@@ -849,7 +948,7 @@ const PostCard = ({
                       }}
                     >
                       <Image
-                        source={IMAGES.like}
+                        source={IMAGES.love}
                         style={{
                           width: 120,
                           height: 120,
@@ -901,7 +1000,7 @@ const PostCard = ({
 
                     {isPhoneVisible && (
                       <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }} numberOfLines={1} ellipsizeMode="tail">
-                        {profile.phoneNumber}
+                        {formatPhoneNumber(profile.phoneNumber)}
                       </Text>
                     )}
 
@@ -937,28 +1036,7 @@ const PostCard = ({
               </View>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={async () => {
-                try {
-                  if (postimage && postimage.length > 0) {
-                    const imageUrl = postimage[0].image;
-                    const fileUri = FileSystem.cacheDirectory + 'sharedImage.jpg';
-                    const { uri } = await FileSystem.downloadAsync(imageUrl, fileUri);
-                    if (await Sharing.isAvailableAsync()) {
-                      await Sharing.shareAsync(uri, {
-                        mimeType: 'image/jpeg',
-                        dialogTitle: `Share ${name}'s post`,
-                        UTI: 'public.jpeg',
-                      });
-                    } else {
-                      alert('Sharing is not available on this device');
-                    }
-                  } else {
-                    alert('No image to share');
-                  }
-                } catch (error) {
-                  console.log('Error sharing image:', error);
-                }
-              }}
+              onPress={openShareMenu}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Image
@@ -1005,6 +1083,7 @@ const PostCard = ({
           </View>
         </View>
       </View>
+      {showShareMenu && <ShareMenu />}
       {showPopup && <Popup />}
     </View>
   );

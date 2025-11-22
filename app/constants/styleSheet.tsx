@@ -34,7 +34,7 @@ export const GlobalStyleSheet = StyleSheet.create({
     },
     formtitle: {
         ...FONTS.h2,
-        color: COLORS.white,
+        color: COLORS.black,
         marginBottom: 5,
     },
     forndescription: {
@@ -116,7 +116,7 @@ export const GlobalStyleSheet = StyleSheet.create({
     btnTxt: {
         ...FONTS.h6,
         ...FONTS.fontMedium,
-        color: COLORS.white,
+        color: COLORS.black,
         textAlign: 'center',
     },
     inputSecureIcon: {
@@ -149,7 +149,7 @@ export const GlobalStyleSheet = StyleSheet.create({
     followbtnTxt: {
         ...FONTS.font,
         ...FONTS.fontRegular,
-        color: COLORS.white,
+        color: COLORS.black,
         textAlign: 'center',
     },
     sharebtnTxt: {
@@ -218,7 +218,7 @@ export const GlobalStyleSheet = StyleSheet.create({
     Text: {
         ...FONTS.font,
         ...FONTS.fontMedium,
-        color: COLORS.white,
+        color: COLORS.black,
         fontSize: 12,
         marginTop: 5,
     },
@@ -234,13 +234,13 @@ export const GlobalStyleSheet = StyleSheet.create({
     textfont2: {
         ...FONTS.h5,
         ...FONTS.fontSemiBold,
-        color: COLORS.white   
+        color: COLORS.black   
     },
 
     titlefont: {
         ...FONTS.fontRegular,
         fontSize: 12,
-        color: COLORS.white,
+        color: COLORS.black,
         opacity: .7,
     },
 
@@ -317,7 +317,7 @@ export const GlobalStyleSheet = StyleSheet.create({
     },
     card: {
         marginBottom: 15,
-        backgroundColor: COLORS.white,
+        backgroundColor: COLORS.black,
         borderRadius:SIZES.radius,
     },
     cardHeader: {
