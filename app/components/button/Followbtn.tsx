@@ -23,7 +23,7 @@ export const Followbtn = (props) => {
                 <LinearGradient
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    colors={['#7BAEFF', '#156CF7']}
+                    colors={["#32CD32", "#32CD32"]}
                     style={GlobalStyleSheet.followbtn}
                 >
                     <Text style={GlobalStyleSheet.followbtnTxt}>{title}</Text>

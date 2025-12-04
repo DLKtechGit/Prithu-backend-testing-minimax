@@ -6,110 +6,40 @@ import Header from '../../layout/Header';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
 import { ScrollView, TextInput } from 'react-native-gesture-handler';
 import Sharebtn from '../../components/button/Sharebtn';
-import { useTheme, useNavigation } from '@react-navigation/native';
+import { useTheme, useNavigation, useRoute } from '@react-navigation/native';
 import Followbtn from '../../components/button/Followbtn';
 import ChatoptionSheet from '../../components/bottomsheet/ChatoptionSheet';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../../apiInterpretor/apiInterceptor';
-
-const following = [
-  {
-    id: '1',
-    title: 'Alex Techie',
-    image: IMAGES.storypic2,
-    text: "alex_techie_2123",
-    hasStory: true,
-  },
-  {
-    id: '2',
-    title: 'Deepesh gaur',
-    image: IMAGES.storypic1,
-    text: "deepesh_gaur22",
-    hasStory: false
-  },
-  {
-    id: '3',
-    title: 'Sophia James',
-    image: IMAGES.storypic4,
-    text: "sophia_james",
-    hasStory: false,
-  },
-  {
-    id: '4',
-    title: 'Mia Maven',
-    image: IMAGES.storypic3,
-    text: "mia-meaver_420",
-    hasStory: false,
-  },
-  {
-    id: '5',
-    title: 'Lily Learns',
-    image: IMAGES.storypic2,
-    text: "your_lily@123",
-    hasStory: false,
-  },
-  {
-    id: '6',
-    title: 'Alex Techie',
-    image: IMAGES.storypic4,
-    text: "alex_techie_2123",
-    hasStory: false
-  },
-  {
-    id: '7',
-    title: 'Deepesh gaur',
-    image: IMAGES.storypic1,
-    text: "deepesh_gaur22",
-    hasStory: false,
-  },
-  {
-    id: '8',
-    title: 'Sophia James',
-    image: IMAGES.storypic4,
-    text: "sophia_james",
-    hasStory: true,
-  },
-  {
-    id: '9',
-    title: 'Mia Maven',
-    image: IMAGES.storypic3,
-    text: "mia-meaver_420",
-    hasStory: false
-  },
-  {
-    id: '10',
-    title: 'Lily Learns',
-    image: IMAGES.storypic2,
-    text: "your_lily@123",
-    hasStory: true,
-  },
-  {
-    id: '11',
-    title: 'Alex Techie',
-    image: IMAGES.storypic1,
-    text: "alex_techie_2123",
-    hasStory: false,
-  },
-];
 
 const Followers = () => {
   const moresheet = useRef<any>();
   const scrollRef = useRef<any>();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  // State for data
   const [followers, setFollowers] = useState<any[]>([]);
+  const [following, setFollowing] = useState<any[]>([]);
   const [followersCount, setFollowersCount] = useState<number>(0);
-  // State to track show status for each follower/following item
-  const [showStates, setShowStates] = useState<{ [key: string]: boolean }>({});
+  const [followingCount, setFollowingCount] = useState<number>(0);
+
+  // State to track follow status
+  const [followStates, setFollowStates] = useState<{ [key: string]: boolean }>({});
   const [activeAccountType, setActiveAccountType] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const theme = useTheme();
   const { colors }: { colors: any } = theme;
 
+  // Get params from navigation
+  const { profileUserId, roleRef, initialTab = 0 } = route.params || {};
+
   const buildUrl = (path: string | undefined | null) => {
     if (!path || path === 'Unavailable') return IMAGES.profile;
-    // Remove the hardcoded IP and use relative path for images
     const cleanPath = path.replace(/\\/g, '/').replace(/^.*?\/uploads/, '/uploads');
     return { uri: `${cleanPath}` };
   };
@@ -119,7 +49,6 @@ const Followers = () => {
     const fetchAccountType = async () => {
       try {
         const storedType = await AsyncStorage.getItem("activeAccountType");
-        console.log(storedType);
         if (storedType) setActiveAccountType(storedType);
       } catch (err) {
         console.log("Error fetching account type:", err);
@@ -128,86 +57,124 @@ const Followers = () => {
     fetchAccountType();
   }, []);
 
-  // Fetch followers from backend based on account type
+  // Get current user ID
   useEffect(() => {
-    const fetchData = async () => {
+    const getCurrentUser = async () => {
+      const userId = await AsyncStorage.getItem('userId');
+      setCurrentUserId(userId);
+    };
+    getCurrentUser();
+  }, []);
+
+  // Set initial tab
+  useEffect(() => {
+    if (initialTab !== undefined) {
+      setCurrentIndex(initialTab);
+      scrollRef.current?.scrollTo({
+        x: SIZES.width * initialTab,
+        animated: false,
+      });
+    }
+  }, [initialTab]);
+
+  // Fetch followers data
+  useEffect(() => {
+    const fetchFollowersData = async () => {
       try {
-        let endpoint = '';
-        if (activeAccountType === 'Creator') {
-          endpoint = '/api/creator/get/followers';
-        } else {
-          console.log("usercall")
-          endpoint = '/api/user/following/data';
+        // Use profileUserId if provided, otherwise use logged-in user's ID
+        let targetUserId = profileUserId;
+        if (!targetUserId) {
+          targetUserId = await AsyncStorage.getItem('userId');
         }
 
-        const response = await api.get(endpoint);
-        const data = response.data;
-        console.log('Fetched data:', data);
+        if (!targetUserId) {
+          Alert.alert('Error', 'User not found');
+          return;
+        }
 
-        if (data) {
-          if (activeAccountType === 'Creator') {
-            // Handle creator followers response
-            const formattedFollowers = data.followers.map((f: any, index: number) => ({
-              id: index.toString(),
-              title: f.userName.split('@')[0] || f.userName,
+        // Fetch followers for the target user
+        const followersResponse = await api.post(`/api/individual/user/followers`, {
+          userId: targetUserId
+        });
+        console.log("📥 Followers Response:", followersResponse.data);
+
+        if (followersResponse.data) {
+          const formattedFollowers = Array.isArray(followersResponse.data.followers)
+            ? followersResponse.data.followers.map((f: any, index: number) => ({
+              id: `follower_${index}`,
+              title: f.displayName || f.userName,
               text: f.userName,
               image: f.profileAvatar,
               hasStory: false,
-              userId: f.userId || index.toString(),
-            }));
-            setFollowers(formattedFollowers);
-            setFollowersCount(data.count || 0);
-            // Initialize showStates for each follower
-            const initialShowStates = formattedFollowers.reduce((acc, follower) => ({
-              ...acc,
-              [follower.id]: true,
-            }), {});
-            setShowStates(initialShowStates);
-          } else {
-            // Handle personal following response
-            const formattedFollowers = data.data.followers.map((f: any, index: number) => ({
-              id: index.toString(),
-              title: f.userName.split('@')[0] || f.userName,
-              text: f.userName,
-              image: f.profileAvatar,
-              hasStory: false,
-              userId: f.userId || index.toString(),
-            }));
-            setFollowers(formattedFollowers);
-            setFollowersCount(data.data.followersCount || 0);
-            // Initialize showStates for each follower
-            const initialShowStates = formattedFollowers.reduce((acc, follower) => ({
-              ...acc,
-              [follower.id]: true,
-            }), {});
-            setShowStates(initialShowStates);
-          }
-        } else {
-          console.log('Error fetching data:', data.message);
-          Alert.alert('Error', data.message || 'Failed to fetch data');
+              userId: f.userId,
+              type: 'follower'
+            }))
+            : [];
+
+          setFollowers(formattedFollowers);
+          setFollowersCount(followersResponse.data.count || 0);
         }
-      } catch (err: any) {
-        console.error('Fetch data error:', err);
-        Alert.alert('Error', err.response?.data?.message || 'Failed to fetch data');
+
+      } catch (err) {
+        console.log("❌ Followers fetch error:", err.response?.data || err);
       }
     };
 
-    if (activeAccountType) {
-      fetchData();
-    }
-  }, [activeAccountType]);
+    fetchFollowersData();
+  }, [profileUserId]);
 
-  // Initialize showStates for following items
+  // Fetch following data
   useEffect(() => {
-    const initialShowStates = following.reduce((acc, item) => ({
-      ...acc,
-      [item.id]: true,
-    }), {});
-    setShowStates(prev => ({ ...prev, ...initialShowStates }));
-  }, []);
+    const fetchFollowingData = async () => {
+      try {
+        // Use profileUserId if provided, otherwise use logged-in user's ID
+        let targetUserId = profileUserId;
+        if (!targetUserId) {
+          targetUserId = await AsyncStorage.getItem('userId');
+        }
 
-  const toggleShowState = (id: string) => {
-    setShowStates(prev => ({ ...prev, [id]: !prev[id] }));
+        if (!targetUserId) return;
+
+        // Fetch following for the target user
+        const followingResponse = await api.post(`/api/individual/user/following`, {
+          userId: targetUserId
+        });
+        console.log("📥 Following Response:", followingResponse.data);
+
+        if (followingResponse.data) {
+          const formattedFollowing = Array.isArray(followingResponse.data.following)
+            ? followingResponse.data.following.map((f: any, index: number) => ({
+              id: `following_${index}`,
+              title: f.displayName || f.userName,
+              text: f.userName,
+              image: f.profileAvatar,
+              hasStory: false,
+              userId: f.userId,
+              type: 'following'
+            }))
+            : [];
+
+          setFollowing(formattedFollowing);
+          setFollowingCount(followingResponse.data.count || 0);
+
+          // Initialize follow states
+          const initialStates = formattedFollowing.reduce((acc: any, item: any) => {
+            acc[item.id] = true; // Already following
+            return acc;
+          }, {});
+          setFollowStates(initialStates);
+        }
+
+      } catch (err) {
+        console.log("❌ Following fetch error:", err.response?.data || err);
+      }
+    };
+
+    fetchFollowingData();
+  }, [profileUserId]);
+
+  const toggleFollowState = (id: string) => {
+    setFollowStates(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const slideIndicator = scrollX.interpolate({
@@ -224,273 +191,267 @@ const Followers = () => {
     });
   };
 
-  // Set header title based on account type
-  const getHeaderTitle = () => {
-    return activeAccountType === 'Creator' ? 'Followers' : 'Following';
+  // Filter data based on search query
+  const filterData = (data: any[]) => {
+    if (!searchQuery.trim()) return data;
+
+    return data.filter(item =>
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.text.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   };
+
+  const renderUserItem = (data: any, isFollowersTab: boolean) => (
+    <View key={data.id} style={[GlobalStyleSheet.flexalingjust, { paddingHorizontal: 15, marginBottom: 15 }]}>
+      <View style={[GlobalStyleSheet.flexaling, { flex: 1 }]}>
+        <TouchableOpacity
+          onPress={() => {
+            navigation.navigate('AnotherProfile', {
+              profileUserId: data.userId,
+              roleRef: 'User'
+            });
+          }}
+          style={{ marginRight: 12 }}
+        >
+          <View style={{ position: 'relative' }}>
+            <Image
+              style={{ width: 50, height: 50, borderRadius: 25 }}
+              source={data.image ? buildUrl(data.image) : IMAGES.profile}
+            />
+            {data.hasStory && (
+              <Image
+                style={{
+                  width: 58,
+                  height: 58,
+                  position: 'absolute',
+                  top: -4,
+                  left: -4,
+                  resizeMode: 'contain'
+                }}
+                source={IMAGES.cricle}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <View style={{ flex: 1 }}>
+          <TouchableOpacity
+            onPress={() => {
+              navigation.navigate('AnotherProfile', {
+                profileUserId: data.userId,
+                roleRef: 'User'
+              });
+            }}
+          >
+            <Text style={[GlobalStyleSheet.textfont, { color: colors.title, marginBottom: 2 }]}>
+              {data.title}
+            </Text>
+          </TouchableOpacity>
+          <Text style={{ ...FONTS.fontXs, color: colors.text }}>@{data.text}</Text>
+        </View>
+      </View>
+
+      {/* Action buttons */}
+      <View style={GlobalStyleSheet.flexaling}>
+        {isFollowersTab && activeAccountType === 'Creator' ? (
+          // Followers tab for Creator - Show Remove/Follow buttons
+          <View>
+            {followStates[data.id] ? (
+              <Sharebtn
+                title='Remove'
+                onPress={() => toggleFollowState(data.id)}
+              />
+            ) : (
+              <Followbtn
+                title="Follow"
+                onPress={() => toggleFollowState(data.id)}
+              />
+            )}
+          </View>
+        ) : (
+          // Following tab or Individual account - Show Following/Follow buttons
+          <View>
+            {followStates[data.id] ? (
+              <Sharebtn
+                title='Following'
+                onPress={() => toggleFollowState(data.id)}
+              />
+            ) : (
+              <Followbtn
+                title="Follow"
+                onPress={() => toggleFollowState(data.id)}
+              />
+            )}
+          </View>
+        )}
+
+        {/* More options button */}
+        {/* <TouchableOpacity
+          onPress={() => moresheet.current.openSheet()}
+          style={{ paddingLeft: 10 }}
+        >
+          <Image
+            style={[GlobalStyleSheet.image, { tintColor: colors.title, width: 15, height: 15 }]}
+            source={IMAGES.more}
+          />
+        </TouchableOpacity> */}
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={[GlobalStyleSheet.container, { padding: 0, backgroundColor: colors.card, flex: 1 }]}>
-      <Header title={getHeaderTitle()} />
+      <Header title="Followers & Following" />
       <View style={{ flex: 1 }}>
+        {/* Tab Header */}
         <View style={GlobalStyleSheet.container}>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', position: 'relative' }}>
             <TouchableOpacity
               onPress={() => onPressTouch(0)}
-              style={GlobalStyleSheet.TouchableOpacity2}
+              style={[GlobalStyleSheet.TouchableOpacity2, { flex: 1 }]}
             >
-               
-              <Text style={[GlobalStyleSheet.titlefont2, { color: currentIndex === 0 ? colors.title : colors.text }]}>
-                {followersCount} {activeAccountType === 'Creator' ? 'follower' : 'following'}{followersCount !== 1 ? 's' : ''}
+              <Text style={[
+                GlobalStyleSheet.titlefont2,
+                {
+                  color: currentIndex === 0 ? colors.title : colors.text,
+                  textAlign: 'center'
+                }
+              ]}>
+                {followersCount} {followersCount === 1 ? 'Follower' : 'Followers'}
               </Text>
-
             </TouchableOpacity>
-            {activeAccountType === 'Creator' && (
-              <TouchableOpacity
-                onPress={() => onPressTouch(1)}
-                style={GlobalStyleSheet.TouchableOpacity2}
-              >
-                <Text style={[GlobalStyleSheet.titlefont2, { color: currentIndex === 1 ? colors.title : colors.text }]}>
-                  500 following
-                </Text>
-              </TouchableOpacity>
-            )}
+
+            <TouchableOpacity
+              onPress={() => onPressTouch(1)}
+              style={[GlobalStyleSheet.TouchableOpacity2, { flex: 1 }]}
+            >
+              <Text style={[
+                GlobalStyleSheet.titlefont2,
+                {
+                  color: currentIndex === 1 ? colors.title : colors.text,
+                  textAlign: 'center'
+                }
+              ]}>
+                {followingCount} Following
+              </Text>
+            </TouchableOpacity>
+
             <Animated.View
               style={{
                 backgroundColor: colors.title,
-                width: activeAccountType === 'Creator' ? '50%' : '100%',
+                width: '50%',
                 height: 2,
                 position: 'absolute',
                 bottom: 0,
                 left: 0,
                 transform: [{ translateX: slideIndicator }],
               }}
-            ></Animated.View>
+            />
           </View>
         </View>
+
+        {/* Horizontal Scroll View for Tabs */}
         <ScrollView
           horizontal
           pagingEnabled
-          showsHorizontalScrollIndicator={true}
+          showsHorizontalScrollIndicator={false}
           ref={scrollRef}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: false }
           )}
           onMomentumScrollEnd={(e: any) => {
-            if (activeAccountType === 'Creator') {
-              if (e.nativeEvent.contentOffset.x.toFixed(0) == SIZES.width.toFixed(0)) {
-                setCurrentIndex(1);
-              } else if (e.nativeEvent.contentOffset.x.toFixed(0) == 0) {
-                setCurrentIndex(0);
-              } else {
-                setCurrentIndex(0);
-              }
-            } else {
-              setCurrentIndex(0);
-            }
+            const pageIndex = Math.round(e.nativeEvent.contentOffset.x / SIZES.width);
+            setCurrentIndex(pageIndex);
           }}
+          scrollEventThrottle={16}
         >
+          {/* Followers Tab */}
           <View style={[GlobalStyleSheet.container, { padding: 0, width: SIZES.width }]}>
-            <ScrollView>
+            <ScrollView showsVerticalScrollIndicator={false}>
               <View style={GlobalStyleSheet.container}>
-                <View style={{ marginTop: 10 }}>
+                {/* Search Bar */}
+                <View style={{ marginTop: 10, paddingHorizontal: 15 }}>
                   <TextInput
-                    placeholder='Search here...'
+                    placeholder='Search followers...'
                     placeholderTextColor={colors.placeholder}
                     style={[
                       GlobalStyleSheet.inputBox,
                       {
                         backgroundColor: colors.input,
-                        paddingLeft: 25,
+                        paddingLeft: 15,
                       },
                     ]}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
                   />
                 </View>
               </View>
-              <View style={{ paddingHorizontal: 15, marginBottom: 10 }}>
+
+              {/* Section Title */}
+              <View style={{ paddingHorizontal: 15, marginVertical: 10 }}>
                 <Text style={{ ...FONTS.fontRegular, ...FONTS.h6, color: colors.title }}>
-                  {activeAccountType === 'Creator' ? 'All Followers' : 'All Following'}
+                  {activeAccountType === 'Creator' ? 'All Followers' : 'Followers'}
                 </Text>
               </View>
-              {followers.length > 0 ? (
-                followers.map((data: any, index) => (
-                  <View key={index} style={[GlobalStyleSheet.flexalingjust, { paddingHorizontal: 15, marginBottom: 10 }]}>
-                    <View style={[GlobalStyleSheet.flexaling, { marginBottom: 10 }]}>
-                      <View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            if (data.hasStory) {
-                              navigation.navigate('status', {
-                                name: data.title,
-                                image: data.image,
-                                statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
-                              });
-                            } else {
-                              navigation.navigate('AnotherProfile', { accountId: data.userId });
-                            }
-                          }}
-                          style={{ marginRight: 10 }}
-                        >
-                          {data.hasStory ? (
-                            <View>
-                              <Image
-                                style={{ width: 50, height: 50, borderRadius: 50 }}
-                                source={{uri :data.image}}
-                              />
-                              <Image
-                                style={{ width: 58, height: 58, position: 'absolute', bottom: -3.8, right: -4, resizeMode: 'contain' }}
-                                source={IMAGES.cricle}
-                              />
-                            </View>
-                          ) : (
-                            <View>
-                              <Image
-                                style={{ width: 50, height: 50, borderRadius: 50 }}
-                                source={{uri :data.image}}
-                              />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                      <View>
-                        <TouchableOpacity
-                          // onPress={() => navigation.navigate('AnotherProfile', { accountId: data.userId })}
-                        >
-                          <Text style={[GlobalStyleSheet.textfont, { color: colors.title }]}>{data.title}</Text>
-                        </TouchableOpacity>
-                        <Text style={{ ...FONTS.fontXs, color: colors.text }}>{data.text}</Text>
-                      </View>
-                    </View>
-                
-                   {/* remove button - only show for creator account */}
-                   {activeAccountType === 'Creator' && (
-                    <View>
-                      {showStates[data.id] ? (
-                        <Sharebtn
-                          title='Remove'
-                          onPress={() => toggleShowState(data.id)}
-                        />
-                      ) : (
-                        <Followbtn
-                          title="Follow"
-                          onPress={() => toggleShowState(data.id)}
-                        />
-                      )}
-                    </View>
-                   )}
 
-                    
-                  </View>
-                ))
+              {/* Followers List */}
+              {filterData(followers).length > 0 ? (
+                filterData(followers).map((data: any) => renderUserItem(data, true))
               ) : (
-                <View style={{ paddingHorizontal: 15 }}>
-                  <Text style={{ ...FONTS.fontRegular, color: colors.text }}>
-                    {activeAccountType === 'Creator' ? 'No followers found' : 'Not following anyone yet'}
+                <View style={{ paddingHorizontal: 15, alignItems: 'center', marginTop: 50 }}>
+                  <Text style={{ ...FONTS.fontRegular, color: colors.text, textAlign: 'center' }}>
+                    {searchQuery ? 'No followers match your search' : 'No followers yet'}
                   </Text>
                 </View>
               )}
             </ScrollView>
           </View>
-          {activeAccountType === 'Creator' && (
-            <View style={[GlobalStyleSheet.container, { padding: 0, width: SIZES.width }]}>
-              <ScrollView>
-                <View style={GlobalStyleSheet.container}>
-                  <View style={{ marginTop: 10 }}>
-                    <TextInput
-                      placeholder='Search here...'
-                      placeholderTextColor={colors.placeholder}
-                      style={[
-                        GlobalStyleSheet.inputBox,
-                        {
-                          backgroundColor: colors.input,
-                          paddingLeft: 25,
-                        },
-                      ]}
-                    />
-                  </View>
+
+          {/* Following Tab */}
+          <View style={[GlobalStyleSheet.container, { padding: 0, width: SIZES.width }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={GlobalStyleSheet.container}>
+                {/* Search Bar */}
+                <View style={{ marginTop: 10, paddingHorizontal: 15 }}>
+                  <TextInput
+                    placeholder='Search following...'
+                    placeholderTextColor={colors.placeholder}
+                    style={[
+                      GlobalStyleSheet.inputBox,
+                      {
+                        backgroundColor: colors.input,
+                        paddingLeft: 15,
+                      },
+                    ]}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
                 </View>
-                {following.map((data, index) => (
-                  <View key={index} style={[GlobalStyleSheet.flexalingjust, { paddingHorizontal: 15, marginBottom: 10 }]}>
-                    <View style={[GlobalStyleSheet.flexaling, { marginBottom: 10 }]}>
-                      <View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            if (data.hasStory) {
-                              navigation.navigate('status', {
-                                name: data.title,
-                                image: data.image,
-                                statusData: [IMAGES.profilepic11, IMAGES.profilepic12],
-                              });
-                            } else {
-                              navigation.navigate('AnotherProfile');
-                            }
-                          }}
-                          style={{ marginRight: 10 }}
-                        >
-                          {data.hasStory ? (
-                            <View>
-                              <Image
-                                style={{ width: 50, height: 50, borderRadius: 50 }}
-                                source={data.image}
-                              />
-                              <Image
-                                style={{ width: 58, height: 58, position: 'absolute', bottom: -3.8, right: -4, resizeMode: 'contain' }}
-                                source={IMAGES.cricle}
-                              />
-                            </View>
-                          ) : (
-                            <View>
-                              <Image
-                                style={{ width: 50, height: 50, borderRadius: 50 }}
-                                source={data.image}
-                              />
-                            </View>
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                      <View>
-                        <TouchableOpacity
-                          onPress={() => navigation.navigate('AnotherProfile')}
-                        >
-                          <Text style={[GlobalStyleSheet.textfont, { color: colors.title }]}>{data.title}</Text>
-                        </TouchableOpacity>
-                        <Text style={{ ...FONTS.fontXs, color: colors.text }}>{data.text}</Text>
-                      </View>
-                    </View>
-                    <View style={GlobalStyleSheet.flexaling}>
-                      <View>
-                        {showStates[data.id] ? (
-                          <Sharebtn
-                            title='Following'
-                            onPress={() => toggleShowState(data.id)}
-                          />
-                        ) : (
-                          <Followbtn
-                            title="Follow"
-                            onPress={() => toggleShowState(data.id)}
-                          />
-                        )}
-                      </View>
-                      <View>
-                        <TouchableOpacity
-                          onPress={() => moresheet.current.openSheet()}
-                          style={{ paddingLeft: 10 }}
-                        >
-                          <Image
-                            style={[GlobalStyleSheet.image, { tintColor: colors.title, width: 15, height: 15 }]}
-                            source={IMAGES.more}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+              </View>
+
+              {/* Section Title */}
+              <View style={{ paddingHorizontal: 15, marginVertical: 10 }}>
+                <Text style={{ ...FONTS.fontRegular, ...FONTS.h6, color: colors.title }}>
+                  Following
+                </Text>
+              </View>
+
+              {/* Following List */}
+              {filterData(following).length > 0 ? (
+                filterData(following).map((data: any) => renderUserItem(data, false))
+              ) : (
+                <View style={{ paddingHorizontal: 15, alignItems: 'center', marginTop: 50 }}>
+                  <Text style={{ ...FONTS.fontRegular, color: colors.text, textAlign: 'center' }}>
+                    {searchQuery ? 'No following match your search' : 'Not following anyone yet'}
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
         </ScrollView>
       </View>
+
       <ChatoptionSheet
         ref={moresheet}
         deleteChat={false}
@@ -500,4 +461,3 @@ const Followers = () => {
 };
 
 export default Followers;
-

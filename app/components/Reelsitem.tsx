@@ -418,6 +418,8 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import api from '../../apiInterpretor/apiInterceptor';
+import EmojiReactionBar from './EmojiReactionBar';
+import FloatingEmoji from './FloatingEmoji';
 
 const { height: windowHeight } = Dimensions.get('window');
 
@@ -457,6 +459,9 @@ const Reelsitem = ({
     phoneNumber: '',
   });
   const [hasViewed, setHasViewed] = useState(false);
+
+  // Floating emoji reactions state
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string }>>([]);
 
   // Double-tap animation states
   const [showHeart, setShowHeart] = useState(false);
@@ -705,6 +710,29 @@ const Reelsitem = ({
     }
   };
 
+  // Emoji reaction handlers
+  const handleEmojiPress = async (emoji: string) => {
+    try {
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Create unique ID for this emoji
+      const id = `emoji-${Date.now()}-${Math.random()}`;
+
+      // Add to floating emojis array
+      setFloatingEmojis(prev => [...prev, { id, emoji }]);
+    } catch (error) {
+      console.log('Emoji press error:', error);
+      // Still add emoji even if haptic fails
+      const id = `emoji-${Date.now()}-${Math.random()}`;
+      setFloatingEmojis(prev => [...prev, { id, emoji }]);
+    }
+  };
+
+  const removeFloatingEmoji = (id: string) => {
+    setFloatingEmojis(prev => prev.filter(item => item.id !== id));
+  };
+
   return (
     <View
       style={[GlobalStyleSheet.container, { padding: 0, flex: 1, backgroundColor: '#000', height: windowHeight }]}
@@ -749,7 +777,7 @@ const Reelsitem = ({
             }}
           >
             <Image
-              source={IMAGES.like}
+              source={IMAGES.love}
               style={{
                 width: 120,
                 height: 120,
@@ -761,7 +789,7 @@ const Reelsitem = ({
       </TouchableOpacity>
 
       {/* Bottom Overlay */}
-      <View style={{ position: 'absolute', bottom: 30, left: 20, paddingRight: 120 }}>
+      <View style={{ position: 'absolute', bottom: 100, left: 20, paddingRight: 120 }}>
         <View style={GlobalStyleSheet.flexaling}>
           {/* Profile Image */}
           <TouchableOpacity
@@ -905,6 +933,20 @@ const Reelsitem = ({
         </View>
 
       </View>
+
+      {/* Emoji Reaction Bar */}
+      <View style={{ position: 'absolute', bottom: 70, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
+        <EmojiReactionBar onEmojiPress={handleEmojiPress} />
+      </View>
+
+      {/* Floating Emojis */}
+      {floatingEmojis.map(item => (
+        <FloatingEmoji
+          key={item.id}
+          emoji={item.emoji}
+          onComplete={() => removeFloatingEmoji(item.id)}
+        />
+      ))}
     </View>
   );
 };

@@ -170,6 +170,7 @@ const StoryList: React.FC = () => {
       try {
         setLoading(true);
         const response = await api.get('/api/get/trending/feed');
+        console.log('Trending feeds response:', response.data.data);
 
         if (response.data?.data && Array.isArray(response.data.data)) {
           setTrendingFeeds(response.data.data);
@@ -187,7 +188,7 @@ const StoryList: React.FC = () => {
   // Convert trending feeds to story format
   const getStoryData = () => {
     // Add "Add story" item first
-    const storyData = [
+    const storyData: any[] = [
       {
         id: '1',
         title: 'Add Post',
@@ -232,24 +233,40 @@ const StoryList: React.FC = () => {
     if (item.isAddStory) {
       navigation.navigate('AddStory');
     } else if (item.feedData) {
-      // Navigate to status page with feed data
-      const feed = item.feedData;
+      // Construct full list of stories for navigation
+      const allStories = StoryData
+        .filter(story => !story.isAddStory && story.feedData)
+        .map(story => {
+          const feed = story.feedData!;
+          return {
+            contentUrl: feed.contentUrl,
+            type: feed.type,
+            userName: feed.createdByProfile?.userName || 'User',
+            profileAvatar: feed.createdByProfile?.profileAvatar,
+            userId: feed.createdByProfile?.userId, // User ID for navigation
+            _id: feed._id,
+            caption: feed.caption,
+            totalLikes: feed.totalLikes,
+            totalShares: feed.totalShares,
+            totalViews: feed.totalViews,
+            totalDownloads: feed.totalDownloads,
+          };
+        });
+
+      // Find index of clicked item
+      const initialIndex = allStories.findIndex(s => s._id === item.feedData._id);
+
       navigation.navigate('status', {
-        name: feed.createdByProfile?.userName || 'User',
-        image: feed.createdByProfile?.profileAvatar
-          ? { uri: feed.createdByProfile.profileAvatar }
+        statusData: allStories,
+        initialIndex: initialIndex !== -1 ? initialIndex : 0,
+        // Fallback params (will be overridden by dynamic logic in Status.tsx)
+        name: item.feedData.createdByProfile?.userName || 'User',
+        image: item.feedData.createdByProfile?.profileAvatar
+          ? { uri: item.feedData.createdByProfile.profileAvatar }
           : IMAGES.profile,
-        statusData: feed.contentUrl ? [{ uri: feed.contentUrl }] : [],
-        type: feed.type,
-        contentUrl: feed.contentUrl,
-        isVideo: feed.type === 'video',
-        profileAvatar: feed.createdByProfile?.profileAvatar,
-        feedId: feed._id,
-        caption: feed.caption,
-        totalLikes: feed.totalLikes,
-        totalShares: feed.totalShares,
-        totalViews: feed.totalViews,
-        totalDownloads: feed.totalDownloads,
+        type: item.feedData.type,
+        isVideo: item.feedData.type === 'video',
+        contentUrl: item.feedData.contentUrl,
       });
     }
   };

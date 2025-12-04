@@ -35,6 +35,9 @@ export type RootStackParamList = {
         totalShares?: number;
         totalViews?: number;
         totalDownloads?: number;
+        initialIndex?: number;
+        userGroups?: any[];
+        initialUserIndex?: number;
     } | undefined;
     like: undefined;
     BottomNavigation: undefined;

@@ -16,7 +16,7 @@ export const Sharebtn = (props) => {
             onPress={onPress}
         >    
             <View
-                style={[GlobalStyleSheet.followbtn, { backgroundColor:theme.dark ? 'rgba(255,255,255,.1)': white === true ? '#fff': '#EFF3FA' }]}
+                style={[GlobalStyleSheet.followbtn, { backgroundColor:theme.dark ? 'rgba(255,255,255,.1)': white === true ? '#fff': '#d1e7c9ff' }]}
             >
                 <Text style={[GlobalStyleSheet.sharebtnTxt,{color:colors.title}]}>{title}</Text>
             </View>

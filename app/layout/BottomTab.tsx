@@ -143,11 +143,11 @@ const BottomTab = ({ state, descriptors, navigation, postListRef }: Props) => {
   const getIconName = (label: string, isCreator: boolean) => {
     switch (label) {
       case 'Home':
-        return 'home';
+        return 'house';
       case 'Search':
         return 'search';
       case 'Reels':
-        return isCreator ? 'add' : 'ondemand-video';
+        return isCreator ? 'add' : 'video-collection';
       case 'Chat':
         return isCreator ? 'ondemand-video' : 'emoji-events';
       case 'Profile':

@@ -19,7 +19,7 @@ import {
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { COLORS, FONTS, IMAGES, SIZES } from '../../constants/theme';
 import LikeBtn from '../../components/likebtn/LikeBtn';
-import { useTheme } from '@react-navigation/native';
+import { useTheme, useFocusEffect } from '@react-navigation/native';
 import PostoptionSheet from '../../components/bottomsheet/PostoptionSheet';
 import { GlobalStyleSheet } from '../../constants/styleSheet';
 
@@ -27,41 +27,199 @@ const width = Dimensions.get('screen').width;
 const height = Dimensions.get('screen').height;
 
 const Status = ({ route, navigation }: any) => {
-    const { name, image, statusData, type, isVideo, contentUrl } = route.params;
+    const { name, image, statusData, type, isVideo, contentUrl, initialIndex = 0 } = route.params;
 
     const moresheet = useRef<any>();
     const videoRef = useRef<Video>(null);
 
-    const [current, setCurrent] = useState({ data: statusData[0], index: 0 });
+    // Group stories by user
+    const groupStoriesByUser = () => {
+        const userGroups: any[] = [];
+        const userMap = new Map();
+
+        statusData.forEach((story: any) => {
+            const userId = story.createdBy || story.userName || 'unknown';
+
+            if (!userMap.has(userId)) {
+                userMap.set(userId, {
+                    userId,
+                    userName: story.userName || name,
+                    profileAvatar: story.profileAvatar,
+                    stories: []
+                });
+            }
+
+            userMap.get(userId).stories.push(story);
+        });
+
+        userMap.forEach(value => userGroups.push(value));
+        return userGroups;
+    };
+
+    const userGroups = groupStoriesByUser();
+
+    // Find which user group contains the initial story
+    const findInitialUserIndex = () => {
+        let storyCount = 0;
+        for (let i = 0; i < userGroups.length; i++) {
+            const userStoryCount = userGroups[i].stories.length;
+            if (initialIndex < storyCount + userStoryCount) {
+                return {
+                    userIndex: i,
+                    storyIndex: initialIndex - storyCount
+                };
+            }
+            storyCount += userStoryCount;
+        }
+        return { userIndex: 0, storyIndex: 0 };
+    };
+
+    const initialPosition = findInitialUserIndex();
+
+    const [currentUserIndex, setCurrentUserIndex] = useState(initialPosition.userIndex);
+    const [currentStoryIndex, setCurrentStoryIndex] = useState(initialPosition.storyIndex);
     const [isPlaying, setIsPlaying] = useState(true);
     const [videoLoading, setVideoLoading] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [videoDuration, setVideoDuration] = useState(5000); // Default 5 seconds for images
 
-    // Determine if current item is a video
-    const currentIsVideo = isVideo || type === 'video';
+    // Animation values for Instagram-like transitions
+    const slideAnim = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const profileScaleAnim = useRef(new Animated.Value(1)).current;
+
+    // Get current user and story
+    const currentUser = userGroups[currentUserIndex];
+    const currentStories = currentUser?.stories || [];
+    const currentItem = currentStories[currentStoryIndex];
+
+    // Derived properties for current item
+    const currentUri = currentItem?.contentUrl || currentItem?.uri || currentItem;
+    const currentIsVideo = currentItem?.type ? currentItem.type === 'video' : (isVideo || type === 'video');
+    const displayName = currentUser?.userName || name;
+    const displayImage = currentUser?.profileAvatar ? { uri: currentUser.profileAvatar } : image;
+
+    // Animate when user changes
+    const prevUserIndexRef = useRef(currentUserIndex);
+    useEffect(() => {
+        if (prevUserIndexRef.current !== currentUserIndex) {
+            // User changed - trigger animations
+            const direction = currentUserIndex > prevUserIndexRef.current ? 1 : -1;
+
+            // Slide and fade out
+            Animated.parallel([
+                Animated.timing(slideAnim, {
+                    toValue: -direction * width,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(scaleAnim, {
+                    toValue: 0.9,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+            ]).start(() => {
+                // Reset position and slide in from opposite side
+                slideAnim.setValue(direction * width);
+
+                Animated.parallel([
+                    Animated.spring(slideAnim, {
+                        toValue: 0,
+                        tension: 65,
+                        friction: 8,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(fadeAnim, {
+                        toValue: 1,
+                        duration: 300,
+                        useNativeDriver: true,
+                    }),
+                    Animated.spring(scaleAnim, {
+                        toValue: 1,
+                        tension: 65,
+                        friction: 8,
+                        useNativeDriver: true,
+                    }),
+                ]).start();
+            });
+
+            // Profile picture pulse animation
+            Animated.sequence([
+                Animated.spring(profileScaleAnim, {
+                    toValue: 1.15,
+                    tension: 100,
+                    friction: 3,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(profileScaleAnim, {
+                    toValue: 1,
+                    tension: 100,
+                    friction: 5,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+
+            prevUserIndexRef.current = currentUserIndex;
+        }
+    }, [currentUserIndex]);
+
+    // Pause/Resume when navigating to/from AnotherProfile
+    useFocusEffect(
+        React.useCallback(() => {
+            // Screen is focused - resume playback
+            console.log('📱 Status screen focused - resuming');
+            setIsPaused(false);
+
+            // Resume video if it's a video story
+            if (currentIsVideo && videoRef.current) {
+                videoRef.current.playAsync();
+            }
+
+            return () => {
+                // Screen is unfocused - pause playback
+                console.log('📱 Status screen unfocused - pausing');
+                setIsPaused(true);
+
+                // Pause video if it's a video story
+                if (currentIsVideo && videoRef.current) {
+                    videoRef.current.pauseAsync();
+                }
+            };
+        }, [currentIsVideo])
+    );
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
 
-        // For images, auto-advance after 3 seconds
+        // For images, auto-advance after videoDuration (5 seconds)
         // For videos, let the video control the timing
         if (!currentIsVideo && !isPaused) {
             timer = setTimeout(() => {
-                if (current.index === statusData.length - 1) {
-                    return navigation.goBack();
+                // Check if this is the last story of the current user
+                if (currentStoryIndex === currentStories.length - 1) {
+                    // Move to next user or go back if no more users
+                    if (currentUserIndex === userGroups.length - 1) {
+                        return navigation.goBack();
+                    }
+                    setCurrentUserIndex(currentUserIndex + 1);
+                    setCurrentStoryIndex(0);
+                } else {
+                    // Move to next story of same user
+                    setCurrentStoryIndex(currentStoryIndex + 1);
                 }
-                setCurrent({
-                    ...current,
-                    index: current.index + 1,
-                    data: statusData[current.index + 1]
-                });
-            }, 3000);
+            }, videoDuration);
         }
 
         return () => {
             if (timer) clearTimeout(timer);
         };
-    }, [current, currentIsVideo, isPaused]);
+    }, [currentUserIndex, currentStoryIndex, currentIsVideo, isPaused, videoDuration, currentStories.length, userGroups.length]);
 
     // Handle video playback status
     const handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
@@ -69,16 +227,29 @@ const Status = ({ route, navigation }: any) => {
             setVideoLoading(false);
             setIsPlaying(status.isPlaying);
 
+            // Capture video duration for progress bar
+            if (status.durationMillis && status.durationMillis > 0) {
+                setVideoDuration(status.durationMillis);
+            }
+
             // Auto-advance when video ends
             if (status.didJustFinish && !isPaused) {
-                if (current.index === statusData.length - 1) {
-                    navigation.goBack();
+                // Check if this is the last story of the current user
+                if (currentStoryIndex === currentStories.length - 1) {
+                    // Move to next user or go back if no more users
+                    if (currentUserIndex === userGroups.length - 1) {
+                        navigation.goBack();
+                    } else {
+                        setCurrentUserIndex(currentUserIndex + 1);
+                        setCurrentStoryIndex(0);
+                        // Reset duration for next story (might be image)
+                        setVideoDuration(5000);
+                    }
                 } else {
-                    setCurrent({
-                        ...current,
-                        index: current.index + 1,
-                        data: statusData[current.index + 1]
-                    });
+                    // Move to next story of same user
+                    setCurrentStoryIndex(currentStoryIndex + 1);
+                    // Reset duration for next story (might be image)
+                    setVideoDuration(5000);
                 }
             }
         }
@@ -89,7 +260,7 @@ const Status = ({ route, navigation }: any) => {
         if (currentIsVideo && videoRef.current && !isPaused) {
             videoRef.current.playAsync();
         }
-    }, [current, currentIsVideo, isPaused]);
+    }, [currentUserIndex, currentStoryIndex, currentIsVideo, isPaused]);
 
     // Toggle play/pause for videos
     const togglePlayPause = async () => {
@@ -136,14 +307,16 @@ const Status = ({ route, navigation }: any) => {
             togglePlayPause();
         } else if (!isPaused) {
             // For images, advance to next on tap if not paused
-            if (current.index === statusData.length - 1) {
-                navigation.goBack();
+            if (currentStoryIndex === currentStories.length - 1) {
+                // Move to next user or go back if no more users
+                if (currentUserIndex === userGroups.length - 1) {
+                    navigation.goBack();
+                } else {
+                    setCurrentUserIndex(currentUserIndex + 1);
+                    setCurrentStoryIndex(0);
+                }
             } else {
-                setCurrent({
-                    ...current,
-                    index: current.index + 1,
-                    data: statusData[current.index + 1]
-                });
+                setCurrentStoryIndex(currentStoryIndex + 1);
             }
         } else {
             // If image is paused, resume auto-advance
@@ -151,31 +324,61 @@ const Status = ({ route, navigation }: any) => {
         }
     };
 
-    const ProgressView = (props: any) => {
+    const ProgressView = (props: { index: number; duration: number }) => {
         const progressAnim = useRef(new Animated.Value(0)).current;
+        const { index, duration } = props;
 
         useEffect(() => {
-            if (!isPaused) {
-                Animated.timing(
-                    progressAnim,
-                    {
-                        toValue: (width - 40) / statusData.length,
-                        duration: 3000,
-                        useNativeDriver: false
-                    }
-                ).start();
+            // Reset progress when story changes
+            progressAnim.setValue(0);
+
+            if (currentStoryIndex === index && !isPaused) {
+                // Animate progress bar to match story duration
+                Animated.timing(progressAnim, {
+                    toValue: 1,
+                    duration: duration,
+                    useNativeDriver: false,
+                }).start();
+            } else if (currentStoryIndex > index) {
+                // Story already viewed - fill completely
+                progressAnim.setValue(1);
             } else {
-                // Pause the animation
-                progressAnim.stopAnimation();
+                // Story not yet viewed - empty
+                progressAnim.setValue(0);
             }
-        }, [progressAnim, isPaused]);
+
+            return () => {
+                progressAnim.stopAnimation();
+            };
+        }, [currentStoryIndex, index, isPaused, duration]);
+
+        // Pause/resume animation
+        useEffect(() => {
+            if (currentStoryIndex === index) {
+                if (isPaused) {
+                    progressAnim.stopAnimation();
+                } else {
+                    // Resume from current value
+                    Animated.timing(progressAnim, {
+                        toValue: 1,
+                        duration: duration * (1 - (progressAnim as any)._value),
+                        useNativeDriver: false,
+                    }).start();
+                }
+            }
+        }, [isPaused]);
+
+        const barWidth = (width - 40) / currentStories.length;
 
         return (
-            <Animated.View 
-                style={{ 
-                    backgroundColor: '#fff', 
+            <Animated.View
+                style={{
+                    backgroundColor: '#fff',
                     height: 2,
-                    width: progressAnim 
+                    width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, barWidth],
+                    }),
                 }}
             />
         );
@@ -195,8 +398,13 @@ const Status = ({ route, navigation }: any) => {
                     contentContainerStyle={{ flexGrow: 1 }}
                     showsHorizontalScrollIndicator={false}
                 >
-                    <View style={styles.statusTabContainer}>
-                        {statusData.map((item: any, index: any) => (
+                    <Animated.View
+                        style={[
+                            styles.statusTabContainer,
+                            { opacity: fadeAnim }
+                        ]}
+                    >
+                        {currentStories.map((item: any, index: any) => (
                             <View
                                 key={index}
                                 style={[
@@ -207,23 +415,60 @@ const Status = ({ route, navigation }: any) => {
                                     },
                                 ]}
                             >
-                                {current.index === index ? <ProgressView /> : null}
+                                <ProgressView index={index} duration={videoDuration} />
                             </View>
                         ))}
-                    </View>
+                    </Animated.View>
+                    {/* User counter indicator */}
+                    {/* {userGroups.length > 1 && (
+                        <View style={{ alignItems: 'center', paddingVertical: 4 }}>
+                            <Text style={{ ...FONTS.fontSm, color: 'rgba(255,255,255,0.7)', fontSize: 10 }}>
+                                {currentUserIndex + 1} of {userGroups.length}
+                            </Text>
+                        </View>
+                    )} */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15 }}>
-                        <Image
-                            style={{
-                                height: 40,
-                                width: 40,
-                                borderRadius: 20,
-                                marginRight: 10,
-                            }}
-                            source={image}
-                        />
-
-                        <Text style={{ ...FONTS.font, color: COLORS.white, flex: 1 }}>{name}</Text>
                         <TouchableOpacity
+                            onPress={() => {
+                                // Navigate to AnotherProfile with the user's data
+                                const userId = currentItem?.userId;
+                                const feedId = currentItem?._id;
+
+                                if (userId && feedId) {
+                                    navigation.navigate('AnotherProfile', {
+                                        // feedId: feedId,
+                                        profileUserId: userId,
+                                        roleRef: 'User'
+                                    });
+                                } else {
+                                    console.warn('Missing userId or feedId:', { userId, feedId });
+                                }
+                            }}
+                            style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                        >
+                            <Animated.Image
+                                style={{
+                                    height: 40,
+                                    width: 40,
+                                    borderRadius: 20,
+                                    marginRight: 10,
+                                    transform: [{ scale: profileScaleAnim }],
+                                }}
+                                source={displayImage}
+                            />
+
+                            <Animated.Text
+                                style={{
+                                    ...FONTS.font,
+                                    color: COLORS.white,
+                                    flex: 1,
+                                    opacity: fadeAnim
+                                }}
+                            >
+                                {displayName}
+                            </Animated.Text>
+                        </TouchableOpacity>
+                        {/* <TouchableOpacity
                             onPress={() => moresheet.current.openSheet()}
                             style={{
                                 height: 50,
@@ -237,7 +482,7 @@ const Status = ({ route, navigation }: any) => {
                                 style={{ tintColor: '#fff', height: 20, width: 20 }}
                                 source={IMAGES.more}
                             />
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                         <TouchableOpacity
                             onPress={() => navigation.goBack()}
                             style={{
@@ -254,12 +499,23 @@ const Status = ({ route, navigation }: any) => {
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.imageContainer}>
+                    <Animated.View
+                        style={[
+                            styles.imageContainer,
+                            {
+                                transform: [
+                                    { translateX: slideAnim },
+                                    { scale: scaleAnim }
+                                ],
+                                opacity: fadeAnim,
+                            }
+                        ]}
+                    >
                         {currentIsVideo ? (
                             <>
                                 <Video
                                     ref={videoRef}
-                                    source={{ uri: contentUrl || current.data.uri }}
+                                    source={{ uri: currentUri }}
                                     style={styles.imageStyle}
                                     resizeMode={ResizeMode.CONTAIN}
                                     shouldPlay={!isPaused}
@@ -275,10 +531,10 @@ const Status = ({ route, navigation }: any) => {
                                         <ActivityIndicator size="large" color="#fff" />
                                     </View>
                                 )}
-                                
+
                                 {/* Play/Pause overlay indicator */}
                                 {!isPlaying && !videoLoading && (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         style={styles.playPauseOverlay}
                                         onPress={togglePlayPause}
                                     >
@@ -290,24 +546,29 @@ const Status = ({ route, navigation }: any) => {
                             </>
                         ) : (
                             <Image
-                                source={current.data}
+                                source={typeof currentUri === 'string' ? { uri: currentUri } : currentUri}
                                 resizeMode="contain"
                                 style={styles.imageStyle}
                             />
                         )}
-                    </View>
+                    </Animated.View>
 
                     {/* Left side controller - previous */}
                     <TouchableOpacity
                         onPress={() => {
-                            if (current.index === 0) {
-                                return navigation.goBack()
+                            if (currentStoryIndex === 0) {
+                                // Go to previous user's last story
+                                if (currentUserIndex === 0) {
+                                    return navigation.goBack();
+                                }
+                                const prevUserIndex = currentUserIndex - 1;
+                                const prevUserStories = userGroups[prevUserIndex].stories;
+                                setCurrentUserIndex(prevUserIndex);
+                                setCurrentStoryIndex(prevUserStories.length - 1);
+                            } else {
+                                // Go to previous story of same user
+                                setCurrentStoryIndex(currentStoryIndex - 1);
                             }
-                            setCurrent({
-                                ...current,
-                                index: current.index - 1,
-                                data: statusData[current.index - 1],
-                            });
                             setIsPaused(false);
                         }}
                         style={[styles.controller, { left: 0 }]}
@@ -316,14 +577,17 @@ const Status = ({ route, navigation }: any) => {
                     {/* Right side controller - next */}
                     <TouchableOpacity
                         onPress={() => {
-                            if (current.index === statusData.length - 1) {
-                                return navigation.goBack()
+                            if (currentStoryIndex === currentStories.length - 1) {
+                                // Move to next user or go back if no more users
+                                if (currentUserIndex === userGroups.length - 1) {
+                                    return navigation.goBack();
+                                }
+                                setCurrentUserIndex(currentUserIndex + 1);
+                                setCurrentStoryIndex(0);
+                            } else {
+                                // Move to next story of same user
+                                setCurrentStoryIndex(currentStoryIndex + 1);
                             }
-                            setCurrent({
-                                ...current,
-                                index: current.index + 1,
-                                data: statusData[current.index + 1],
-                            });
                             setIsPaused(false);
                         }}
                         style={[styles.controller, { right: 0 }]}
@@ -337,7 +601,7 @@ const Status = ({ route, navigation }: any) => {
                         style={[styles.centerController]}
                     />
 
-                    <View style={{ flexDirection: 'row', padding: 15, alignItems: 'center', position: 'absolute', bottom: 0, backgroundColor: '#000' }}>
+                    {/* <View style={{ flexDirection: 'row', padding: 15, alignItems: 'center', position: 'absolute', bottom: 0, backgroundColor: '#000' }}>
                         <TextInput
                             style={{
                                 ...FONTS.font,
@@ -377,7 +641,7 @@ const Status = ({ route, navigation }: any) => {
                                 source={IMAGES.send}
                             />
                         </TouchableOpacity>
-                    </View>
+                    </View> */}
                 </ScrollView>
             </KeyboardAvoidingView>
             <PostoptionSheet

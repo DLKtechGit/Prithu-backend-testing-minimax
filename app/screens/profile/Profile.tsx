@@ -383,7 +383,7 @@ const Profile = ({ navigation }: ProfileScreenProps) => {
         {/* WHITE CARD WITH AVATAR + NAME + BIO + STATS */}
         <View
           style={{
-            marginTop: -100,
+            marginTop: -170,
             paddingHorizontal: 16,
             paddingBottom: 10,
           }}

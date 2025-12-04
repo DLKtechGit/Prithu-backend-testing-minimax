@@ -51,47 +51,40 @@ const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
         return;
       }
 
-      const res = await api.get('/api/get/user/hide/post');
+      const res = await api.get('/api/get/hidden-posts');
 
       console.log('✅ Hidden Posts API Response:', res.data);
 
       // Get the data array from response
-      const allHiddenPosts = res.data.data || [];
+      const allHiddenPosts = res.data.hidden || [];
 
       console.log('Total hidden posts:', allHiddenPosts.length);
 
-      // Filter by type field from backend
-      const images = allHiddenPosts.filter((post: any) => {
-        return post.type === 'image';
-      });
+      // Filter by type via feed.type
+const images = allHiddenPosts.filter((p) => p.feed?.type === "image");
+const videos = allHiddenPosts.filter((p) => p.feed?.type === "video");
 
-      const videos = allHiddenPosts.filter((post: any) => {
-        return post.type === 'video';
-      });
+setProfilePosts(
+  images.map((p) => ({
+    id: p.feed._id,
+    image: p.feed.contentUrl,
+    title: p.feed.title || "",
+    createdAt: p.feed.createdAt,
+    createdBy: p.feed.createdByAccount,
+  }))
+);
 
-      console.log('Images:', images.length, 'Videos:', videos.length);
+setReelsPosts(
+  videos.map((p) => ({
+    id: p.feed._id,
+    thumbnail: p.feed.contentUrl,
+    views: p.feed.views || 0,
+    title: p.feed.title || "",
+    createdAt: p.feed.createdAt,
+    createdBy: p.feed.createdByAccount,
+  }))
+);
 
-      // Map with correct structure
-      setProfilePosts(
-        images.map((post: any) => ({
-          id: post._id,
-          image: post.contentUrl,
-          title: post.title || '',
-          createdAt: post.createdAt,
-          createdBy: post.createdByAccount,
-        }))
-      );
-
-      setReelsPosts(
-        videos.map((post: any) => ({
-          id: post._id,
-          thumbnail: post.contentUrl,
-          views: 0, // Views not included in hidden posts response
-          title: post.title || '',
-          createdAt: post.createdAt,
-          createdBy: post.createdByAccount,
-        }))
-      );
 
       console.log('Profile Posts set:', images.length);
       console.log('Reels Posts set:', videos.length);
@@ -247,7 +240,7 @@ const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
                       <View key={index} style={{ width: '33.33%' }}>
                         <TouchableOpacity
                           style={{ padding: 2 }}
-                          onPress={() => navigation.navigate('HiddenPostDetail', { data })}
+                          // onPress={() => navigation.navigate('HiddenPostDetail', { data })}
                         >
                           <Image
                             style={{ width: '100%', height: null, aspectRatio: 1 }}
@@ -319,7 +312,7 @@ const HiddenPosts = ({ navigation }: HiddenPostsScreenProps) => {
                     {reelsPosts.map((data: any, index) => (
                       <View key={index} style={{ width: '33.33%', padding: 2 }}>
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('HiddenReelDetail', { data })}
+                          // onPress={() => navigation.navigate('HiddenReelDetail', { data })}
                         >
                           <Image
                             style={{

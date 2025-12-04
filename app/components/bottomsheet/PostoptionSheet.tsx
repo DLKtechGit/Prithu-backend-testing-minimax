@@ -456,13 +456,13 @@ const handleSubmitReport = async () => {
                                     Not Interested
                                 </Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={GlobalStyleSheet.TouchableOpacity}>
+                            {/* <TouchableOpacity style={GlobalStyleSheet.TouchableOpacity}>
                                 <Image
                                     style={[GlobalStyleSheet.image, { tintColor: colors.title }]}
                                     source={IMAGES.copylink}
                                 />
                                 <Text style={[GlobalStyleSheet.text, { color: colors.title }]}>Copy link</Text>
-                            </TouchableOpacity>
+                            </TouchableOpacity> */}
                             {props.hidePost === false ? null : (
                                 <TouchableOpacity
                                     style={GlobalStyleSheet.TouchableOpacity}

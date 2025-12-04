@@ -20,6 +20,7 @@ import {
   Text,
   Alert,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -27,6 +28,7 @@ import PostCard from "../../components/PostCard";
 import { connectSocket } from "../../../webSocket/webScoket";
 import { startHeartbeat } from "../../../webSocket/heartBeat";
 import api from "../../../apiInterpretor/apiInterceptor";
+import { SIZES } from "../../constants/theme";
 
 // --------------------------- Types ----------------------------
 
@@ -46,11 +48,12 @@ interface Post {
   roleRef: string;
   isLiked: boolean;
   isSaved: boolean;
-  isDisliked?: boolean; // Add isDisliked to the Post interface
-  dislikesCount?: number; // Add dislikeCount (optional, if backend supports it)
+  isDisliked?: boolean;
+  dislikesCount?: number;
   primary: string;
   accent: string;
-  avatorToUse: string;
+  textColor?: string;
+  avatorToUse: string | null;
 }
 
 interface PostListProps {
@@ -203,10 +206,60 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
     const viewedPosts = useRef<Set<string>>(new Set());
     const abortControllerRef = useRef<AbortController | null>(null);
     const latestRequestIdRef = useRef<number>(0);
+    const ongoingRequestsRef = useRef<Set<string>>(new Set()); // Track ongoing requests
+
+    const [userProfile, setUserProfile] = useState<any>(null);
+    const [visibilitySettings, setVisibilitySettings] = useState<any>(null);
+
+    // Fetch user profile and visibility once
+    useEffect(() => {
+      const fetchUserData = async () => {
+        try {
+          const [profileRes, visRes] = await Promise.all([
+            api.get('/api/get/profile/detail'),
+            api.get('/api/profile/visibility')
+          ]);
+
+          if (profileRes.data?.profile) {
+            setUserProfile(profileRes.data.profile);
+          }
+
+          if (visRes.data?.success) {
+            setVisibilitySettings(visRes.data.visibility);
+          }
+        } catch (e) {
+          console.log("Error fetching user data:", e);
+        }
+      };
+      fetchUserData();
+    }, []);
 
     // --------------------------- Fetch Posts ----------------------------
 
-    const fetchPosts = useCallback(async (catId: string | null = null, pageNum: number = 1) => {
+    const fetchPosts = useCallback(async (catId: string | null = null, pageNum: number = 1, retryCount: number = 0) => {
+      const MAX_RETRIES = 3;
+      const RETRY_DELAY_BASE = 1000; // Start with 1 second
+      const CACHE_DURATION = 30000; // 30 seconds cache
+
+      // Request deduplication - prevent multiple requests for the same page
+      const requestKey = `${catId || 'all'}_${pageNum}`;
+
+      // Check cache first (only for page 1)
+      if (pageNum === 1 && lastFetchTime > 0) {
+        const timeSinceLastFetch = Date.now() - lastFetchTime;
+        if (timeSinceLastFetch < CACHE_DURATION) {
+          console.log(`💾 Using cached data (${Math.round(timeSinceLastFetch / 1000)}s old)`);
+          return;
+        }
+      }
+
+      if (ongoingRequestsRef.current.has(requestKey)) {
+        console.log(`⏸️ Request already in progress for ${requestKey}, skipping...`);
+        return;
+      }
+
+      ongoingRequestsRef.current.add(requestKey);
+
       // Create unique request ID
       const requestId = ++latestRequestIdRef.current;
 
@@ -226,6 +279,7 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         if (!token) {
           setError("Please log in to view posts");
           setPosts([]);
+          ongoingRequestsRef.current.delete(requestKey);
           return;
         }
 
@@ -241,18 +295,23 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
           ? `/api/user/get/feed/with/cat/${catId}?page=${pageNum}&limit=${limit}`
           : `/api/get/all/feeds/user?page=${pageNum}&limit=${limit}`;
 
-        console.log("Fetching posts from:", endpoint);
+        const requestStartTime = Date.now();
+        console.log(`📡 Fetching posts from: ${endpoint} (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`);
 
         const response = await api.get(endpoint, {
           signal: abortControllerRef.current.signal,
-          timeout: 10000, // 10 second timeout
+          timeout: 30000, // 30 second timeout (increased from 15s)
         });
 
-        console.log("ashik", response.data.feeds)
+        const requestDuration = Date.now() - requestStartTime;
+        console.log(`⏱️ Request completed in ${requestDuration}ms`);
+
+        console.log("✅ Posts fetched successfully:", response.data.feeds?.length || 0);
 
         // Only update if this is still the latest request
         if (requestId !== latestRequestIdRef.current) {
-          console.log("Ignoring outdated response");
+          console.log("⏭️ Ignoring outdated response");
+          ongoingRequestsRef.current.delete(requestKey);
           return;
         }
 
@@ -260,11 +319,12 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         const pagination = response.data?.pagination;
 
         if (!Array.isArray(feeds)) {
-          console.warn("Invalid feeds data received");
+          console.warn("⚠️ Invalid feeds data received");
           if (pageNum === 1) {
             setError("Invalid data format received");
             setPosts([]);
           }
+          ongoingRequestsRef.current.delete(requestKey);
           return;
         }
 
@@ -289,9 +349,10 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
             isSaved: !!item.isSaved,
             isDisliked: !!item.isDisliked || false,
             dislikesCount: item.dislikesCount || 0,
-            primary: item.themeColor?.primary || "#fff",
-            accent: item.themeColor?.accent || "#fff",
-            avatarToUse: item.avatarToUse || null, // Add this mapping
+            primary: item.themeColor?.primary || "#4A90E2",
+            accent: item.themeColor?.accent || "#50C878",
+            textColor: item.themeColor?.text || "#FFFFFF",
+            avatorToUse: item.avatarToUse || null,
           }))
           .filter((item) => item.type === "image");
 
@@ -304,35 +365,68 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         // Use backend's hasMore flag if available, otherwise fallback to local calculation
         setHasMore(pagination?.hasMore ?? (mapped.length >= limit));
         setPage(pageNum);
-        console.log("Ashiking", mapped);
         console.log("📊 Pagination:", pagination);
         setLastFetchTime(Date.now());
       } catch (err: any) {
         // Check if request was cancelled (axios cancellation)
         if (axios.isCancel(err) || err.name === 'CanceledError' || err.message === 'canceled') {
-          console.log("Request cancelled");
+          console.log("🚫 Request cancelled");
+          ongoingRequestsRef.current.delete(requestKey);
           return;
         }
 
-        console.error("Error fetching posts:", err.response?.data || err.message);
+        console.error("❌ Error fetching posts:", err.response?.data || err.message);
 
+        // Determine if we should retry
+        const isNetworkError = !err.response && (err.message === 'Network Error' || err.code === 'ERR_NETWORK');
+        const isTimeout = err.code === 'ECONNABORTED';
+        const is5xxError = err.response?.status >= 500;
+
+        const shouldRetry = (isNetworkError || isTimeout || is5xxError) && retryCount < MAX_RETRIES;
+
+        if (shouldRetry) {
+          // Exponential backoff: 1s, 2s, 4s
+          const retryDelay = RETRY_DELAY_BASE * Math.pow(2, retryCount);
+          console.log(`🔄 Retrying in ${retryDelay}ms... (Attempt ${retryCount + 2}/${MAX_RETRIES + 1})`);
+
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+          // Remove from ongoing before retry
+          ongoingRequestsRef.current.delete(requestKey);
+
+          // Retry the request
+          return fetchPosts(catId, pageNum, retryCount + 1);
+        }
+
+        // If we've exhausted retries or it's a non-retryable error, show error
         let errorMessage = "Failed to load posts. Please try again.";
 
         if (err.response?.status === 401) {
           errorMessage = "Session expired. Please log in again.";
         } else if (err.response?.status === 404) {
           errorMessage = "Posts not found.";
-        } else if (err.code === 'ECONNABORTED') {
-          errorMessage = "Request timed out. Please check your connection.";
+        } else if (isTimeout) {
+          errorMessage = "Connection timed out. Please check your internet.";
+        } else if (isNetworkError) {
+          errorMessage = "No internet connection. Please check your network.";
+        } else if (is5xxError) {
+          errorMessage = "Server error. Please try again later.";
         }
 
         if (pageNum === 1) {
           setError(errorMessage);
           setPosts([]);
+        } else {
+          // For pagination errors, just stop loading but keep existing posts
+          console.log("⚠️ Pagination error, keeping existing posts");
         }
       } finally {
         setLoading(false);
         setIsFetchingMore(false);
+        // Remove from ongoing requests
+        const requestKey = `${catId || 'all'}_${pageNum}`;
+        ongoingRequestsRef.current.delete(requestKey);
       }
     }, []); // Memoize to prevent recreation
 
@@ -384,10 +478,13 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
         .filter((id): id is string => !!id);
       setVisibleBoxes(visible);
 
-      // Pagination Logic
+      // Pagination Logic - improved to prevent multiple triggers
       const isCloseToBottom = layoutMeasurement.height + scrollY >= contentSize.height - windowHeight * 1.5;
-      if (isCloseToBottom && hasMore && !isFetchingMore && !loading) {
-        console.log("Fetching more posts... Page:", page + 1);
+      const requestKey = `${categoryId || 'all'}_${page + 1}`;
+      const isRequestOngoing = ongoingRequestsRef.current.has(requestKey);
+
+      if (isCloseToBottom && hasMore && !isFetchingMore && !loading && !isRequestOngoing) {
+        console.log("📄 Fetching more posts... Page:", page + 1);
         fetchPosts(categoryId ?? null, page + 1);
       }
     };
@@ -536,18 +633,21 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
 
     return (
       <View>
-        {posts.map((post) => (
+       {posts.map((post, index) => (
+
           <View
             key={post._id}
             onLayout={handleBoxLayout(post._id)}
             style={{ width: "100%", marginTop: 10 }}
           >
 
+
             <MemoPostCard
               id={post._id}
+              postIndex={index}
               themeColor={post.primary}
               textColor={post.textColor}
-              framedAvatar={post.avatorToUse}
+              avatarToUse={post.avatorToUse}
               name={post.creatorUsername}
               profileimage={post.creatorAvatar}
               date={post.timeAgo}
@@ -571,6 +671,8 @@ const PostList = forwardRef<PostListHandle, PostListProps>(
               isSaved={post.isSaved}
               isDisliked={post.isDisliked || false}
               dislikesCount={post.dislikesCount || 0}
+              currentUserProfile={userProfile}
+              visibilitySettings={visibilitySettings}
               onDislikeUpdate={(newIsDisliked, newDislikeCount) =>
                 handleDislikeUpdate(post._id, newIsDisliked, newDislikeCount)
               }
@@ -681,6 +783,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  skeletonMoreIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#e0e0e0",
+  },
+  skeletonActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#e0e0e0",
   },
 });
 
